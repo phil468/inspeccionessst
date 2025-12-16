@@ -1,0 +1,90 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/roles"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Editar Rol' : 'Nuevo Rol' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form [formGroup]="rolForm" (ngSubmit)="guardar()">
+    <ion-list>
+      <ion-item>
+        <ion-input
+          label="Nombre del rol"
+          labelPlacement="floating"
+          formControlName="name"
+          type="text"
+          placeholder="Ej: Supervisor"
+        ></ion-input>
+      </ion-item>
+      <ion-note color="danger" *ngIf="rolForm.get('name')?.invalid && rolForm.get('name')?.touched">
+        El nombre es requerido (mínimo 3 caracteres)
+      </ion-note>
+
+      <ion-item>
+        <ion-textarea
+          label="Descripción"
+          labelPlacement="floating"
+          formControlName="description"
+          rows="3"
+          placeholder="Descripción del rol"
+        ></ion-textarea>
+      </ion-item>
+      <ion-note color="danger" *ngIf="rolForm.get('description')?.invalid && rolForm.get('description')?.touched">
+        La descripción es requerida
+      </ion-note>
+    </ion-list>
+
+    <ion-list-header>
+      <ion-label>
+        <h2>Permisos</h2>
+        <p>{{ selectedPermissions.length }} permisos seleccionados</p>
+      </ion-label>
+    </ion-list-header>
+
+    <ion-accordion-group>
+      <ion-accordion *ngFor="let group of permissionGroups" [value]="group.resource">
+        <ion-item slot="header">
+          <ion-label>
+            <h3>{{ group.resource | titlecase }}</h3>
+            <p>{{ group.permissions.length }} permisos</p>
+          </ion-label>
+          <ion-button
+            slot="end"
+            fill="clear"
+            size="small"
+            (click)="selectAllInGroup(group); $event.stopPropagation()"
+          >
+            {{ isGroupFullySelected(group) ? 'Deseleccionar' : 'Seleccionar' }} todos
+          </ion-button>
+        </ion-item>
+
+        <div slot="content" class="permissions-content">
+          <ion-item *ngFor="let permission of group.permissions" lines="none">
+            <ion-checkbox
+              slot="start"
+              [checked]="isPermissionSelected(permission.id!)"
+              (ionChange)="togglePermission(permission.id!)"
+            ></ion-checkbox>
+            <ion-label>
+              <h3>{{ permission.action | titlecase }}</h3>
+              <p>{{ permission.description }}</p>
+            </ion-label>
+          </ion-item>
+        </div>
+      </ion-accordion>
+    </ion-accordion-group>
+
+    <div class="form-buttons">
+      <ion-button expand="block" type="submit" [disabled]="isLoading">
+        <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
+        <span *ngIf="!isLoading">{{ isEditMode ? 'Actualizar' : 'Crear' }}</span>
+      </ion-button>
+      <ion-button expand="block" fill="outline" (click)="volver()" [disabled]="isLoading">
+        Cancelar
+      </ion-button>
+    </div>
+  </form>
+</ion-content>

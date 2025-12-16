@@ -1,0 +1,71 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Fundos</ion-title>
+    <ion-buttons slot="end" *ngIf="hasPermission('fundos.create')">
+      <ion-button (click)="nuevoFundo()">
+        <ion-icon slot="icon-only" name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterFundos($event)"
+      placeholder="Buscar fundo"
+      animated>
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="loadFundos()">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <ion-list *ngIf="!loading && fundosFiltrados.length > 0">
+    <ion-item *ngFor="let fundo of fundosFiltrados">
+      <ion-label>
+        <h2>{{ fundo.nombre }}</h2>
+        <p *ngIf="fundo.ubicacion">{{ fundo.ubicacion }}</p>
+        <p class="ion-text-wrap">
+          <ion-badge [color]="fundo.activo ? 'success' : 'danger'">
+            {{ fundo.activo ? 'Activo' : 'Inactivo' }}
+          </ion-badge>
+        </p>
+      </ion-label>
+      
+      <ion-buttons slot="end" *ngIf="hasPermission('fundos.update') || hasPermission('fundos.delete')">
+        <ion-button fill="clear" color="primary" (click)="editarFundo(fundo.id)" *ngIf="hasPermission('fundos.update')">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="danger" (click)="eliminarFundo(fundo)" *ngIf="hasPermission('fundos.delete')">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+  </ion-list>
+
+  <div class="empty-state" *ngIf="!loading && fundosFiltrados.length === 0">
+    <ion-icon name="search-outline" size="large"></ion-icon>
+    <h2>No hay fundos</h2>
+    <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
+    <p *ngIf="!searchTerm">Aún no hay fundos registrados</p>
+    <ion-button (click)="nuevoFundo()" *ngIf="hasPermission('fundos.create') && !searchTerm">
+      <ion-icon slot="start" name="add"></ion-icon>
+      Nuevo Fundo
+    </ion-button>
+  </div>
+
+  <ion-spinner *ngIf="loading" name="crescent" class="center-spinner"></ion-spinner>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end" *ngIf="hasPermission('fundos.create')">
+    <ion-fab-button (click)="nuevoFundo()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

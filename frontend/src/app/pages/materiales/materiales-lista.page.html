@@ -1,0 +1,71 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Materiales</ion-title>
+    <ion-buttons slot="end" *ngIf="hasPermission('materiales.create')">
+      <ion-button (click)="nuevoMaterial()">
+        <ion-icon slot="icon-only" name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterMateriales($event)"
+      placeholder="Buscar por código, nombre o descripción"
+      animated>
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="loadMateriales()">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <ion-list *ngIf="!loading && materialesFiltrados.length > 0">
+    <ion-item *ngFor="let material of materialesFiltrados">
+      <ion-label>
+        <h2>{{ material.codigo }} - {{ material.nombre }}</h2>
+        <p *ngIf="material.descripcion">{{ material.descripcion }}</p>
+        <p class="ion-text-wrap">
+          <ion-badge [color]="material.activo ? 'success' : 'danger'">
+            {{ material.activo ? 'Activo' : 'Inactivo' }}
+          </ion-badge>
+        </p>
+      </ion-label>
+      
+      <ion-buttons slot="end" *ngIf="hasPermission('materiales.update') || hasPermission('materiales.delete')">
+        <ion-button fill="clear" color="primary" (click)="editarMaterial(material.id)" *ngIf="hasPermission('materiales.update')">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="danger" (click)="eliminarMaterial(material)" *ngIf="hasPermission('materiales.delete')">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+  </ion-list>
+
+  <div class="empty-state" *ngIf="!loading && materialesFiltrados.length === 0">
+    <ion-icon name="search-outline" size="large"></ion-icon>
+    <h2>No hay materiales</h2>
+    <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
+    <p *ngIf="!searchTerm">Aún no hay materiales registrados</p>
+    <ion-button (click)="nuevoMaterial()" *ngIf="hasPermission('materiales.create') && !searchTerm">
+      <ion-icon slot="start" name="add"></ion-icon>
+      Nuevo Material
+    </ion-button>
+  </div>
+
+  <ion-spinner *ngIf="loading" name="crescent" class="center-spinner"></ion-spinner>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end" *ngIf="hasPermission('materiales.create')">
+    <ion-fab-button (click)="nuevoMaterial()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

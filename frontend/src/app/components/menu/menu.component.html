@@ -1,0 +1,139 @@
+<ion-menu side="end" menuId="main-menu" contentId="main-content">
+  <ion-header>
+    <ion-toolbar color="primary">
+      <ion-title>Menú</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-content>
+    <!-- User Info -->
+    <div class="user-info">
+      <ion-icon name="person-circle-outline" class="user-avatar"></ion-icon>
+      <div class="user-details">
+        <h3>{{ userName }}</h3>
+        <!-- <p>{{ userEmail }}</p> -->
+      </div>
+    </div>
+
+    <ion-list>
+      <!-- Inicio -->
+      <ion-item button (click)="navigateTo('/home')">
+        <ion-icon slot="start" name="home-outline"></ion-icon>
+        <ion-label>Inicio</ion-label>
+      </ion-item>
+
+      <!-- Registros -->
+      <ion-item button (click)="navigateTo('/registro-lista')">
+        <ion-icon slot="start" name="list-outline"></ion-icon>
+        <ion-label>Registros</ion-label>
+      </ion-item>
+
+      <!-- Mantenimiento - Accordion con submenú -->
+      <ion-accordion-group>
+        <ion-accordion value="mantenimiento">
+          <ion-item slot="header">
+            <ion-icon slot="start" name="settings-outline"></ion-icon>
+            <ion-label>Mantenimiento</ion-label>
+          </ion-item>
+
+          <div slot="content" class="submenu">
+            <!-- Campañas -->
+            <ion-item
+              *ngIf="hasPermission('campanias.view')"
+              button
+              (click)="navigateTo('/campanias')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="flask-outline"></ion-icon>
+              <ion-label>Campañas</ion-label>
+            </ion-item>
+
+            <!-- Materiales -->
+            <ion-item
+              *ngIf="hasPermission('materiales.view')"
+              button
+              (click)="navigateTo('/materiales')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="cube-outline"></ion-icon>
+              <ion-label>Materiales</ion-label>
+            </ion-item>
+
+            <!-- Fundos -->
+            <ion-item
+              *ngIf="hasPermission('fundos.view')"
+              button
+              (click)="navigateTo('/fundos')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="business-outline"></ion-icon>
+              <ion-label>Fundos</ion-label>
+            </ion-item>
+
+            <!-- Lotes -->
+            <ion-item
+              *ngIf="hasPermission('lotes.view')"
+              button
+              (click)="navigateTo('/lotes')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="grid-outline"></ion-icon>
+              <ion-label>Lotes</ion-label>
+            </ion-item>
+
+            <!-- Motivos -->
+            <ion-item
+              *ngIf="hasPermission('motivos.view')"
+              button
+              (click)="navigateTo('/motivos')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="flag-outline"></ion-icon>
+              <ion-label>Motivos</ion-label>
+            </ion-item>
+          </div>
+        </ion-accordion>
+
+        <!-- Administración - Accordion con submenú -->
+        <ion-accordion value="administracion">
+          <ion-item slot="header">
+            <ion-icon slot="start" name="shield-outline"></ion-icon>
+            <ion-label>Administración</ion-label>
+          </ion-item>
+
+          <div slot="content" class="submenu">
+            <!-- Usuarios -->
+            <ion-item
+              *ngIf="hasPermission('users.manage')"
+              button
+              (click)="navigateTo('/usuarios')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="people-outline"></ion-icon>
+              <ion-label>Usuarios</ion-label>
+            </ion-item>
+
+            <!-- Roles y Permisos -->
+            <ion-item
+              *ngIf="hasPermission('roles.manage')"
+              button
+              (click)="navigateTo('/roles')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="key-outline"></ion-icon>
+              <ion-label>Roles y Permisos</ion-label>
+            </ion-item>
+          </div>
+        </ion-accordion>
+      </ion-accordion-group>
+    </ion-list>
+
+    <!-- Logout Button -->
+    <div class="logout-section">
+      <ion-button expand="block" color="danger" (click)="logout()">
+        <ion-icon slot="start" name="log-out-outline"></ion-icon>
+        Cerrar Sesión
+      </ion-button>
+    </div>
+  </ion-content>
+</ion-menu>

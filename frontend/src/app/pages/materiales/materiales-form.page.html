@@ -1,0 +1,57 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Editar Material' : 'Nuevo Material' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form [formGroup]="materialForm" (ngSubmit)="onSubmit()">
+    <ion-list>
+      <ion-item>
+        <ion-input
+          label="Código"
+          labelPlacement="floating"
+          type="text"
+          formControlName="codigo"
+          placeholder="Código del material">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input
+          label="Nombre"
+          labelPlacement="floating"
+          type="text"
+          formControlName="nombre"
+          placeholder="Nombre del material">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="Descripción"
+          labelPlacement="floating"
+          formControlName="descripcion"
+          rows="4"
+          placeholder="Descripción (opcional)">
+        </ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-toggle formControlName="activo">Activo</ion-toggle>
+      </ion-item>
+    </ion-list>
+
+    <div class="button-container">
+      <ion-button expand="block" type="submit" [disabled]="materialForm.invalid">
+        <ion-icon slot="start" name="save-outline"></ion-icon>
+        {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+      </ion-button>
+    </div>
+  </form>
+</ion-content>

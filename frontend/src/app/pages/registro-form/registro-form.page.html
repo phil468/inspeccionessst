@@ -1,0 +1,148 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Editar Registro' : 'Nuevo Registro' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form [formGroup]="registroForm" (ngSubmit)="onSubmit()">
+    <ion-list>
+      <!-- Campaña -->
+      <ion-item>
+        <ion-select 
+          label="Campaña" 
+          labelPlacement="floating"
+          formControlName="campania_id"
+          interface="action-sheet"
+          placeholder="Seleccione una campaña">
+          <ion-select-option *ngFor="let campania of campanias" [value]="campania.id">
+            {{ campania.nombre }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Material con búsqueda -->
+      <ion-item>
+        <ion-label position="floating">Material</ion-label>
+        <ion-select 
+          formControlName="material_id"
+          interface="alert"
+          placeholder="Seleccione un material">
+          <ion-select-option *ngFor="let material of materialesFiltrados" [value]="material.id">
+            {{ material.codigo }} - {{ material.nombre }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Búsqueda de material -->
+      <ion-item>
+        <ion-input 
+          label="Buscar Material" 
+          labelPlacement="floating"
+          type="text"
+          (ionInput)="filterMateriales($event)"
+          placeholder="Código, nombre o descripción">
+        </ion-input>
+      </ion-item>
+
+      <!-- Cantidad -->
+      <ion-item>
+        <ion-input 
+          label="Cantidad" 
+          labelPlacement="floating"
+          type="number"
+          formControlName="cantidad"
+          placeholder="0.00"
+          step="0.01"
+          min="0">
+        </ion-input>
+      </ion-item>
+
+      <!-- Número de Tractor -->
+      <ion-item>
+        <ion-input 
+          label="Número de Tractor" 
+          labelPlacement="floating"
+          type="text"
+          formControlName="numero_tractor"
+          placeholder="Ej: T-001">
+        </ion-input>
+      </ion-item>
+
+      <!-- Fundo -->
+      <ion-item>
+        <ion-select 
+          label="Fundo" 
+          labelPlacement="floating"
+          formControlName="fundo_id"
+          interface="action-sheet"
+          placeholder="Seleccione un fundo">
+          <ion-select-option *ngFor="let fundo of fundos" [value]="fundo.id">
+            {{ fundo.nombre }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Lote -->
+      <ion-item>
+        <ion-select 
+          label="Lote" 
+          labelPlacement="floating"
+          formControlName="lote_id"
+          interface="action-sheet"
+          placeholder="Seleccione un lote"
+          [disabled]="!registroForm.get('fundo_id')?.value">
+          <ion-select-option *ngFor="let lote of lotesFiltrados" [value]="lote.id">
+            {{ lote.nombre }}
+          </ion-select-option>
+        </ion-select>
+        <ion-note slot="helper" *ngIf="!registroForm.get('fundo_id')?.value">
+          Primero seleccione un fundo
+        </ion-note>
+        <ion-note slot="helper" *ngIf="registroForm.get('fundo_id')?.value && lotesFiltrados.length === 0">
+          No hay lotes para este fundo
+        </ion-note>
+      </ion-item>
+
+      <!-- Motivo -->
+      <ion-item>
+        <ion-select 
+          label="Motivo" 
+          labelPlacement="floating"
+          formControlName="motivo_id"
+          interface="action-sheet"
+          placeholder="Seleccione un motivo">
+          <ion-select-option *ngFor="let motivo of motivos" [value]="motivo.id">
+            {{ motivo.nombre }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Observaciones -->
+      <ion-item>
+        <ion-textarea 
+          label="Observaciones" 
+          labelPlacement="floating"
+          formControlName="observaciones"
+          rows="4"
+          placeholder="Observaciones adicionales (opcional)">
+        </ion-textarea>
+      </ion-item>
+    </ion-list>
+
+    <div class="button-container">
+      <ion-button 
+        expand="block" 
+        type="submit"
+        [disabled]="registroForm.invalid">
+        <ion-icon slot="start" name="save-outline"></ion-icon>
+        Guardar Registro
+      </ion-button>
+    </div>
+  </form>
+</ion-content>

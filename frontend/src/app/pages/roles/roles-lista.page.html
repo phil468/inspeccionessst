@@ -1,0 +1,64 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Roles y Permisos</ion-title>
+    <ion-buttons slot="end" *ngIf="hasPermission('roles.manage')">
+      <ion-button (click)="nuevo()">
+        <ion-icon slot="icon-only" name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterRoles()"
+      placeholder="Buscar rol..."
+      debounce="300"
+    ></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="loadRoles()">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <ion-list *ngIf="!isLoading && rolesFiltrados.length > 0">
+    <ion-item *ngFor="let rol of rolesFiltrados" lines="full">
+      <ion-label>
+        <h2>{{ rol.name }}</h2>
+        <p class="ion-text-wrap">{{ rol.description }}</p>
+        <p *ngIf="rol.permissions && rol.permissions.length > 0">
+          <ion-badge color="medium">
+            {{ rol.permissions.length }} permisos
+          </ion-badge>
+        </p>
+      </ion-label>
+      <ion-buttons slot="end" *ngIf="hasPermission('roles.manage')">
+        <ion-button fill="clear" color="primary" (click)="editar(rol.id!)">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="danger" (click)="eliminar(rol)">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+  </ion-list>
+
+  <div *ngIf="!isLoading && rolesFiltrados.length === 0" class="empty-state">
+    <ion-icon name="shield-outline" class="empty-icon"></ion-icon>
+    <h2>No hay roles</h2>
+    <p>{{ searchTerm ? 'No se encontraron resultados' : 'Agrega el primer rol' }}</p>
+    <ion-button *ngIf="!searchTerm && hasPermission('roles.manage')" (click)="nuevo()">
+      <ion-icon slot="start" name="add"></ion-icon>
+      Nuevo Rol
+    </ion-button>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <ion-spinner></ion-spinner>
+    <p>Cargando roles...</p>
+  </div>
+</ion-content>

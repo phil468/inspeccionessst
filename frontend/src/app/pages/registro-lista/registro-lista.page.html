@@ -1,0 +1,117 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Historial de Registros</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="syncAll()" [disabled]="!isOnline">
+        <ion-icon slot="icon-only" name="sync-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Barra de búsqueda -->
+  <ion-toolbar>
+    <ion-searchbar 
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterRegistros($event)"
+      placeholder="Buscar por material, tractor, cantidad u observaciones"
+      animated>
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Sync Status -->
+  <div class="sync-status-bar">
+    <ion-chip [color]="isOnline ? 'success' : 'danger'">
+      <ion-icon [name]="isOnline ? 'wifi-outline' : 'wifi-outline'"></ion-icon>
+      <ion-label>{{ isOnline ? 'En línea' : 'Sin conexión' }}</ion-label>
+    </ion-chip>
+    <ion-chip color="primary">
+      <ion-icon name="stats-chart-outline"></ion-icon>
+      <ion-label>Total: {{ syncStatus.total }}</ion-label>
+    </ion-chip>
+    <ion-chip color="success">
+      <ion-icon name="cloud-done-outline"></ion-icon>
+      <ion-label>Sync: {{ syncStatus.sincronizados }}</ion-label>
+    </ion-chip>
+    <ion-chip color="warning">
+      <ion-icon name="cloud-upload-outline"></ion-icon>
+      <ion-label>Pend: {{ syncStatus.pendientes }}</ion-label>
+    </ion-chip>
+  </div>
+
+  <!-- Lista de registros -->
+  <div class="registros-container" *ngIf="registrosAgrupados.length > 0">
+    <div *ngFor="let grupo of registrosAgrupados" class="fecha-group">
+      <h3 class="fecha-header">{{ grupo.fecha }}</h3>
+      
+      <ion-card 
+        *ngFor="let registro of grupo.registros" 
+        class="registro-card">
+        <ion-card-content>
+          <div class="registro-header">
+            <div class="registro-info" (click)="verDetalle(registro)">
+              <h4>{{ registro.material?.codigo }} - {{ registro.material?.nombre }}</h4>
+              <p class="registro-time">
+                {{ registro.fecha_registro  | date:'yyyy-MM-dd hh:mm a' }} 
+              </p>
+            </div>
+            <div class="registro-actions">
+              <ion-button 
+                *ngIf="canEdit()" 
+                fill="clear" 
+                size="large"
+                (click)="editarRegistro(registro, $event)">
+                <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+              </ion-button>
+              <ion-icon 
+                [name]="getSyncIcon(registro)" 
+                [color]="getSyncColor(registro)"
+                size="large">
+              </ion-icon>
+            </div>
+          </div>
+
+          <div class="registro-details" (click)="verDetalle(registro)">
+            <div class="detail-row">
+              <span class="detail-label">Cantidad:</span>
+              <span class="detail-value">{{ registro.cantidad }}</span>
+            </div>
+            <div class="detail-row" *ngIf="registro.observaciones">
+              <span class="detail-label">Obs:</span>
+              <span class="detail-value">{{ registro.observaciones }}</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="registrosAgrupados.length === 0">
+    <ion-icon name="document-text-outline" size="large"></ion-icon>
+    <h2>No hay registros</h2>
+    <p>Aún no has creado ningún registro de calibración</p>
+    <ion-button (click)="goToForm()">
+      <ion-icon slot="start" name="add-outline"></ion-icon>
+      Crear Primer Registro
+    </ion-button>
+  </div>
+
+  <!-- FAB para crear nuevo registro -->
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button (click)="goToForm()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

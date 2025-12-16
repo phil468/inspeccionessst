@@ -1,0 +1,49 @@
+.user-info {
+  padding: 20px;
+  background: var(--ion-color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-avatar {
+  font-size: 60px;
+  color: white;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-details h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.user-details p {
+  margin: 5px 0 0 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.submenu {
+  background: var(--ion-color-light);
+  padding-left: 20px;
+}
+
+.submenu ion-item {
+  --padding-start: 10px;
+  font-size: 14px;
+}
+
+.logout-section {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: var(--ion-background-color);
+  border-top: 1px solid var(--ion-color-light);
+}

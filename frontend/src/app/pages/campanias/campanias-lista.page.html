@@ -1,0 +1,71 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Campañas</ion-title>
+    <ion-buttons slot="end" *ngIf="hasPermission('campanias.create')">
+      <ion-button (click)="nuevaCampania()">
+        <ion-icon slot="icon-only" name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterCampanias($event)"
+      placeholder="Buscar campaña"
+      animated>
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="loadCampanias()">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <ion-list *ngIf="!loading && campaniasFiltradas.length > 0">
+    <ion-item *ngFor="let campania of campaniasFiltradas">
+      <ion-label>
+        <h2>{{ campania.nombre }}</h2>
+        <p *ngIf="campania.descripcion">{{ campania.descripcion }}</p>
+        <p class="ion-text-wrap">
+          <ion-badge [color]="campania.activo ? 'success' : 'danger'">
+            {{ campania.activo ? 'Activa' : 'Inactiva' }}
+          </ion-badge>
+        </p>
+      </ion-label>
+      
+      <ion-buttons slot="end" *ngIf="hasPermission('campanias.update') || hasPermission('campanias.delete')">
+        <ion-button fill="clear" color="primary" (click)="editarCampania(campania.id)" *ngIf="hasPermission('campanias.update')">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="danger" (click)="eliminarCampania(campania)" *ngIf="hasPermission('campanias.delete')">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+  </ion-list>
+
+  <div class="empty-state" *ngIf="!loading && campaniasFiltradas.length === 0">
+    <ion-icon name="search-outline" size="large"></ion-icon>
+    <h2>No hay campañas</h2>
+    <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
+    <p *ngIf="!searchTerm">Aún no hay campañas registradas</p>
+    <ion-button (click)="nuevaCampania()" *ngIf="hasPermission('campanias.create') && !searchTerm">
+      <ion-icon slot="start" name="add"></ion-icon>
+      Nueva Campaña
+    </ion-button>
+  </div>
+
+  <ion-spinner *ngIf="loading" name="crescent" class="center-spinner"></ion-spinner>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end" *ngIf="hasPermission('campanias.create')">
+    <ion-fab-button (click)="nuevaCampania()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

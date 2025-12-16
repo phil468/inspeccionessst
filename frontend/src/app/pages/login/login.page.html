@@ -1,0 +1,33 @@
+<ion-content class="ion-padding">
+  <div class="login-container">
+    <div class="logo-container">
+      <ion-icon name="leaf-outline" class="logo-icon"></ion-icon>
+      <h1>Calibración</h1>
+      <p>Sistema de Registro Agrícola</p>
+    </div>
+
+    <div class="login-card">
+      <h2>Iniciar Sesión</h2>
+      <p class="subtitle">Usa tu cuenta corporativa de Microsoft</p>
+
+      <ion-button 
+        expand="block" 
+        (click)="loginWithMicrosoft()"
+        [disabled]="loading"
+        class="microsoft-button">
+        <ion-icon slot="start" name="logo-microsoft"></ion-icon>
+        <span *ngIf="!loading">Iniciar sesión con Microsoft</span>
+        <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+      </ion-button>
+
+      <div class="info-text">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <p>Serás redirigido a Microsoft para autenticarte de forma segura</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Vanguard Fresh © 2025</p>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,19 @@
+.form-buttons {
+  padding: 20px;
+}
+
+ion-note {
+  padding-left: 16px;
+  padding-top: 4px;
+  display: block;
+  font-size: 12px;
+}
+
+.permissions-content {
+  background-color: var(--ion-color-light);
+  padding: 10px 0;
+}
+
+ion-accordion ion-item[slot="header"] {
+  --background: var(--ion-color-light-tint);
+}

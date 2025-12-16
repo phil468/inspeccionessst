@@ -1,0 +1,41 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Mantenimiento</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="maintenance-container">
+    <div class="header-section">
+      <h2>Administración del Sistema</h2>
+      <p>Gestione los catálogos y configuraciones del sistema</p>
+    </div>
+
+    <ion-grid>
+      <ion-row>
+        <ion-col size="12" size-md="6" size-lg="4" *ngFor="let item of availableItems">
+          <ion-card button (click)="navigateTo(item.route)" class="menu-card">
+            <ion-card-content>
+              <div class="card-icon-wrapper">
+                <ion-icon [name]="item.icon" class="menu-icon"></ion-icon>
+              </div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.description }}</p>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <div class="empty-state" *ngIf="availableItems.length === 0">
+      <ion-icon name="shield-checkmark-outline" size="large"></ion-icon>
+      <h2>Sin permisos</h2>
+      <p>No tienes permisos para acceder a las opciones de mantenimiento</p>
+    </div>
+  </div>
+</ion-content>
