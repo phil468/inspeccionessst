@@ -16,12 +16,11 @@ import {
   RegistroForm,
   Catalogos,
   Campania,
-  Material,
   Fundo,
-  Lote,
-  Motivo,
   EstadisticasRegistro,
 } from '../models';
+import { Empresa, Area } from '../models/catalogo.model';
+import { Inspeccion, InspeccionSync } from '../models/inspeccion.model';
 
 @Injectable({
   providedIn: 'root',
@@ -198,21 +197,6 @@ export class ApiService {
   }
 
   /**
-   * Obtener materiales activos
-   */
-  getMateriales(): Observable<ApiResponse<Material[]>> {
-    return this.http
-      .get<ApiResponse<Material[]>>(`${this.baseUrl}/materiales`, {
-        headers: this.getHeaders(),
-      })
-      .pipe(
-        timeout(this.timeout),
-        retry(this.retryAttempts),
-        catchError(this.handleError)
-      );
-  }
-
-  /**
    * Obtener fundos activos
    */
   getFundos(): Observable<ApiResponse<Fundo[]>> {
@@ -228,11 +212,11 @@ export class ApiService {
   }
 
   /**
-   * Obtener lotes de un fundo
+   * Obtener empresas activas
    */
-  getLotesByFundo(fundoId: number): Observable<ApiResponse<Lote[]>> {
+  getEmpresas(): Observable<ApiResponse<Empresa[]>> {
     return this.http
-      .get<ApiResponse<Lote[]>>(`${this.baseUrl}/fundos/${fundoId}/lotes`, {
+      .get<ApiResponse<Empresa[]>>(`${this.baseUrl}/empresas`, {
         headers: this.getHeaders(),
       })
       .pipe(
@@ -243,12 +227,18 @@ export class ApiService {
   }
 
   /**
-   * Obtener motivos activos
+   * Obtener áreas activas
    */
-  getMotivos(): Observable<ApiResponse<Motivo[]>> {
+  getAreas(empresaId?: number): Observable<ApiResponse<Area[]>> {
+    let params = new HttpParams();
+    if (empresaId) {
+      params = params.set('empresa_id', empresaId.toString());
+    }
+
     return this.http
-      .get<ApiResponse<Motivo[]>>(`${this.baseUrl}/motivos`, {
+      .get<ApiResponse<Area[]>>(`${this.baseUrl}/areas`, {
         headers: this.getHeaders(),
+        params,
       })
       .pipe(
         timeout(this.timeout),
@@ -309,6 +299,77 @@ export class ApiService {
       );
   }
 
+  // ==================== INSPECCIONES ====================
+
+  /**
+   * Obtener inspecciones con paginación
+   */
+  getInspecciones(
+    page: number = 1,
+    perPage: number = 50
+  ): Observable<PaginatedResponse<Inspeccion>> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('per_page', perPage.toString());
+
+    return this.http
+      .get<PaginatedResponse<Inspeccion>>(`${this.baseUrl}/inspecciones`, {
+        headers: this.getHeaders(),
+        params,
+      })
+      .pipe(
+        timeout(this.timeout),
+        retry(this.retryAttempts),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Crear nueva inspección
+   */
+  createInspeccion(
+    inspeccion: Inspeccion
+  ): Observable<ApiResponse<Inspeccion>> {
+    return this.http
+      .post<ApiResponse<Inspeccion>>(
+        `${this.baseUrl}/inspecciones`,
+        inspeccion,
+        {
+          headers: this.getHeaders(),
+        }
+      )
+      .pipe(timeout(this.timeout), catchError(this.handleError));
+  }
+
+  /**
+   * Actualizar inspección
+   */
+  updateInspeccion(
+    id: number,
+    inspeccion: Partial<Inspeccion>
+  ): Observable<ApiResponse<Inspeccion>> {
+    return this.http
+      .put<ApiResponse<Inspeccion>>(
+        `${this.baseUrl}/inspecciones/${id}`,
+        inspeccion,
+        {
+          headers: this.getHeaders(),
+        }
+      )
+      .pipe(timeout(this.timeout), catchError(this.handleError));
+  }
+
+  /**
+   * Eliminar inspección
+   */
+  deleteInspeccion(id: number): Observable<ApiResponse<void>> {
+    return this.http
+      .delete<ApiResponse<void>>(`${this.baseUrl}/inspecciones/${id}`, {
+        headers: this.getHeaders(),
+      })
+      .pipe(timeout(this.timeout), catchError(this.handleError));
+  }
+
   // ==================== SINCRONIZACIÓN ====================
 
   /**
@@ -328,6 +389,33 @@ export class ApiService {
   }
 
   /**
+   * Sincronizar inspecciones offline
+   */
+  syncInspecciones(inspecciones: InspeccionSync[]): Observable<SyncResponse> {
+    return this.http
+      .post<SyncResponse>(
+        `${this.baseUrl}/sync/inspecciones`,
+        { inspecciones },
+        { headers: this.getHeaders() }
+      )
+      .pipe(
+        timeout(this.timeout * 2), // Timeout mayor para sincronización
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Obtener inspecciones del servidor
+   */
+  downloadInspecciones(): Observable<ApiResponse<Inspeccion[]>> {
+    return this.http
+      .get<ApiResponse<Inspeccion[]>>(`${this.baseUrl}/sync/inspecciones`, {
+        headers: this.getHeaders(),
+      })
+      .pipe(timeout(this.timeout), catchError(this.handleError));
+  }
+
+  /**
    * Verificar conexión con el servidor
    */
   ping(): Observable<ApiResponse<{ timestamp: string }>> {
@@ -339,5 +427,131 @@ export class ApiService {
         timeout(5000), // 5 segundos
         catchError(this.handleError)
       );
+  }
+
+  // ==================== PERSONAL ====================
+
+  /**
+   * Sincronizar personal desde API externa (con timeout extendido)
+   */
+  async syncPersonalFromExternalApi(): Promise<any> {
+    const url = `${this.baseUrl}/personal/sync-from-api`;
+    // Timeout extendido de 5 minutos (300,000 ms) para la sincronización
+    return this.http
+      .post<any>(
+        url,
+        {},
+        {
+          headers: this.getHeaders(),
+        }
+      )
+      .pipe(
+        timeout(300000), // 5 minutos
+        catchError(this.handleError)
+      )
+      .toPromise() as Promise<any>;
+  }
+
+  /**
+   * Obtener todo el personal con filtros
+   */
+  async getPersonal(filters?: {
+    empresa_id?: number;
+    area_id?: number;
+    cargo_id?: number;
+    activo?: boolean;
+    cesado?: boolean;
+    search?: string;
+  }): Promise<any> {
+    let params = new HttpParams().set('per_page', '-1'); // Solicitar todos los registros
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params = params.set(key, String(value));
+        }
+      });
+    }
+    return this.get('/personal', params);
+  }
+
+  /**
+   * Obtener un personal por ID
+   */
+  async getPersonalById(id: number): Promise<any> {
+    return this.get(`/personal/${id}`);
+  }
+
+  /**
+   * Crear nuevo personal
+   */
+  async createPersonal(data: any): Promise<any> {
+    return this.post('/personal', data);
+  }
+
+  /**
+   * Actualizar personal existente
+   */
+  async updatePersonal(id: number, data: any): Promise<any> {
+    return this.put(`/personal/${id}`, data);
+  }
+
+  /**
+   * Marcar personal como cesado
+   */
+  async marcarCesado(id: number, fechaCese?: string): Promise<any> {
+    return this.post(`/personal/${id}/marcar-cesado`, {
+      fecha_cese: fechaCese || new Date().toISOString().split('T')[0],
+    });
+  }
+
+  /**
+   * Reactivar personal cesado
+   */
+  async reactivarPersonal(id: number): Promise<any> {
+    return this.post(`/personal/${id}/reactivar`, {});
+  }
+
+  /**
+   * Upload de foto para inspecciones
+   */
+  uploadFoto(
+    file: File,
+    tipo: 'inicial' | 'final',
+    resultadoId?: string
+  ): Observable<any> {
+    const formData = new FormData();
+    formData.append('foto', file);
+    formData.append('tipo', tipo);
+    if (resultadoId) {
+      formData.append('resultado_id', resultadoId);
+    }
+
+    return this.http
+      .post(`${this.baseUrl}/upload/foto`, formData, {
+        headers: this.getAuthHeaders(), // Sin Content-Type para FormData
+      })
+      .pipe(
+        timeout(30000), // 30 segundos para upload
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Eliminar foto
+   */
+  deleteFoto(path: string): Observable<any> {
+    return this.http
+      .request('delete', `${this.baseUrl}/upload/foto`, {
+        headers: this.getHeaders(),
+        body: { path },
+      })
+      .pipe(timeout(this.timeout), catchError(this.handleError));
+  }
+
+  private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    return new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
   }
 }

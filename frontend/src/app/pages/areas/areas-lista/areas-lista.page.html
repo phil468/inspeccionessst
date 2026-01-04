@@ -1,0 +1,76 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Áreas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="nuevaArea()" [disabled]="!isOnline">
+        <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  
+  <ion-toolbar color="primary">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterAreas()"
+      placeholder="Buscar área..."
+      animated
+    ></ion-searchbar>
+  </ion-toolbar>
+
+  <ion-toolbar *ngIf="empresas.length > 0">
+    <ion-segment [(ngModel)]="empresaFiltro" (ionChange)="filterAreas()" scrollable>
+      <ion-segment-button [value]="null">
+        <ion-label>Todas</ion-label>
+      </ion-segment-button>
+      <ion-segment-button *ngFor="let empresa of empresas" [value]="empresa.id">
+        <ion-label>{{ empresa.name }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="connection-status" [class.online]="isOnline" [class.offline]="!isOnline">
+    <ion-icon [name]="isOnline ? 'checkmark-circle-outline' : 'close-circle-outline'"></ion-icon>
+    <span>{{ isOnline ? 'Conectado' : 'Sin conexión' }}</span>
+  </div>
+
+  <ion-list *ngIf="areasFiltradas.length > 0">
+    <ion-item *ngFor="let area of areasFiltradas" [button]="isOnline" (click)="editarArea(area)">
+      <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
+      <ion-label>
+        <h2>{{ area.name }}</h2>
+        <p>{{ getNombreEmpresa(area.empresa_id) }}</p>
+        <p *ngIf="area.centro_costo" class="text-muted">Centro de Costo: {{ area.centro_costo }}</p>
+      </ion-label>
+      
+      <ion-badge slot="end" [color]="area.activo ? 'success' : 'medium'">
+        {{ area.activo ? 'Activo' : 'Inactivo' }}
+      </ion-badge>
+      
+      <ion-buttons slot="end" *ngIf="isOnline">
+        <ion-button (click)="editarArea(area); $event.stopPropagation()">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button color="danger" (click)="eliminarArea(area); $event.stopPropagation()">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+  </ion-list>
+
+  <div class="empty-state" *ngIf="areasFiltradas.length === 0">
+    <ion-icon name="business-outline" size="large"></ion-icon>
+    <h3>No hay áreas</h3>
+    <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
+    <p *ngIf="!searchTerm && isOnline">Crea tu primera área para comenzar</p>
+    <p *ngIf="!searchTerm && !isOnline">Sincroniza para ver las áreas disponibles</p>
+    <ion-button *ngIf="isOnline && !searchTerm" (click)="nuevaArea()">
+      <ion-icon slot="start" name="add-outline"></ion-icon>
+      Nueva Área
+    </ion-button>
+  </div>
+</ion-content>

@@ -12,6 +12,8 @@ import {
   addCircleOutline,
   listOutline,
   settingsOutline,
+  clipboardOutline,
+  documentsOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -41,6 +43,8 @@ export class HomePage {
       addCircleOutline,
       listOutline,
       settingsOutline,
+      clipboardOutline,
+      documentsOutline,
     });
   }
 
@@ -74,6 +78,14 @@ export class HomePage {
 
   goToMantenimiento() {
     this.router.navigate(['/mantenimiento']);
+  }
+
+  goToInspeccionForm() {
+    this.router.navigate(['/inspecciones/form']);
+  }
+
+  goToInspeccionLista() {
+    this.router.navigate(['/inspecciones']);
   }
 
   async logout() {

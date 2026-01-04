@@ -1,0 +1,41 @@
+ion-list {
+  margin-bottom: 0;
+}
+
+ion-list-header {
+  font-weight: 600;
+  font-size: 16px;
+  margin-top: 16px;
+}
+
+.ion-padding {
+  padding-top: 24px;
+}
+
+ion-button {
+  margin-bottom: 12px;
+}
+
+.offline-note {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  background-color: var(--ion-color-warning-tint);
+  border-radius: 8px;
+  margin-top: 16px;
+  color: var(--ion-color-warning-contrast);
+  font-size: 13px;
+}
+
+ion-datetime-button {
+  margin-right: 8px;
+}
+
+ion-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+ion-textarea {
+  min-height: 80px;
+}

@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   microsoft_id: string;
+  personal_id?: number;
   avatar?: string;
   activo: boolean;
   roles: Role[];

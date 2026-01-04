@@ -28,6 +28,18 @@
         <ion-label>Registros</ion-label>
       </ion-item>
 
+      <!-- Inspecciones -->
+      <ion-item button (click)="navigateTo('/inspecciones')">
+        <ion-icon slot="start" name="document-text-outline"></ion-icon>
+        <ion-label>Inspecciones</ion-label>
+      </ion-item>
+
+      <!-- Mis Inspecciones -->
+      <ion-item button (click)="navigateTo('/mis-inspecciones')">
+        <ion-icon slot="start" name="clipboard-outline"></ion-icon>
+        <ion-label>Mis Inspecciones</ion-label>
+      </ion-item>
+
       <!-- Mantenimiento - Accordion con submenú -->
       <ion-accordion-group>
         <ion-accordion value="mantenimiento">
@@ -48,17 +60,6 @@
               <ion-label>Campañas</ion-label>
             </ion-item>
 
-            <!-- Materiales -->
-            <ion-item
-              *ngIf="hasPermission('materiales.view')"
-              button
-              (click)="navigateTo('/materiales')"
-              lines="none"
-            >
-              <ion-icon slot="start" name="cube-outline"></ion-icon>
-              <ion-label>Materiales</ion-label>
-            </ion-item>
-
             <!-- Fundos -->
             <ion-item
               *ngIf="hasPermission('fundos.view')"
@@ -70,26 +71,37 @@
               <ion-label>Fundos</ion-label>
             </ion-item>
 
-            <!-- Lotes -->
+            <!-- Empresas -->
             <ion-item
-              *ngIf="hasPermission('lotes.view')"
+              *ngIf="hasPermission('empresas.view')"
               button
-              (click)="navigateTo('/lotes')"
+              (click)="navigateTo('/empresas')"
               lines="none"
             >
-              <ion-icon slot="start" name="grid-outline"></ion-icon>
-              <ion-label>Lotes</ion-label>
+              <ion-icon slot="start" name="briefcase-outline"></ion-icon>
+              <ion-label>Empresas</ion-label>
             </ion-item>
 
-            <!-- Motivos -->
+            <!-- Áreas -->
             <ion-item
-              *ngIf="hasPermission('motivos.view')"
+              *ngIf="hasPermission('areas.view')"
               button
-              (click)="navigateTo('/motivos')"
+              (click)="navigateTo('/areas')"
               lines="none"
             >
-              <ion-icon slot="start" name="flag-outline"></ion-icon>
-              <ion-label>Motivos</ion-label>
+              <ion-icon slot="start" name="layers-outline"></ion-icon>
+              <ion-label>Áreas</ion-label>
+            </ion-item>
+
+            <!-- Personal -->
+            <ion-item
+              *ngIf="hasPermission('personal.view')"
+              button
+              (click)="navigateTo('/personal')"
+              lines="none"
+            >
+              <ion-icon slot="start" name="people-outline"></ion-icon>
+              <ion-label>Personal</ion-label>
             </ion-item>
           </div>
         </ion-accordion>

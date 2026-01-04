@@ -1,0 +1,65 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Empresas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="nuevaEmpresa()" [disabled]="!isOnline">
+        <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  
+  <ion-toolbar color="primary">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterEmpresas()"
+      placeholder="Buscar empresa..."
+      animated
+    ></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="connection-status" [class.online]="isOnline" [class.offline]="!isOnline">
+    <ion-icon [name]="isOnline ? 'checkmark-circle-outline' : 'close-circle-outline'"></ion-icon>
+    <span>{{ isOnline ? 'Conectado' : 'Sin conexión' }}</span>
+  </div>
+
+  <ion-list *ngIf="empresasFiltradas.length > 0">
+    <ion-item *ngFor="let empresa of empresasFiltradas" [button]="isOnline" (click)="editarEmpresa(empresa)">
+      <ion-label>
+        <h2>{{ empresa.name }}</h2>
+        <p *ngIf="empresa.razon_social">{{ empresa.razon_social }}</p>
+        <p *ngIf="empresa.ruc">RUC: {{ empresa.ruc }}</p>
+        <p *ngIf="empresa.actividad_economica" class="text-muted">{{ empresa.actividad_economica }}</p>
+      </ion-label>
+      
+      <ion-badge slot="end" [color]="empresa.activo ? 'success' : 'medium'">
+        {{ empresa.activo ? 'Activo' : 'Inactivo' }}
+      </ion-badge>
+      
+      <ion-buttons slot="end" *ngIf="isOnline">
+        <ion-button (click)="editarEmpresa(empresa); $event.stopPropagation()">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button color="danger" (click)="eliminarEmpresa(empresa); $event.stopPropagation()">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+  </ion-list>
+
+  <div class="empty-state" *ngIf="empresasFiltradas.length === 0">
+    <ion-icon name="business-outline" size="large"></ion-icon>
+    <h3>No hay empresas</h3>
+    <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
+    <p *ngIf="!searchTerm && isOnline">Crea tu primera empresa para comenzar</p>
+    <p *ngIf="!searchTerm && !isOnline">Sincroniza para ver las empresas disponibles</p>
+    <ion-button *ngIf="isOnline && !searchTerm" (click)="nuevaEmpresa()">
+      <ion-icon slot="start" name="add-outline"></ion-icon>
+      Nueva Empresa
+    </ion-button>
+  </div>
+</ion-content>

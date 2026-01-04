@@ -16,7 +16,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             PermissionsSeeder::class,
+            NivelesYTiposDePuestoSeeder::class,
             CatalogosSeeder::class,
+            UsersSeeder::class,
         ]);
 
         $this->command->info('Base de datos poblada exitosamente');

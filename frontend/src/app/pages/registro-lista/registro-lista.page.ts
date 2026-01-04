@@ -96,19 +96,13 @@ export class RegistroListaPage implements OnInit, OnDestroy {
       this.registros = await this.databaseService.getRegistros();
 
       // Enriquecer registros con nombres de catálogos
-      const materiales = await this.databaseService.getMateriales();
       const campanias = await this.databaseService.getCampanias();
       const fundos = await this.databaseService.getFundos();
-      const lotes = await this.databaseService.getLotes();
-      const motivos = await this.databaseService.getMotivos();
 
       this.registros = this.registros.map((registro: any) => ({
         ...registro,
-        material: materiales.find((m: any) => m.id === registro.material_id),
         campania: campanias.find((c: any) => c.id === registro.campania_id),
         fundo: fundos.find((f: any) => f.id === registro.fundo_id),
-        lote: lotes.find((l: any) => l.id === registro.lote_id),
-        motivo: motivos.find((m: any) => m.id === registro.motivo_id),
       }));
 
       this.registrosFiltrados = this.registros;
@@ -179,9 +173,7 @@ export class RegistroListaPage implements OnInit, OnDestroy {
         return (
           registro.numero_tractor?.toLowerCase().includes(this.searchTerm) ||
           registro.observaciones?.toLowerCase().includes(this.searchTerm) ||
-          registro.cantidad?.toString().includes(this.searchTerm) ||
-          registro.material?.nombre?.toLowerCase().includes(this.searchTerm) ||
-          registro.material?.codigo?.toLowerCase().includes(this.searchTerm)
+          registro.cantidad?.toString().includes(this.searchTerm)
         );
       });
     }

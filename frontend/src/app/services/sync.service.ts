@@ -9,8 +9,10 @@ import {
 import { Network } from '@capacitor/network';
 import { ApiService } from './api.service';
 import { StorageService } from './storage.service';
+import { DatabaseService } from './database.service';
 import { AuthService } from './auth.service';
 import { Registro, NetworkStatus, SyncStatus, SyncResult } from '../models';
+import { InspeccionSync } from '../models/inspeccion.model';
 import { environment } from '../../environments/environment';
 
 export interface SyncConflict {
@@ -41,6 +43,7 @@ export class SyncService {
   constructor(
     private apiService: ApiService,
     private storageService: StorageService,
+    private databaseService: DatabaseService,
     private authService: AuthService
   ) {
     // Inicializar estado de red
@@ -205,17 +208,31 @@ export class SyncService {
     this.updateSyncStatus({ syncing: true, error: null });
 
     try {
-      // 1. Sincronizar registros pendientes
+      // 1. Sincronizar registros pendientes (upload)
       console.log('📤 Sincronizando registros pendientes...');
       await this.syncRegistros();
 
-      // 2. Descargar catálogos actualizados
+      // 2. Sincronizar inspecciones pendientes (upload)
+      console.log('📤 Sincronizando inspecciones pendientes...');
+      await this.syncInspecciones();
+
+      // 3. Descargar catálogos actualizados
       console.log('📥 Descargando catálogos...');
       await this.downloadCatalogos();
 
-      // 3. Actualizar contador de pendientes
-      const pendingCount = await this.storageService.countPendingRegistros();
-      console.log(`✅ Sincronización completa - Pendientes: ${pendingCount}`);
+      // NOTA: El download de registros e inspecciones se hace manualmente
+      // o cuando el usuario hace pull-to-refresh para evitar sobrecargar
+      // la sincronización automática con 122MB+ de datos
+
+      // 4. Actualizar contador de pendientes
+      const pendingRegistros =
+        await this.storageService.countPendingRegistros();
+      const pendingInspecciones =
+        await this.storageService.countPendingInspecciones();
+      const pendingCount = pendingRegistros + pendingInspecciones;
+      console.log(
+        `✅ Sincronización completa - Registros pendientes: ${pendingRegistros}, Inspecciones pendientes: ${pendingInspecciones}`
+      );
 
       this.updateSyncStatus({
         syncing: false,
@@ -345,6 +362,201 @@ export class SyncService {
   }
 
   /**
+   * Sincronizar inspecciones pendientes con el servidor
+   */
+  async syncInspecciones(): Promise<void> {
+    const pendingInspecciones =
+      await this.storageService.getPendingInspecciones();
+
+    if (pendingInspecciones.length === 0) {
+      return;
+    }
+
+    // Cargar relaciones para cada inspección pendiente
+    const inspeccionesConRelaciones: InspeccionSync[] = await Promise.all(
+      pendingInspecciones.map(async (inspeccion) => {
+        // IMPORTANTE: Usar local_id para buscar relaciones en IndexedDB
+        const areas = await this.databaseService.getInspeccionAreasByLocalId(
+          inspeccion.local_id
+        );
+        const inspectores =
+          await this.databaseService.getInspeccionInspectoresByLocalId(
+            inspeccion.local_id
+          );
+        const resultados = await this.databaseService.getResultadosByLocalId(
+          inspeccion.local_id
+        );
+
+        return {
+          ...inspeccion,
+          // Transformar áreas al formato esperado por el backend: { area_id }
+          areas: areas.map((a) => ({ area_id: a.area_id })),
+          // Transformar inspectores al formato esperado: { personal_id }
+          inspectores: inspectores.map((i) => ({ personal_id: i.personal_id })),
+          // Resultados ya están en el formato correcto
+          resultados,
+        } as InspeccionSync;
+      })
+    );
+
+    try {
+      const response = await this.apiService
+        .syncInspecciones(inspeccionesConRelaciones)
+        .toPromise();
+
+      if (!response) {
+        throw new Error('No se recibió respuesta del servidor');
+      }
+
+      // Marcar inspecciones exitosas como sincronizadas
+      if (
+        response.data?.sincronizados &&
+        response.data.sincronizados.length > 0
+      ) {
+        for (const exitoso of response.data.sincronizados) {
+          await this.storageService.markInspeccionAsSynced(
+            exitoso.local_id,
+            exitoso.server_id!
+          );
+        }
+      }
+
+      // Manejar conflictos (inspecciones rechazadas por ser más antiguas)
+      if (response.data?.errores && response.data.errores.length > 0) {
+        const conflictos: SyncConflict[] = [];
+
+        for (const error of response.data.errores) {
+          if ((error as any).conflict) {
+            console.warn(
+              `⚠️ Conflicto detectado en inspección ${error.local_id}:`,
+              error.message
+            );
+
+            const conflicto: SyncConflict = {
+              local_id: error.local_id,
+              server_id: (error as any).server_id,
+              message:
+                error.message || 'La inspección en el servidor es más reciente',
+              server_updated_at: (error as any).server_updated_at,
+              client_updated_at: (error as any).client_updated_at,
+            };
+
+            conflictos.push(conflicto);
+
+            // Descargar la versión del servidor para actualizar la inspección local
+            try {
+              await this.downloadAndUpdateConflictedInspeccion(error.local_id);
+            } catch (downloadError) {
+              console.error(
+                'Error descargando inspección en conflicto:',
+                downloadError
+              );
+            }
+          }
+        }
+
+        // Emitir conflictos para que la UI los maneje
+        if (conflictos.length > 0) {
+          this.conflictsSubject.next(conflictos);
+        }
+      }
+    } catch (error) {
+      console.error('Error sincronizando inspecciones:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Descargar inspecciones del servidor
+   */
+  async downloadInspecciones(): Promise<void> {
+    try {
+      const response = await this.apiService.downloadInspecciones().toPromise();
+      if (response && response.data) {
+        const inspecciones = response.data;
+        console.log(
+          `📥 Descargando ${inspecciones.length} inspecciones del servidor...`
+        );
+
+        // LOG: Verificar que numero_registro viene del servidor
+        inspecciones.forEach((insp: any, index: number) => {
+          console.log(`Inspección ${index}:`, {
+            local_id: insp.local_id,
+            numero_registro: insp.numero_registro,
+            fecha_hora_inspeccion: insp.fecha_hora_inspeccion,
+          });
+        });
+
+        // Obtener inspecciones locales para preservar claves primarias de IndexedDB
+        const inspeccionesLocales =
+          await this.storageService.getAllInspecciones();
+
+        // Limpiar duplicados por local_id (mantener el más reciente)
+        const localIdsVistos = new Set<string>();
+        const duplicados: number[] = [];
+
+        for (const inspeccion of inspeccionesLocales) {
+          if (localIdsVistos.has(inspeccion.local_id)) {
+            // Es un duplicado, marcarlo para eliminar
+            if (inspeccion.id) {
+              duplicados.push(inspeccion.id);
+            }
+          } else {
+            localIdsVistos.add(inspeccion.local_id);
+          }
+        }
+
+        // Eliminar duplicados de IndexedDB
+        if (duplicados.length > 0) {
+          console.warn(
+            `🗑️ Eliminando ${duplicados.length} inspecciones duplicadas...`
+          );
+          await this.databaseService.inspecciones.bulkDelete(duplicados);
+        }
+
+        // Mapear inspecciones del servidor con los datos locales
+        const inspeccionesParaGuardar = inspecciones.map((i: any) => {
+          // Buscar si ya existe localmente por local_id o id del servidor
+          const existente = inspeccionesLocales.find(
+            (local: any) => local.local_id === i.local_id || local.id === i.id
+          );
+
+          // Si existe localmente, PRESERVAR su clave primaria de IndexedDB
+          if (existente) {
+            return {
+              ...existente, // ← Primero el existente (incluye la clave primaria de IndexedDB)
+              ...i, // ← Luego los datos del servidor (sobrescribe todo excepto la clave)
+              synced: true,
+              synced_at: new Date().toISOString(),
+            };
+          }
+
+          // Si es nuevo, crear sin clave primaria (IndexedDB auto-incrementará)
+          return {
+            ...i,
+            synced: true,
+            synced_at: new Date().toISOString(),
+          };
+        });
+
+        console.log(
+          '🔍 Datos a guardar en IndexedDB:',
+          inspeccionesParaGuardar
+        );
+
+        // Guardar en IndexedDB (bulkPut actualiza si existe)
+        await this.storageService.saveInspecciones(inspeccionesParaGuardar);
+        console.log(
+          `✅ ${inspecciones.length} inspecciones guardadas/actualizadas en IndexedDB`
+        );
+      }
+    } catch (error) {
+      console.error('Error descargando inspecciones:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Descargar registros del servidor
    */
   async downloadRegistros(): Promise<void> {
@@ -394,8 +606,8 @@ export class SyncService {
     sincronizados: number;
     pendientes: number;
   }> {
-    const total = await this.storageService.countRegistros();
-    const pendientes = await this.storageService.countPendingRegistros();
+    const total = await this.storageService.countInspecciones();
+    const pendientes = await this.storageService.countPendingInspecciones();
     const sincronizados = total - pendientes;
 
     return {
@@ -501,6 +713,36 @@ export class SyncService {
       );
     } catch (error) {
       console.error('Error actualizando registro con conflicto:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Descargar y actualizar una inspección que tuvo conflicto
+   */
+  private async downloadAndUpdateConflictedInspeccion(
+    localId: string
+  ): Promise<void> {
+    try {
+      // Obtener la inspección local para tener el server_id
+      const inspeccionLocal = await this.storageService.getInspeccionByLocalId(
+        localId
+      );
+
+      if (!inspeccionLocal || !inspeccionLocal.id) {
+        console.error('No se pudo encontrar la inspección local con conflicto');
+        return;
+      }
+
+      // Descargar todas las inspecciones y actualizar
+      // (Una optimización sería tener un endpoint para obtener una sola inspección)
+      await this.downloadInspecciones();
+
+      console.log(
+        `✅ Inspección ${localId} actualizada con la versión del servidor`
+      );
+    } catch (error) {
+      console.error('Error actualizando inspección con conflicto:', error);
       throw error;
     }
   }

@@ -1,0 +1,51 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Mis Inspecciones</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/inspecciones"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="ion-padding" *ngIf="loading">
+    <ion-spinner></ion-spinner>
+    <p>Cargando inspecciones...</p>
+  </div>
+
+  <ion-list *ngIf="!loading && inspecciones.length > 0">
+    <ion-item-sliding *ngFor="let inspeccion of inspecciones">
+      <ion-item button (click)="verDetalle(inspeccion)">
+        <ion-icon name="document-text-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h2>{{ inspeccion.empresa?.name || 'Sin empresa' }}</h2>
+          <p>
+            <ion-text color="medium">
+              {{ inspeccion.area?.name || 'Sin área' }} - 
+              {{ inspeccion.fecha_hora_inspeccion | date: 'dd/MM/yyyy' }}
+            </ion-text>
+          </p>
+          <p *ngIf="inspeccion.tipo_inspeccion">
+            <ion-chip size="small" color="primary">
+              {{ inspeccion.tipo_inspeccion }}
+            </ion-chip>
+          </p>
+        </ion-label>
+        <ion-note slot="end">
+          <ion-badge [color]="inspeccion.synced ? 'success' : 'warning'">
+            {{ inspeccion.synced ? 'Sincronizado' : 'Pendiente' }}
+          </ion-badge>
+        </ion-note>
+      </ion-item>
+    </ion-item-sliding>
+  </ion-list>
+
+  <div class="ion-padding ion-text-center" *ngIf="!loading && inspecciones.length === 0">
+    <ion-icon name="document-outline" size="large" color="medium"></ion-icon>
+    <p color="medium">No tienes inspecciones asignadas</p>
+  </div>
+</ion-content>

@@ -1,0 +1,99 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Inspecciones</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="sincronizar()" [disabled]="!isOnline" class="sync-button">
+        <ion-icon slot="icon-only" name="sync-outline"></ion-icon>
+        <ion-badge color="danger" *ngIf="syncStatus.pendientes > 0" class="badge-overlay">{{ syncStatus.pendientes }}</ion-badge>
+      </ion-button>
+      <ion-button (click)="nuevaInspeccion()">
+        <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  
+  <ion-toolbar color="primary">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterInspecciones()"
+      placeholder="Buscar inspección..."
+      animated
+    ></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Estado de conexión -->
+  <div class="connection-status" [class.online]="isOnline" [class.offline]="!isOnline">
+    <ion-icon [name]="isOnline ? 'cloud-done-outline' : 'cloud-upload-outline'"></ion-icon>
+    <span>{{ isOnline ? 'Conectado' : 'Modo Offline' }}</span>
+  </div>
+
+  <!-- Estado de sincronización -->
+  <ion-card class="sync-status-card" *ngIf="syncStatus.total > 0">
+    <ion-card-content>
+      <div class="sync-info">
+        <div class="stat">
+          <span class="label">Total</span>
+          <span class="value">{{ syncStatus.total }}</span>
+        </div>
+        <div class="stat success">
+          <span class="label">Sincronizados</span>
+          <span class="value">{{ syncStatus.sincronizados }}</span>
+        </div>
+        <div class="stat warning">
+          <span class="label">Pendientes</span>
+          <span class="value">{{ syncStatus.pendientes }}</span>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Lista de inspecciones -->
+  <ion-list *ngIf="inspeccionesFiltradas.length > 0">
+    <ion-item *ngFor="let inspeccion of inspeccionesFiltradas" [button]="true" (click)="editarInspeccion(inspeccion)">
+      <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
+      
+      <ion-label>
+        <h2>{{ inspeccion.numero_registro || 'No Definido' }}</h2>
+        <p>{{ inspeccion.empresa?.name || 'Sin empresa' }}</p>
+        <p>{{ inspeccion.area?.name || 'Sin área' }}</p>
+        <p class="detail-text">
+          <ion-icon name="calendar-outline"></ion-icon>
+          {{ formatDateTime(inspeccion.fecha_hora_inspeccion) }}
+        </p>
+        <p class="tipo-text">{{ inspeccion.tipo_inspeccion }}</p>
+      </ion-label>
+
+      <div slot="end" class="item-end">
+        <ion-badge [color]="getEstadoChip(inspeccion).color">
+          {{ getEstadoChip(inspeccion).text }}
+        </ion-badge>
+        <ion-button fill="clear" size="" (click)="enviarNotificaciones(inspeccion); $event.stopPropagation()">
+          <ion-icon slot="icon-only" name="notifications-outline" color="primary"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" size="" (click)="editarInspeccion(inspeccion); $event.stopPropagation()">
+          <ion-icon slot="icon-only" name="create-outline" color="medium"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" size="" (click)="eliminarInspeccion(inspeccion); $event.stopPropagation()">
+          <ion-icon slot="icon-only" name="trash-outline" color="danger"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-item>
+  </ion-list>
+
+  <!-- Estado vacío -->
+  <div class="empty-state" *ngIf="inspeccionesFiltradas.length === 0">
+    <ion-icon name="document-text-outline" size="large"></ion-icon>
+    <h3>No hay inspecciones</h3>
+    <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
+    <p *ngIf="!searchTerm">Crea tu primera inspección para comenzar</p>
+    <ion-button *ngIf="!searchTerm" (click)="nuevaInspeccion()">
+      <ion-icon slot="start" name="add-outline"></ion-icon>
+      Nueva Inspección
+    </ion-button>
+  </div>
+</ion-content>

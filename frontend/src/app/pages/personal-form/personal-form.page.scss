@@ -1,0 +1,106 @@
+ion-card {
+  margin: 16px;
+
+  ion-card-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+
+    ion-icon {
+      font-size: 24px;
+    }
+  }
+
+  .badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+
+    ion-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+
+      ion-icon {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+ion-list {
+  ion-list-header {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--ion-color-light);
+
+    ion-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--ion-color-primary);
+
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+  }
+
+  ion-item {
+    --padding-start: 16px;
+    --padding-end: 16px;
+
+    ion-label {
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    ion-input,
+    ion-select,
+    ion-textarea {
+      --padding-top: 8px;
+      --padding-bottom: 8px;
+    }
+  }
+}
+
+.action-buttons {
+  padding: 20px;
+
+  ion-button {
+    margin-bottom: 12px;
+  }
+
+  .info-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    margin-top: 16px;
+    background: var(--ion-color-warning-tint);
+    border-radius: 8px;
+    color: var(--ion-color-warning-contrast);
+    font-size: 14px;
+
+    ion-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+  }
+}
+
+// Validación de formularios
+ion-item {
+  &.ion-invalid.ion-touched {
+    --highlight-color: var(--ion-color-danger);
+
+    ion-label {
+      color: var(--ion-color-danger);
+    }
+  }
+}

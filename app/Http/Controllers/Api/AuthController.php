@@ -62,30 +62,73 @@ class AuthController extends Controller
 
             // Verificar que el usuario esté activo
             if (!$user->activo) {
-                $frontendUrl = env('FRONTEND_URL', 'http://localhost:8100');
+                $frontendUrl = env('FRONTEND_URL', 'http://localhost:8102');
                 return redirect($frontendUrl . '/login?error=usuario_inactivo');
             }
 
             // Crear token de acceso
             $token = $user->createToken('auth-token')->plainTextToken;
 
-            // Cargar relaciones
-            $user->load('roles.permissions');
-
-            // Codificar datos del usuario en base64 para pasarlos en la URL
-            $userData = base64_encode(json_encode([
-                'user' => $user,
+            // Guardar en sesión temporal (en lugar de pasar en URL)
+            $sessionKey = 'auth_' . bin2hex(random_bytes(16));
+            cache()->put($sessionKey, [
+                'user_id' => $user->id,
                 'token' => $token,
-            ]));
+            ], now()->addMinutes(5)); // Expira en 5 minutos
 
-            // Redirigir al frontend con los datos
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:8100');
-            return redirect($frontendUrl . '/auth/callback?data=' . $userData);
+            // Redirigir al frontend solo con la clave de sesión
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:8102');
+            return redirect($frontendUrl . '/auth/callback?session=' . $sessionKey);
 
         } catch (\Exception $e) {
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:8100');
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:8102');
             return redirect($frontendUrl . '/login?error=' . urlencode($e->getMessage()));
         }
+    }
+
+    /**
+     * Obtener datos de sesión OAuth
+     */
+    public function getSessionData(Request $request)
+    {
+        $sessionKey = $request->input('session');
+        
+        if (!$sessionKey) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session key requerida',
+            ], 400);
+        }
+
+        $sessionData = cache()->get($sessionKey);
+        
+        if (!$sessionData) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesión expirada o inválida',
+            ], 404);
+        }
+
+        // Eliminar la sesión temporal
+        cache()->forget($sessionKey);
+
+        // Obtener usuario completo
+        $user = User::with('roles.permissions')->find($sessionData['user_id']);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $user,
+                'token' => $sessionData['token'],
+            ],
+        ]);
     }
 
     /**

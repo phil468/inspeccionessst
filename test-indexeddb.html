@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test IndexedDB - Inspecciones</title>
+</head>
+<body>
+    <h1>Verificar IndexedDB - Inspecciones</h1>
+    <button onclick="checkInspecciones()">Ver Inspecciones en IndexedDB</button>
+    <button onclick="clearInspecciones()">Limpiar Inspecciones</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function checkInspecciones() {
+            const output = document.getElementById('output');
+            
+            const request = indexedDB.open('InspeccionesDB', 1);
+            
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                const transaction = db.transaction(['inspecciones'], 'readonly');
+                const objectStore = transaction.objectStore('inspecciones');
+                const getAllRequest = objectStore.getAll();
+                
+                getAllRequest.onsuccess = function() {
+                    const inspecciones = getAllRequest.result;
+                    output.textContent = JSON.stringify(inspecciones, null, 2);
+                    console.log('Inspecciones en IndexedDB:', inspecciones);
+                    
+                    // Verificar numero_registro
+                    inspecciones.forEach((insp, index) => {
+                        console.log(`Inspección ${index}:`, {
+                            local_id: insp.local_id,
+                            numero_registro: insp.numero_registro,
+                            tiene_numero: !!insp.numero_registro
+                        });
+                    });
+                };
+            };
+        }
+        
+        async function clearInspecciones() {
+            if (!confirm('¿Estás seguro de limpiar todas las inspecciones de IndexedDB?')) {
+                return;
+            }
+            
+            const request = indexedDB.open('InspeccionesDB', 1);
+            
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                const transaction = db.transaction(['inspecciones'], 'readwrite');
+                const objectStore = transaction.objectStore('inspecciones');
+                const clearRequest = objectStore.clear();
+                
+                clearRequest.onsuccess = function() {
+                    alert('Inspecciones limpiadas de IndexedDB');
+                    document.getElementById('output').textContent = 'Limpiado';
+                };
+            };
+        }
+    </script>
+</body>
+</html>

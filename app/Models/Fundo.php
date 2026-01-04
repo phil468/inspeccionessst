@@ -23,11 +23,6 @@ class Fundo extends Model
     ];
 
     // Relaciones
-    public function lotes()
-    {
-        return $this->hasMany(Lote::class);
-    }
-
     public function registros()
     {
         return $this->hasMany(Registro::class);
@@ -37,11 +32,6 @@ class Fundo extends Model
     public function scopeActivo($query)
     {
         return $query->where('activo', true);
-    }
-
-    public function scopeConLotes($query)
-    {
-        return $query->with('lotes');
     }
 
     public function scopeOrdenadoPorNombre($query)

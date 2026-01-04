@@ -1,0 +1,290 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/personal"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      {{ isViewMode ? 'Detalle de Personal' : (isEditMode ? 'Editar Personal' : 'Nuevo Personal') }}
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Estado del Personal -->
+  <ion-card *ngIf="personal && isViewMode">
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon [name]="personal.cesado ? 'close-circle' : 'checkmark-circle'" 
+                  [color]="personal.cesado ? 'danger' : 'success'"></ion-icon>
+        {{ personal.name }}
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="badges-container">
+        <ion-badge *ngIf="personal.seleccionado" color="warning">
+          <ion-icon name="briefcase-outline"></ion-icon> En Campaña
+        </ion-badge>
+        <ion-badge *ngIf="personal.importado" color="tertiary">
+          <ion-icon name="cloud-download-outline"></ion-icon> Importado
+        </ion-badge>
+        <ion-badge [color]="personal.cesado ? 'danger' : 'success'">
+          {{ personal.cesado ? 'Cesado' : 'Activo' }}
+        </ion-badge>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Formulario -->
+  <form [formGroup]="personalForm">
+    <ion-list>
+      <!-- Información Personal -->
+      <ion-list-header>
+        <ion-label>
+          <ion-icon name="person-outline"></ion-icon> Información Personal
+        </ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-label position="stacked">DNI *</ion-label>
+        <ion-input
+          formControlName="dni"
+          type="text"
+          placeholder="12345678"
+          maxlength="8"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Apellido Paterno *</ion-label>
+        <ion-input
+          formControlName="apellido_paterno"
+          type="text"
+          placeholder="Apellido paterno"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Apellido Materno *</ion-label>
+        <ion-input
+          formControlName="apellido_materno"
+          type="text"
+          placeholder="Apellido materno"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Nombres *</ion-label>
+        <ion-input
+          formControlName="nombres"
+          type="text"
+          placeholder="Nombres"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+
+      <!-- Información Laboral -->
+      <ion-list-header>
+        <ion-label>
+          <ion-icon name="briefcase-outline"></ion-icon> Información Laboral
+        </ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-label position="stacked">Empresa *</ion-label>
+        <ion-select
+          formControlName="empresa_id"
+          placeholder="Seleccione empresa"
+          [disabled]="isViewMode"
+        >
+          <ion-select-option *ngFor="let empresa of empresas" [value]="empresa.id">
+            {{ empresa.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Área</ion-label>
+        <ion-select
+          formControlName="area_id"
+          placeholder="Seleccione área"
+          [disabled]="isViewMode"
+        >
+          <ion-select-option *ngFor="let area of areas" [value]="area.id">
+            {{ area.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Cargo *</ion-label>
+        <ion-select
+          formControlName="cargo_id"
+          placeholder="Seleccione cargo"
+          [disabled]="isViewMode"
+        >
+          <ion-select-option *ngFor="let cargo of cargos" [value]="cargo.id">
+            {{ cargo.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Tipo de Trabajador</ion-label>
+        <ion-select
+          formControlName="tipo_de_trabajador_id"
+          placeholder="Seleccione tipo"
+          [disabled]="isViewMode"
+        >
+          <ion-select-option *ngFor="let tipo of tiposDeTrabajador" [value]="tipo.id">
+            {{ tipo.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Tipo de Personal</ion-label>
+        <ion-select
+          formControlName="tipo_de_personal_id"
+          placeholder="Seleccione tipo"
+          [disabled]="isViewMode"
+        >
+          <ion-select-option *ngFor="let tipo of tiposDePersonal" [value]="tipo.id">
+            {{ tipo.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Planilla</ion-label>
+        <ion-select
+          formControlName="planilla_id"
+          placeholder="Seleccione planilla"
+          [disabled]="isViewMode"
+        >
+          <ion-select-option *ngFor="let planilla of planillas" [value]="planilla.id">
+            {{ planilla.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Reporta a</ion-label>
+        <ion-button
+          expand="block"
+          fill="outline"
+          (click)="openSupervisorModal()"
+          [disabled]="isViewMode"
+        >
+          <ion-icon name="person-outline" slot="start"></ion-icon>
+          {{ getSupervisorNombre() }}
+        </ion-button>
+      </ion-item>
+
+      <!-- Rol de Inspector -->
+      <ion-item>
+        <ion-icon name="shield-checkmark-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h2>Es Inspector</h2>
+          <p>Puede realizar y aprobar inspecciones</p>
+        </ion-label>
+        <ion-toggle formControlName="inspector" [disabled]="isViewMode"></ion-toggle>
+      </ion-item>
+
+      <!-- Información de Contacto -->
+      <ion-list-header>
+        <ion-label>
+          <ion-icon name="call-outline"></ion-icon> Información de Contacto
+        </ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-label position="stacked">Email</ion-label>
+        <ion-input
+          formControlName="email"
+          type="email"
+          placeholder="correo@ejemplo.com"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Teléfono</ion-label>
+        <ion-input
+          formControlName="telefono"
+          type="tel"
+          placeholder="999999999"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+
+      <!-- Fechas -->
+      <ion-list-header>
+        <ion-label>
+          <ion-icon name="calendar-outline"></ion-icon> Fechas
+        </ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-label position="stacked">Fecha de Ingreso</ion-label>
+        <ion-input
+          formControlName="fecha_ingreso"
+          type="date"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+
+      <ion-item *ngIf="personal && personal.cesado">
+        <ion-label position="stacked">Fecha de Cese</ion-label>
+        <ion-input
+          formControlName="fecha_cese"
+          type="date"
+          [readonly]="isViewMode"
+        ></ion-input>
+      </ion-item>
+    </ion-list>
+  </form>
+
+  <!-- Acciones en modo detalle -->
+  <div class="action-buttons" *ngIf="isViewMode && personal">
+    <ion-button
+      expand="block"
+      color="danger"
+      *ngIf="!personal.cesado && !personal.seleccionado"
+      (click)="marcarCesado()"
+    >
+      <ion-icon name="close-circle" slot="start"></ion-icon>
+      Marcar como Cesado
+    </ion-button>
+
+    <ion-button
+      expand="block"
+      color="success"
+      *ngIf="personal.cesado"
+      (click)="reactivarPersonal()"
+    >
+      <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+      Reactivar Personal
+    </ion-button>
+
+    <p class="info-text" *ngIf="personal.seleccionado">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      Este personal está en una campaña activa y no puede ser modificado.
+    </p>
+  </div>
+
+  <!-- Botones de acción (modo edición/nuevo) -->
+  <div class="action-buttons" *ngIf="!isViewMode">
+    <ion-button expand="block" (click)="guardar()" [disabled]="personalForm.invalid">
+      <ion-icon name="save" slot="start"></ion-icon>
+      Guardar
+    </ion-button>
+
+    <ion-button expand="block" fill="outline" (click)="cancelar()">
+      <ion-icon name="close" slot="start"></ion-icon>
+      Cancelar
+    </ion-button>
+  </div>
+</ion-content>

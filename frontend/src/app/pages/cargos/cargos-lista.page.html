@@ -1,0 +1,94 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/mantenimiento"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Cargos</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="nuevoCargo()">
+        <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  
+  <ion-toolbar color="primary">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterCargos()"
+      placeholder="Buscar cargos..."
+      debounce="300"
+    ></ion-searchbar>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <ion-chip [color]="isOnline ? 'success' : 'danger'">
+      <ion-icon [name]="isOnline ? 'checkmark-circle-outline' : 'close-circle-outline'"></ion-icon>
+      <ion-label>{{ isOnline ? 'Conectado' : 'Sin conexión' }}</ion-label>
+    </ion-chip>
+    <ion-chip>
+      <ion-icon name="briefcase-outline"></ion-icon>
+      <ion-label>Total: {{ cargosFiltrados.length }}</ion-label>
+    </ion-chip>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Cargos</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Lista de cargos -->
+  <ion-list *ngIf="cargosFiltrados.length > 0">
+    <ion-item *ngFor="let cargo of cargosFiltrados" [button]="false">
+      <ion-icon name="briefcase-outline" slot="start" color="primary"></ion-icon>
+      <ion-label>
+        <h2>{{ cargo.name }}</h2>
+        <p>ID: {{ cargo.id }}</p>
+      </ion-label>
+      <ion-chip [color]="cargo.estado ? 'success' : 'danger'" slot="end">
+        <ion-label>{{ cargo.estado ? 'Activo' : 'Inactivo' }}</ion-label>
+      </ion-chip>
+      <ion-button 
+        fill="clear" 
+        color="warning" 
+        slot="end"
+        (click)="editarCargo(cargo)"
+      >
+        <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+      <ion-button 
+        fill="clear" 
+        color="danger" 
+        slot="end"
+        (click)="eliminarCargo(cargo)"
+      >
+        <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </ion-list>
+
+  <!-- Estado vacío -->
+  <div *ngIf="cargosFiltrados.length === 0" class="empty-state">
+    <ion-icon name="briefcase-outline" color="medium"></ion-icon>
+    <h2>No hay cargos{{ searchTerm ? ' que coincidan' : ' registrados' }}</h2>
+    <p *ngIf="!searchTerm && cargos.length === 0 && isOnline">
+      Crea el primer cargo usando el botón superior
+    </p>
+    <p *ngIf="!searchTerm && cargos.length === 0 && !isOnline">
+      Conéctate a internet para ver los cargos
+    </p>
+    <p *ngIf="searchTerm">
+      No se encontraron cargos con "{{ searchTerm }}"
+    </p>
+    <ion-button 
+      *ngIf="!searchTerm && isOnline" 
+      (click)="nuevoCargo()"
+      color="primary"
+    >
+      <ion-icon name="add-outline" slot="start"></ion-icon>
+      Crear cargo
+    </ion-button>
+  </div>
+</ion-content>

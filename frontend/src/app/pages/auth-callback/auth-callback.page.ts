@@ -4,6 +4,7 @@ import { IonicModule, LoadingController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { SyncService } from '../../services/sync.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-auth-callback',
@@ -29,7 +30,7 @@ export class AuthCallbackPage implements OnInit {
 
     try {
       // Obtener parámetros de la URL
-      const data = this.route.snapshot.queryParams['data'];
+      const sessionKey = this.route.snapshot.queryParams['session'];
       const error = this.route.snapshot.queryParams['error'];
 
       if (error) {
@@ -41,23 +42,37 @@ export class AuthCallbackPage implements OnInit {
         return;
       }
 
-      if (!data) {
-        console.error('No se recibieron datos en el callback');
+      if (!sessionKey) {
+        console.error('No se recibió session key en el callback');
         await loading.dismiss();
         this.router.navigate(['/login'], {
-          queryParams: { error: 'no_data' },
+          queryParams: { error: 'no_session' },
         });
         return;
       }
 
-      // Decodificar datos
-      const decodedData = JSON.parse(atob(data));
+      // Obtener datos de sesión desde el backend
+      loading.message = 'Obteniendo datos de sesión...';
 
-      if (!decodedData.token || !decodedData.user) {
-        console.error('Datos incompletos en el callback');
+      const sessionResponse = await fetch(
+        `${environment.apiUrl}/auth/session?session=${sessionKey}`
+      );
+
+      if (!sessionResponse.ok) {
+        throw new Error('Error obteniendo datos de sesión');
+      }
+
+      const sessionData = await sessionResponse.json();
+
+      if (
+        !sessionData.success ||
+        !sessionData.data.token ||
+        !sessionData.data.user
+      ) {
+        console.error('Datos incompletos en la sesión');
         await loading.dismiss();
         this.router.navigate(['/login'], {
-          queryParams: { error: 'invalid_data' },
+          queryParams: { error: 'invalid_session' },
         });
         return;
       }
@@ -66,8 +81,8 @@ export class AuthCallbackPage implements OnInit {
       this.authService.saveSession({
         success: true,
         data: {
-          user: decodedData.user,
-          token: decodedData.token,
+          user: sessionData.data.user,
+          token: sessionData.data.token,
         },
       });
 

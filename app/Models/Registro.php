@@ -17,10 +17,7 @@ class Registro extends Model
         'local_id',
         'user_id',
         'campania_id',
-        'material_id',
         'fundo_id',
-        'lote_id',
-        'motivo_id',
         'cantidad',
         'numero_tractor',
         'observaciones',
@@ -32,10 +29,7 @@ class Registro extends Model
     protected $casts = [
         'user_id' => 'integer',
         'campania_id' => 'integer',
-        'material_id' => 'integer',
         'fundo_id' => 'integer',
-        'lote_id' => 'integer',
-        'motivo_id' => 'integer',
         'cantidad' => 'decimal:2',
         'fecha_registro' => 'datetime',
         'synced' => 'boolean',
@@ -68,24 +62,9 @@ class Registro extends Model
         return $this->belongsTo(Campania::class);
     }
 
-    public function material()
-    {
-        return $this->belongsTo(Material::class);
-    }
-
     public function fundo()
     {
         return $this->belongsTo(Fundo::class);
-    }
-
-    public function lote()
-    {
-        return $this->belongsTo(Lote::class);
-    }
-
-    public function motivo()
-    {
-        return $this->belongsTo(Motivo::class);
     }
 
     // Scopes
@@ -117,10 +96,7 @@ class Registro extends Model
         return $query->with([
             'user:id,name,email',
             'campania:id,nombre',
-            'material:id,codigo,nombre',
-            'fundo:id,nombre',
-            'lote:id,codigo,nombre',
-            'motivo:id,nombre'
+            'fundo:id,nombre'
         ]);
     }
 

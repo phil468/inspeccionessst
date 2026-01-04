@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
@@ -8,6 +8,7 @@ import {
   leafOutline,
   logoMicrosoft,
   informationCircleOutline,
+  shieldCheckmarkSharp,
 } from 'ionicons/icons';
 
 @Component({
@@ -17,11 +18,26 @@ import {
   standalone: true,
   imports: [IonicModule, CommonModule],
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   loading = false;
 
+  currentYear = new Date().getFullYear();
+
   constructor(private authService: AuthService, private router: Router) {
-    addIcons({ leafOutline, logoMicrosoft, informationCircleOutline });
+    addIcons({
+      leafOutline,
+      logoMicrosoft,
+      informationCircleOutline,
+      shieldCheckmarkSharp,
+    });
+  }
+
+  async ngOnInit() {
+    // Si ya está autenticado, redirigir a home
+    const isAuthenticated = this.authService.isAuthenticated;
+    if (isAuthenticated) {
+      this.router.navigate(['/home'], { replaceUrl: true });
+    }
   }
 
   async loginWithMicrosoft() {

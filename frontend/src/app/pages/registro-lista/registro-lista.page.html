@@ -14,11 +14,11 @@
   </ion-toolbar>
 
   <!-- Barra de búsqueda -->
-  <ion-toolbar>
+  <ion-toolbar color="primary">
     <ion-searchbar 
       [(ngModel)]="searchTerm"
       (ionInput)="filterRegistros($event)"
-      placeholder="Buscar por material, tractor, cantidad u observaciones"
+      placeholder="Buscar por tractor, cantidad u observaciones"
       animated>
     </ion-searchbar>
   </ion-toolbar>
@@ -61,7 +61,7 @@
         <ion-card-content>
           <div class="registro-header">
             <div class="registro-info" (click)="verDetalle(registro)">
-              <h4>{{ registro.material?.codigo }} - {{ registro.material?.nombre }}</h4>
+              <h4>{{ registro.fundo?.nombre }} - {{ registro.campania?.nombre }}</h4>
               <p class="registro-time">
                 {{ registro.fecha_registro  | date:'yyyy-MM-dd hh:mm a' }} 
               </p>

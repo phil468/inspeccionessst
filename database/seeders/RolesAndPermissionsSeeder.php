@@ -36,8 +36,34 @@ class RolesAndPermissionsSeeder extends Seeder
             // Sincronización
             ['name' => 'sync.execute', 'description' => 'Ejecutar sincronización', 'resource' => 'sync', 'action' => 'execute'],
             
+            // Personal
+            ['name' => 'personal.view', 'description' => 'Ver personal', 'resource' => 'personal', 'action' => 'view'],
+            ['name' => 'personal.manage', 'description' => 'Gestionar personal', 'resource' => 'personal', 'action' => 'manage'],
+            ['name' => 'personal.sync', 'description' => 'Sincronizar personal desde API', 'resource' => 'personal', 'action' => 'sync'],
+            
+            // Cargos
+            ['name' => 'cargos.view', 'description' => 'Ver cargos', 'resource' => 'cargos', 'action' => 'view'],
+            ['name' => 'cargos.manage', 'description' => 'Gestionar cargos', 'resource' => 'cargos', 'action' => 'manage'],
+            
+            // Empresas
+            ['name' => 'empresas.view', 'description' => 'Ver empresas', 'resource' => 'empresas', 'action' => 'view'],
+            ['name' => 'empresas.manage', 'description' => 'Gestionar empresas', 'resource' => 'empresas', 'action' => 'manage'],
+            
+            // Áreas
+            ['name' => 'areas.view', 'description' => 'Ver áreas', 'resource' => 'areas', 'action' => 'view'],
+            ['name' => 'areas.manage', 'description' => 'Gestionar áreas', 'resource' => 'areas', 'action' => 'manage'],
+            
+            // Inspecciones
+            ['name' => 'inspecciones.view', 'description' => 'Ver inspecciones', 'resource' => 'inspecciones', 'action' => 'view'],
+            ['name' => 'inspecciones.create', 'description' => 'Crear inspecciones', 'resource' => 'inspecciones', 'action' => 'create'],
+            ['name' => 'inspecciones.update', 'description' => 'Editar inspecciones', 'resource' => 'inspecciones', 'action' => 'update'],
+            ['name' => 'inspecciones.delete', 'description' => 'Eliminar inspecciones', 'resource' => 'inspecciones', 'action' => 'delete'],
+            ['name' => 'inspecciones.manage', 'description' => 'Gestionar inspecciones', 'resource' => 'inspecciones', 'action' => 'manage'],
+            
             // Administración
+            ['name' => 'usuarios.view', 'description' => 'Ver usuarios', 'resource' => 'admin', 'action' => 'view'],
             ['name' => 'users.manage', 'description' => 'Gestionar usuarios', 'resource' => 'admin', 'action' => 'manage'],
+            ['name' => 'roles.view', 'description' => 'Ver roles', 'resource' => 'admin', 'action' => 'view'],
             ['name' => 'roles.manage', 'description' => 'Gestionar roles', 'resource' => 'admin', 'action' => 'manage'],
         ];
 
@@ -79,6 +105,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'lotes.manage',
             'motivos.manage',
             'sync.execute',
+            'inspecciones.view',
+            'inspecciones.create',
+            'inspecciones.update',
+            'personal.view',
+            'cargos.view',
+            'empresas.view',
+            'areas.view',
         ])->get();
         $supervisorRole->permissions()->sync($supervisorPermissions->pluck('id'));
 
@@ -88,6 +121,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'registros.read',
             'registros.update',
             'sync.execute',
+            'inspecciones.view',
+            'inspecciones.create',
+            'inspecciones.update',
         ])->get();
         $operadorRole->permissions()->sync($operadorPermissions->pluck('id'));
 

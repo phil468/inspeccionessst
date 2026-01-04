@@ -4,14 +4,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CampaniaController;
-use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\FundoController;
-use App\Http\Controllers\Api\LoteController;
-use App\Http\Controllers\Api\MotivoController;
 use App\Http\Controllers\Api\RegistroController;
 use App\Http\Controllers\Api\SyncController;
+use App\Http\Controllers\Api\FileUploadController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\EmpresaController;
+use App\Http\Controllers\Api\AreaController;
+use App\Http\Controllers\Api\InspeccionController;
+use App\Http\Controllers\Api\PersonalController;
+use App\Http\Controllers\Api\CargoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +32,7 @@ Route::prefix('v1')->group(function () {
     // Autenticación Microsoft OAuth
     Route::get('/auth/microsoft', [AuthController::class, 'redirectToMicrosoft']);
     Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback']);
+    Route::get('/auth/session', [AuthController::class, 'getSessionData']);
 });
 
 // Rutas protegidas con Sanctum
@@ -54,6 +58,16 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/catalogos', [SyncController::class, 'downloadCatalogos']);
         Route::get('/registros', [SyncController::class, 'downloadRegistros']);
         Route::get('/status', [SyncController::class, 'checkStatus']);
+        
+        // Sincronización de inspecciones
+        Route::post('/inspecciones', [SyncController::class, 'syncInspecciones']);
+        Route::get('/inspecciones', [SyncController::class, 'downloadInspecciones']);
+    });
+
+    // Upload de archivos
+    Route::prefix('upload')->group(function () {
+        Route::post('/foto', [FileUploadController::class, 'uploadFoto']);
+        Route::delete('/foto', [FileUploadController::class, 'deleteFoto']);
     });
 
     // Catálogos - Campañas
@@ -65,15 +79,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::delete('campanias/{id}', [CampaniaController::class, 'destroy']);
     });
 
-    // Catálogos - Materiales
-    Route::get('materiales', [MaterialController::class, 'index']);
-    Route::get('materiales/{id}', [MaterialController::class, 'show']);
-    Route::middleware('permission:materiales.manage')->group(function () {
-        Route::post('materiales', [MaterialController::class, 'store']);
-        Route::put('materiales/{id}', [MaterialController::class, 'update']);
-        Route::delete('materiales/{id}', [MaterialController::class, 'destroy']);
-    });
-
     // Catálogos - Fundos
     Route::get('fundos', [FundoController::class, 'index']);
     Route::get('fundos/{id}', [FundoController::class, 'show']);
@@ -83,22 +88,83 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::delete('fundos/{id}', [FundoController::class, 'destroy']);
     });
 
-    // Catálogos - Lotes
-    Route::get('lotes', [LoteController::class, 'index']);
-    Route::get('lotes/{id}', [LoteController::class, 'show']);
-    Route::middleware('permission:lotes.manage')->group(function () {
-        Route::post('lotes', [LoteController::class, 'store']);
-        Route::put('lotes/{id}', [LoteController::class, 'update']);
-        Route::delete('lotes/{id}', [LoteController::class, 'destroy']);
+    // Catálogos - Empresas
+    Route::get('empresas', [EmpresaController::class, 'index']);
+    Route::get('empresas/{id}', [EmpresaController::class, 'show']);
+    Route::middleware('permission:empresas.manage')->group(function () {
+        Route::post('empresas', [EmpresaController::class, 'store']);
+        Route::put('empresas/{id}', [EmpresaController::class, 'update']);
+        Route::delete('empresas/{id}', [EmpresaController::class, 'destroy']);
     });
 
-    // Catálogos - Motivos
-    Route::get('motivos', [MotivoController::class, 'index']);
-    Route::get('motivos/{id}', [MotivoController::class, 'show']);
-    Route::middleware('permission:motivos.manage')->group(function () {
-        Route::post('motivos', [MotivoController::class, 'store']);
-        Route::put('motivos/{id}', [MotivoController::class, 'update']);
-        Route::delete('motivos/{id}', [MotivoController::class, 'destroy']);
+    // Catálogos - Áreas
+    Route::get('areas', [AreaController::class, 'index']);
+    Route::get('areas/{id}', [AreaController::class, 'show']);
+    Route::middleware('permission:areas.manage')->group(function () {
+        Route::post('areas', [AreaController::class, 'store']);
+        Route::put('areas/{id}', [AreaController::class, 'update']);
+        Route::delete('areas/{id}', [AreaController::class, 'destroy']);
+    });
+
+    // Catálogos - Cargos
+    Route::get('cargos', [CargoController::class, 'index']);
+    Route::get('cargos/{id}', [CargoController::class, 'show']);
+    Route::middleware('permission:cargos.manage')->group(function () {
+        Route::post('cargos', [CargoController::class, 'store']);
+        Route::put('cargos/{id}', [CargoController::class, 'update']);
+        Route::delete('cargos/{id}', [CargoController::class, 'destroy']);
+    });
+
+    // Inspecciones
+    Route::prefix('inspecciones')->group(function () {
+        Route::get('/', [InspeccionController::class, 'index']);
+        Route::post('/', [InspeccionController::class, 'store']);
+        Route::get('/{id}', [InspeccionController::class, 'show']);
+        Route::put('/{id}', [InspeccionController::class, 'update']);
+        Route::delete('/{id}', [InspeccionController::class, 'destroy']);
+        
+        // Notificaciones
+        Route::post('/{id}/notificar', [\App\Http\Controllers\Api\NotificationController::class, 'enviarNotificacionesInspeccion']);
+    });
+
+    // Notificaciones masivas
+    Route::post('/notificaciones/masivas', [\App\Http\Controllers\Api\NotificationController::class, 'enviarNotificacionesMasivas']);
+
+    // Aprobación de fotos
+    Route::prefix('resultados')->group(function () {
+        Route::post('/{id}/foto-inicial/aprobar', [\App\Http\Controllers\Api\FotoApprovalController::class, 'aprobarFotoInicial']);
+        Route::post('/{id}/foto-final/aprobar', [\App\Http\Controllers\Api\FotoApprovalController::class, 'aprobarFotoFinal']);
+        Route::get('/{id}/aprobaciones', [\App\Http\Controllers\Api\FotoApprovalController::class, 'obtenerHistorial']);
+    });
+
+    // Push Notifications
+    Route::prefix('push-notifications')->group(function () {
+        Route::post('/register', [\App\Http\Controllers\Api\PushNotificationController::class, 'registerToken']);
+        Route::post('/deactivate', [\App\Http\Controllers\Api\PushNotificationController::class, 'deactivateToken']);
+        Route::get('/tokens', [\App\Http\Controllers\Api\PushNotificationController::class, 'getUserTokens']);
+        Route::post('/test', [\App\Http\Controllers\Api\PushNotificationController::class, 'sendTestNotification']);
+    });
+
+    // Personal
+    Route::prefix('personal')->group(function () {
+        Route::get('/', [PersonalController::class, 'index']);
+        Route::get('/{id}', [PersonalController::class, 'show']);
+        
+        // Sincronización (sin restricción por ahora)
+        Route::post('/sync-from-api', [PersonalController::class, 'syncFromExternalApi']);
+        
+        // Acciones especiales
+        Route::post('/{id}/marcar-cesado', [PersonalController::class, 'marcarCesado'])
+            ->middleware('permission:personal.manage');
+        Route::post('/{id}/reactivar', [PersonalController::class, 'reactivar'])
+            ->middleware('permission:personal.manage');
+        
+        // CRUD protegido
+        Route::middleware('permission:personal.manage')->group(function () {
+            Route::post('/', [PersonalController::class, 'store']);
+            Route::put('/{id}', [PersonalController::class, 'update']);
+            Route::delete('/{id}', [PersonalController::class, 'destroy']);
+        });
     });
 
     // Registros

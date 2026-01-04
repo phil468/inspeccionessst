@@ -1,0 +1,482 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/inspecciones"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Editar Inspección' : 'Nueva Inspección' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cancelar()">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form [formGroup]="inspeccionForm" (ngSubmit)="guardar()">
+    <ion-list>
+      <ion-list-header>
+        <ion-label>Datos de la Empresa</ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-select
+          label="Empresa *"
+          labelPlacement="stacked"
+          formControlName="empresa_id"
+          placeholder="Seleccione una empresa"
+          interface="action-sheet"
+        >
+          <ion-select-option *ngFor="let empresa of empresas" [value]="empresa.id">
+            {{ empresa.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-list-header>
+        <ion-label>Tipo de Inspección</ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-select
+          label="Tipo *"
+          labelPlacement="stacked"
+          formControlName="tipo_inspeccion"
+          interface="action-sheet"
+        >
+          <ion-select-option *ngFor="let tipo of tiposInspeccion" [value]="tipo">
+            {{ tipo }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item *ngIf="inspeccionForm.get('tipo_inspeccion')?.value === 'Otro'">
+        <ion-input
+          label="Especificar tipo *"
+          labelPlacement="stacked"
+          formControlName="tipo_inspeccion_otro"
+          placeholder="Ingrese el tipo de inspección"
+          [clearInput]="true"
+        ></ion-input>
+      </ion-item>
+
+      <ion-list-header>
+        <ion-label>Vigencia</ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-label position="stacked">Vigencia Desde</ion-label>
+        <ion-datetime-button datetime="vigencia-desde"></ion-datetime-button>
+      </ion-item>
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime
+            id="vigencia-desde"
+            formControlName="vigencia_desde"
+            presentation="date-time"
+            [showDefaultButtons]="true"
+            cancelText="Cancelar"
+            doneText="Aceptar"
+          ></ion-datetime>
+        </ng-template>
+      </ion-modal>
+
+      <ion-item>
+        <ion-label position="stacked">Vigencia Hasta</ion-label>
+        <ion-datetime-button datetime="vigencia-hasta"></ion-datetime-button>
+      </ion-item>
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime
+            id="vigencia-hasta"
+            formControlName="vigencia_hasta"
+            presentation="date-time"
+            [showDefaultButtons]="true"
+            cancelText="Cancelar"
+            doneText="Aceptar"
+          ></ion-datetime>
+        </ng-template>
+      </ion-modal>
+
+      <ion-list-header>
+        <ion-label>Datos de la Inspección</ion-label>
+      </ion-list-header>
+
+      <ion-item>
+        <ion-input
+          label="Número de Registro *"
+          labelPlacement="stacked"
+          formControlName="numero_registro"
+          placeholder="Ingrese el número de registro"
+          [clearInput]="true"
+        ></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-datetime-button datetime="fecha-hora-inspeccion"></ion-datetime-button>
+        <ion-label>Fecha y Hora de Inspección</ion-label>
+      </ion-item>
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime
+            id="fecha-hora-inspeccion"
+            formControlName="fecha_hora_inspeccion"
+            presentation="date-time"
+            [showDefaultButtons]="true"
+            cancelText="Cancelar"
+            doneText="Aceptar"
+          ></ion-datetime>
+        </ng-template>
+      </ion-modal>
+
+      <ion-item>
+        <ion-textarea
+          label="Zona Inspeccionada"
+          labelPlacement="stacked"
+          formControlName="zona_inspeccionada"
+          placeholder="Describa la zona inspeccionada"
+          rows="3"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="Objetivo"
+          labelPlacement="stacked"
+          formControlName="objetivo"
+          placeholder="Describa el objetivo de la inspección"
+          rows="3"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="Descripción de Causa"
+          labelPlacement="stacked"
+          formControlName="descripcion_causa"
+          placeholder="Describa las causas encontradas"
+          rows="3"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="Conclusiones y Recomendaciones"
+          labelPlacement="stacked"
+          formControlName="conclusiones_recomendaciones"
+          placeholder="Ingrese conclusiones y recomendaciones"
+          rows="4"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="Comentarios"
+          labelPlacement="stacked"
+          formControlName="comentario"
+          placeholder="Comentarios adicionales (opcional)"
+          rows="2"
+        ></ion-textarea>
+      </ion-item>
+
+      <!-- ========== SECCIÓN: ÁREAS INSPECCIONADAS (MÚLTIPLES) ========== -->
+      <ion-list-header>
+        <ion-label>Áreas Inspeccionadas</ion-label>
+      </ion-list-header>
+
+      <ion-item button (click)="openAreaSelectionModal()" [disabled]="!inspeccionForm.get('empresa_id')?.value">
+        <ion-icon name="business-outline" slot="start" [color]="areasSeleccionadas.length > 0 ? 'success' : 'medium'"></ion-icon>
+        <ion-label>
+          <h2>{{ getAreasSeleccionadasText() }}</h2>
+          <p *ngIf="areasSeleccionadas.length > 0">
+            <ion-text color="medium">
+              <small>{{ getAreasNombresLista() }}</small>
+            </ion-text>
+          </p>
+        </ion-label>
+        <ion-badge slot="end" [color]="areasSeleccionadas.length > 0 ? 'success' : 'medium'">
+          {{ areasSeleccionadas.length }}
+        </ion-badge>
+        <ion-icon slot="end" name="chevron-forward-outline" color="medium"></ion-icon>
+      </ion-item>
+
+      <ion-item *ngIf="!inspeccionForm.get('empresa_id')?.value" lines="none">
+        <ion-label color="medium">
+          <p><small>Primero selecciona una empresa</small></p>
+        </ion-label>
+      </ion-item>
+
+      <!-- ========== SECCIÓN: INSPECTORES/RESPONSABLES ========== -->
+      <ion-list-header>
+        <ion-label>Inspectores / Responsables de la Inspección</ion-label>
+      </ion-list-header>
+
+      <ion-item button (click)="openInspectorSelectionModal()">
+        <ion-icon name="people-outline" slot="start" [color]="inspectoresSeleccionados.length > 0 ? 'success' : 'medium'"></ion-icon>
+        <ion-label>
+          <h2>{{ getInspectoresSeleccionadosText() }}</h2>
+          <p *ngIf="inspectoresSeleccionados.length > 0">
+            <ion-text color="medium">
+              <small>{{ getInspectoresNombresLista() }}</small>
+            </ion-text>
+          </p>
+        </ion-label>
+        <ion-badge slot="end" [color]="inspectoresSeleccionados.length > 0 ? 'success' : 'medium'">
+          {{ inspectoresSeleccionados.length }}
+        </ion-badge>
+        <ion-icon slot="end" name="chevron-forward-outline" color="medium"></ion-icon>
+      </ion-item>
+
+      <!-- ========== SECCIÓN: RESULTADOS/HALLAZGOS ========== -->
+      <ion-list-header>
+        <ion-label>Resultados de la Inspección / Hallazgos</ion-label>
+        <ion-button fill="clear" (click)="agregarResultado()">
+          <ion-icon slot="start" name="add-outline"></ion-icon>
+          Agregar
+        </ion-button>
+      </ion-list-header>
+
+      <ion-card *ngFor="let resultado of resultados; let i = index">
+        <ion-card-header>
+          <ion-toolbar  color="primary">
+            <ion-card-title slot="start">Resultados #{{ i + 1 }}</ion-card-title>
+            <ion-button slot="end" fill="clear" color="danger" (click)="eliminarResultado(i)">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+          </ion-toolbar>
+        </ion-card-header>
+
+        <ion-card-content>
+          <ion-item>
+            <ion-textarea
+              label="Descripción *"
+              labelPlacement="stacked"
+              [(ngModel)]="resultado.descripcion"
+              [ngModelOptions]="{standalone: true}"
+              placeholder="Describa el acto o condición encontrada"
+              rows="3"
+            ></ion-textarea>
+          </ion-item>
+
+          <ion-item>
+            <ion-select
+              label="Nivel de Riesgo *"
+              labelPlacement="stacked"
+              [(ngModel)]="resultado.nivel_riesgo"
+              [ngModelOptions]="{standalone: true}"
+              interface="action-sheet"
+            >
+              <ion-select-option *ngFor="let nivel of nivelesRiesgo" [value]="nivel">
+                {{ nivel }}
+              </ion-select-option>
+            </ion-select>
+            <ion-chip [color]="getRiesgoColor(resultado.nivel_riesgo)" slot="end">
+              {{ resultado.nivel_riesgo }}
+            </ion-chip>
+          </ion-item>
+
+          <!-- Responsable del Resultado -->
+          <ion-item button (click)="seleccionarResponsable(i)">
+            <ion-icon name="person-outline" slot="start" [color]="resultado.responsable ? 'success' : 'medium'"></ion-icon>
+            <ion-label>
+              <h3>Responsable del Levantamiento</h3>
+              <p *ngIf="resultado.responsable">
+                <ion-text color="success">{{ getNombrePersonal(resultado.responsable) }}</ion-text>
+              </p>
+              <p *ngIf="!resultado.responsable">
+                <ion-text color="medium">Seleccionar responsable</ion-text>
+              </p>
+            </ion-label>
+            <ion-icon slot="end" name="chevron-forward-outline" color="medium"></ion-icon>
+          </ion-item>
+
+          <!-- Visores (acceso solo lectura) -->
+          <ion-item button (click)="seleccionarVisores(i)">
+            <ion-icon name="eye-outline" slot="start" [color]="resultado.visores && resultado.visores.length > 0 ? 'primary' : 'medium'"></ion-icon>
+            <ion-label>
+              <h3>Visores (Solo Lectura)</h3>
+              <p *ngIf="resultado.visores && resultado.visores.length > 0">
+                <ion-text color="primary">{{ resultado.visores.length }} seleccionado(s)</ion-text>
+              </p>
+              <p *ngIf="!resultado.visores || resultado.visores.length === 0">
+                <ion-text color="medium">Sin visores asignados</ion-text>
+              </p>
+            </ion-label>
+            <ion-badge slot="end" [color]="resultado.visores && resultado.visores.length > 0 ? 'primary' : 'medium'">
+              {{ resultado.visores?.length || 0 }}
+            </ion-badge>
+            <ion-icon slot="end" name="chevron-forward-outline" color="medium"></ion-icon>
+          </ion-item>
+
+          <!-- Responsables de Levantamiento -->
+          <ion-item button (click)="seleccionarResponsablesLevantamiento(i)">
+            <ion-icon name="construct-outline" slot="start" [color]="resultado.responsablesLevantamiento && resultado.responsablesLevantamiento.length > 0 ? 'warning' : 'medium'"></ion-icon>
+            <ion-label>
+              <h3>Responsables de Levantamiento</h3>
+              <p *ngIf="resultado.responsablesLevantamiento && resultado.responsablesLevantamiento.length > 0">
+                <ion-text color="warning">{{ resultado.responsablesLevantamiento.length }} seleccionado(s)</ion-text>
+              </p>
+              <p *ngIf="!resultado.responsablesLevantamiento || resultado.responsablesLevantamiento.length === 0">
+                <ion-text color="medium">Sin responsables asignados</ion-text>
+              </p>
+            </ion-label>
+            <ion-badge slot="end" [color]="resultado.responsablesLevantamiento && resultado.responsablesLevantamiento.length > 0 ? 'warning' : 'medium'">
+              {{ resultado.responsablesLevantamiento?.length || 0 }}
+            </ion-badge>
+            <ion-icon slot="end" name="chevron-forward-outline" color="medium"></ion-icon>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>Foto Inicial</ion-label>
+            <ion-button fill="outline" (click)="tomarFoto(resultado, 'inicial')">
+              <ion-icon slot="start" name="camera-outline"></ion-icon>
+              {{ resultado.registro_fotografico_inicial ? 'Cambiar' : 'Tomar' }}
+            </ion-button>
+          </ion-item>
+
+          <ion-item *ngIf="resultado.registro_fotografico_inicial">
+            <ion-thumbnail slot="start">
+              <img [src]="resultado.registro_fotografico_inicial" alt="Foto inicial" (click)="verFoto(resultado.registro_fotografico_inicial)" style="cursor: pointer;" />
+            </ion-thumbnail>
+            <ion-label>
+              <h3>Foto capturada</h3>
+              <p *ngIf="resultado.foto_inicial_estado">
+                <ion-chip [color]="getEstadoFotoColor(resultado.foto_inicial_estado)" size="small">
+                  <ion-icon [name]="getEstadoFotoIcon(resultado.foto_inicial_estado)"></ion-icon>
+                  <ion-label>{{ getEstadoFotoText(resultado.foto_inicial_estado) }}</ion-label>
+                </ion-chip>
+              </p>
+              <p *ngIf="resultado.foto_inicial_comentario" class="ion-text-wrap">
+                <ion-text color="medium">
+                  <small>{{ resultado.foto_inicial_comentario }}</small>
+                </ion-text>
+              </p>
+            </ion-label>
+            <!-- Botones de aprobación (solo para inspectores) -->
+            <ion-button *ngIf="esInspector && resultado.registro_fotografico_inicial && resultado.foto_inicial_estado !== 'aprobada'" 
+                        fill="clear" 
+                        color="success" 
+                        (click)="aprobarFoto(resultado, 'inicial', 'aprobar')">
+              <ion-icon slot="icon-only" name="checkmark-circle-outline"></ion-icon>
+            </ion-button>
+            <ion-button *ngIf="esInspector && resultado.registro_fotografico_inicial && resultado.foto_inicial_estado !== 'rechazada'" 
+                        fill="clear" 
+                        color="danger" 
+                        (click)="aprobarFoto(resultado, 'inicial', 'rechazar')">
+              <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
+            </ion-button>
+          </ion-item>
+
+          <ion-item>
+            <ion-textarea
+              label="Acción a Tomar"
+              labelPlacement="stacked"
+              [(ngModel)]="resultado.accion_tomar"
+              [ngModelOptions]="{standalone: true}"
+              placeholder="Describa las acciones correctivas"
+              rows="2"
+            ></ion-textarea>
+          </ion-item>
+
+          <ion-item>
+            <ion-select
+              label="Estado"
+              labelPlacement="stacked"
+              [(ngModel)]="resultado.estado"
+              [ngModelOptions]="{standalone: true}"
+              interface="action-sheet"
+            >
+              <ion-select-option *ngFor="let estado of estadosResultado" [value]="estado">
+                {{ estado }}
+              </ion-select-option>
+            </ion-select>
+            <ion-chip [color]="getEstadoColor(resultado.estado)" slot="end">
+              {{ resultado.estado }}
+            </ion-chip>
+          </ion-item>
+
+          <ion-item *ngIf="resultado.estado === 'Ejecutado' || resultado.estado === 'Cerrado'">
+            <ion-datetime-button datetime="fecha-cierre-{{ i }}"></ion-datetime-button>
+            <ion-label>Fecha de Cierre</ion-label>
+          </ion-item>
+          <ion-modal [keepContentsMounted]="true">
+            <ng-template>
+              <ion-datetime
+                id="fecha-cierre-{{ i }}"
+                [(ngModel)]="resultado.fecha_cierre"
+                [ngModelOptions]="{standalone: true}"
+                presentation="date"
+                [showDefaultButtons]="true"
+                cancelText="Cancelar"
+                doneText="Aceptar"
+              ></ion-datetime>
+            </ng-template>
+          </ion-modal>
+
+          <ion-item *ngIf="resultado.estado === 'Cerrado' || puedeSubirFotoFinal(resultado)">
+            <ion-label>Foto Final</ion-label>
+            <ion-button fill="outline" (click)="tomarFoto(resultado, 'final')" [disabled]="!puedeSubirFotoFinal(resultado)">
+              <ion-icon slot="start" name="camera-outline"></ion-icon>
+              {{ resultado.registro_fotografico_final ? 'Cambiar' : 'Tomar' }}
+            </ion-button>
+          </ion-item>
+
+          <ion-item *ngIf="resultado.registro_fotografico_final">
+            <ion-thumbnail slot="start">
+              <img [src]="resultado.registro_fotografico_final" alt="Foto final" (click)="verFoto(resultado.registro_fotografico_final)" style="cursor: pointer;" />
+            </ion-thumbnail>
+            <ion-label>
+              <h3>Foto de cierre</h3>
+              <p *ngIf="resultado.foto_final_estado">
+                <ion-chip [color]="getEstadoFotoColor(resultado.foto_final_estado)" size="small">
+                  <ion-icon [name]="getEstadoFotoIcon(resultado.foto_final_estado)"></ion-icon>
+                  <ion-label>{{ getEstadoFotoText(resultado.foto_final_estado) }}</ion-label>
+                </ion-chip>
+              </p>
+              <p *ngIf="resultado.foto_final_comentario" class="ion-text-wrap">
+                <ion-text color="medium">
+                  <small>{{ resultado.foto_final_comentario }}</small>
+                </ion-text>
+              </p>
+            </ion-label>
+            <!-- Botones de aprobación (solo para inspectores) -->
+            <ion-button *ngIf="esInspector && resultado.registro_fotografico_final && resultado.foto_final_estado !== 'aprobada'" 
+                        fill="clear" 
+                        color="success" 
+                        (click)="aprobarFoto(resultado, 'final', 'aprobar')">
+              <ion-icon slot="icon-only" name="checkmark-circle-outline"></ion-icon>
+            </ion-button>
+            <ion-button *ngIf="esInspector && resultado.registro_fotografico_final && resultado.foto_final_estado !== 'rechazada'" 
+                        fill="clear" 
+                        color="danger" 
+                        (click)="aprobarFoto(resultado, 'final', 'rechazar')">
+              <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
+            </ion-button>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-item *ngIf="resultados.length === 0" lines="none">
+        <ion-label color="medium" class="ion-text-center">
+          <p>No hay resultados agregados. Presione "Agregar" para registrar hallazgos.</p>
+        </ion-label>
+      </ion-item>
+
+    </ion-list>
+
+    <div class="ion-padding">
+      <ion-button expand="block" type="submit" [disabled]="inspeccionForm.invalid">
+        <ion-icon slot="start" name="save-outline"></ion-icon>
+        {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+      </ion-button>
+
+      <ion-button expand="block" fill="outline" (click)="cancelar()">
+        Cancelar
+      </ion-button>
+
+      <ion-note class="offline-note" *ngIf="!isOnline">
+        Estás en modo offline. La inspección se guardará localmente y se sincronizará cuando tengas conexión.
+      </ion-note>
+    </div>
+  </form>
+</ion-content>

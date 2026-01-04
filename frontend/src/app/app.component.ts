@@ -6,6 +6,7 @@ import {
 } from '@ionic/angular/standalone';
 import { SyncService } from './services/sync.service';
 import { AuthService } from './services/auth.service';
+import { PushNotificationService } from './services/push-notification.service';
 import { MenuComponent } from './components/menu/menu.component';
 
 @Component({
@@ -17,6 +18,7 @@ export class AppComponent implements OnInit {
   constructor(
     private syncService: SyncService,
     private authService: AuthService,
+    private pushNotificationService: PushNotificationService,
     private alertController: AlertController
   ) {}
 
@@ -26,6 +28,9 @@ export class AppComponent implements OnInit {
 
     // Escuchar conflictos de sincronización
     this.listenToSyncConflicts();
+
+    // Inicializar push notifications
+    this.initializePushNotifications();
   }
 
   private async initializeAutoSync() {
@@ -45,6 +50,16 @@ export class AppComponent implements OnInit {
         }
       });
     }
+  }
+
+  private async initializePushNotifications() {
+    // Inicializar solo cuando el usuario esté autenticado
+    this.authService.authState$.subscribe(async (isAuth) => {
+      if (isAuth) {
+        console.log('🔔 Inicializando push notifications...');
+        await this.pushNotificationService.initialize();
+      }
+    });
   }
 
   private listenToSyncConflicts() {

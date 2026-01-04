@@ -1,0 +1,113 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/cargos"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Editar Cargo' : 'Nuevo Cargo' }}</ion-title>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <ion-chip [color]="isOnline ? 'success' : 'danger'">
+      <ion-icon [name]="isOnline ? 'checkmark-circle-outline' : 'close-circle-outline'"></ion-icon>
+      <ion-label>{{ isOnline ? 'Conectado' : 'Sin conexión' }}</ion-label>
+    </ion-chip>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">{{ isEditMode ? 'Editar Cargo' : 'Nuevo Cargo' }}</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <form [formGroup]="cargoForm" (ngSubmit)="onSubmit()">
+    <ion-list>
+      <!-- Nombre del cargo -->
+      <ion-item>
+        <ion-input
+          label="Nombre del cargo"
+          labelPlacement="floating"
+          formControlName="name"
+          type="text"
+          placeholder="Ingrese el nombre del cargo"
+          [counter]="true"
+          maxlength="100"
+        ></ion-input>
+      </ion-item>
+      <ion-note 
+        *ngIf="cargoForm.get('name')?.invalid && cargoForm.get('name')?.touched" 
+        color="danger" 
+        class="ion-padding-start"
+      >
+        El nombre es requerido
+      </ion-note>
+
+      <!-- Tipo de Puesto -->
+      <ion-item>
+        <ion-label position="stacked">Tipo de Puesto</ion-label>
+        <ion-select
+          formControlName="tipo_de_puesto_id"
+          placeholder="Seleccione tipo de puesto"
+          interface="popover"
+        >
+          <ion-select-option [value]="null">Ninguno</ion-select-option>
+          <ion-select-option *ngFor="let tipo of tiposDePuesto" [value]="tipo.id">
+            {{ tipo.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Reporta a (cargo superior) -->
+      <ion-item>
+        <ion-label position="stacked">Reporta a</ion-label>
+        <ion-select
+          formControlName="reporta_a"
+          placeholder="Seleccione cargo superior"
+          interface="alert"
+        >
+          <ion-select-option [value]="null">Ninguno</ion-select-option>
+          <ion-select-option *ngFor="let cargo of cargos" [value]="cargo.id">
+            {{ cargo.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Estado -->
+      <ion-item>
+        <ion-label>Estado</ion-label>
+        <ion-toggle formControlName="estado" [enableOnOffLabels]="true"></ion-toggle>
+      </ion-item>
+
+      <!-- Mensaje de conexión -->
+      <ion-item *ngIf="!isOnline" lines="none">
+        <ion-label class="ion-text-wrap" color="warning">
+          <ion-icon name="warning-outline"></ion-icon>
+          Debes estar conectado para guardar cambios
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <!-- Botones de acción -->
+    <div class="action-buttons">
+      <ion-button 
+        expand="block" 
+        type="submit" 
+        [disabled]="cargoForm.invalid || !isOnline"
+      >
+        <ion-icon name="save-outline" slot="start"></ion-icon>
+        {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+      </ion-button>
+
+      <ion-button 
+        expand="block" 
+        color="medium" 
+        type="button"
+        (click)="cancelar()"
+      >
+        <ion-icon name="close-outline" slot="start"></ion-icon>
+        Cancelar
+      </ion-button>
+    </div>
+  </form>
+</ion-content>

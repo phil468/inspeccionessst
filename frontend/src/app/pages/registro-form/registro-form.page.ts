@@ -31,12 +31,7 @@ import { arrowBackOutline, saveOutline } from 'ionicons/icons';
 export class RegistroFormPage implements OnInit {
   registroForm!: FormGroup;
   campanias: any[] = [];
-  materiales: any[] = [];
   fundos: any[] = [];
-  lotes: any[] = [];
-  lotesFiltrados: any[] = [];
-  motivos: any[] = [];
-  materialesFiltrados: any[] = [];
   isOnline = false;
   isEditMode = false;
   registroId: string | null = null;
@@ -78,18 +73,10 @@ export class RegistroFormPage implements OnInit {
   initForm() {
     this.registroForm = this.fb.group({
       campania_id: ['', Validators.required],
-      material_id: ['', Validators.required],
       cantidad: ['', [Validators.required, Validators.min(0)]],
       numero_tractor: ['', Validators.required],
       fundo_id: ['', Validators.required],
-      lote_id: ['', Validators.required],
-      motivo_id: ['', Validators.required],
       observaciones: [''],
-    });
-
-    // Escuchar cambios en el fundo para filtrar lotes
-    this.registroForm.get('fundo_id')?.valueChanges.subscribe((fundoId) => {
-      this.filterLotesByFundo(fundoId);
     });
   }
 
@@ -103,11 +90,7 @@ export class RegistroFormPage implements OnInit {
       // Cargar catálogos desde IndexedDB
       this.campanias = await this.databaseService.getCampanias();
       console.log('Campanias cargadas:', this.campanias);
-      this.materiales = await this.databaseService.getMateriales();
-      this.materialesFiltrados = this.materiales;
       this.fundos = await this.databaseService.getFundos();
-      this.lotes = await this.databaseService.getLotes();
-      this.motivos = await this.databaseService.getMotivos();
 
       // Si está online y no hay datos, descargar del servidor
       console.log(
@@ -121,11 +104,7 @@ export class RegistroFormPage implements OnInit {
         await this.syncService.downloadCatalogos();
         // Recargar después de la descarga
         this.campanias = await this.databaseService.getCampanias();
-        this.materiales = await this.databaseService.getMateriales();
-        this.materialesFiltrados = this.materiales;
         this.fundos = await this.databaseService.getFundos();
-        this.lotes = await this.databaseService.getLotes();
-        this.motivos = await this.databaseService.getMotivos();
       }
     } catch (error) {
       console.error('Error al cargar catálogos:', error);
@@ -167,59 +146,16 @@ export class RegistroFormPage implements OnInit {
       // Llenar el formulario
       this.registroForm.patchValue({
         campania_id: registro.campania_id,
-        material_id: registro.material_id,
         cantidad: registro.cantidad,
         numero_tractor: registro.numero_tractor,
         fundo_id: registro.fundo_id,
-        lote_id: registro.lote_id,
-        motivo_id: registro.motivo_id,
         observaciones: registro.observaciones,
       });
-
-      // Filtrar lotes según el fundo
-      this.filterLotesByFundo(registro.fundo_id);
     } catch (error) {
       console.error('Error al cargar registro:', error);
       this.showToast('Error al cargar registro', 'danger');
     } finally {
       await loading.dismiss();
-    }
-  }
-
-  filterMateriales(event: any) {
-    const searchTerm = event.target.value?.toLowerCase() || '';
-    if (!searchTerm) {
-      this.materialesFiltrados = this.materiales;
-      return;
-    }
-
-    this.materialesFiltrados = this.materiales.filter((material: any) => {
-      return (
-        material.nombre?.toLowerCase().includes(searchTerm) ||
-        material.codigo?.toLowerCase().includes(searchTerm) ||
-        material.descripcion?.toLowerCase().includes(searchTerm)
-      );
-    });
-  }
-
-  filterLotesByFundo(fundoId: number | null) {
-    if (!fundoId) {
-      this.lotesFiltrados = [];
-      this.registroForm.patchValue({ lote_id: '' });
-      return;
-    }
-
-    this.lotesFiltrados = this.lotes.filter((lote: any) => {
-      return lote.fundo_id === fundoId;
-    });
-
-    // Limpiar selección de lote si ya no está en la lista filtrada
-    const currentLoteId = this.registroForm.get('lote_id')?.value;
-    const loteExists = this.lotesFiltrados.some(
-      (l: any) => l.id === currentLoteId
-    );
-    if (!loteExists) {
-      this.registroForm.patchValue({ lote_id: '' });
     }
   }
 

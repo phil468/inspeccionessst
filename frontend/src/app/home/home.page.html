@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
     <ion-title>
-      Calibración
+      Inspecciones
     </ion-title>
     <!-- <ion-buttons slot="end">
       <ion-button (click)="logout()">
@@ -13,8 +13,8 @@
 
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Calibración</ion-title>
+    <ion-toolbar color="primary">
+      <ion-title size="large">Inspecciones</ion-title>
     </ion-toolbar>
   </ion-header>
 
@@ -40,7 +40,7 @@
         <div class="sync-info">
           <ion-icon name="sync-outline" class="sync-icon"></ion-icon>
           <div class="sync-details">
-            <h3>Estado de Sincronización</h3>
+            <h3>Estado de Sincronización Inspecciones</h3>
             <p>
               Total: {{ syncStatus.total }} | 
               Sincronizados: {{ syncStatus.sincronizados }} | 
@@ -81,6 +81,36 @@
         </div>
         <h2>HISTORIAL</h2>
         <p>Ver registros anteriores</p>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Nueva Inspección Card -->
+    <ion-card 
+      button 
+      (click)="goToInspeccionForm()" 
+      *ngIf="hasPermission('inspecciones.create')"
+      class="action-card">
+      <ion-card-content>
+        <div class="card-icon-wrapper">
+          <ion-icon name="clipboard-outline" class="card-icon"></ion-icon>
+        </div>
+        <h2>NUEVA INSPECCIÓN</h2>
+        <p>Crear inspección SST</p>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Lista Inspecciones Card -->
+    <ion-card 
+      button 
+      (click)="goToInspeccionLista()" 
+      *ngIf="hasPermission('inspecciones.view')"
+      class="action-card">
+      <ion-card-content>
+        <div class="card-icon-wrapper">
+          <ion-icon name="documents-outline" class="card-icon"></ion-icon>
+        </div>
+        <h2>INSPECCIONES</h2>
+        <p>Ver lista de inspecciones</p>
       </ion-card-content>
     </ion-card>
 

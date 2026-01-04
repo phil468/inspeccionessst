@@ -67,10 +67,7 @@ class RegistroController extends Controller
         $validator = Validator::make($request->all(), [
             'local_id' => 'nullable|string|uuid',
             'campania_id' => 'required|exists:campanias,id',
-            'material_id' => 'required|exists:materiales,id',
             'fundo_id' => 'required|exists:fundos,id',
-            'lote_id' => 'required|exists:lotes,id',
-            'motivo_id' => 'required|exists:motivos,id',
             'cantidad' => 'required|numeric|min:0',
             'numero_tractor' => 'nullable|string|max:255',
             'observaciones' => 'nullable|string',
@@ -95,7 +92,7 @@ class RegistroController extends Controller
                     'success' => true,
                     'message' => 'Registro ya existe (sincronizado previamente)',
                     'data' => $existente->load([
-                        'campania', 'material', 'fundo', 'lote', 'motivo'
+                        'campania', 'fundo'
                     ]),
                 ], 200);
             }
@@ -108,7 +105,7 @@ class RegistroController extends Controller
         }
 
         $registro = Registro::create($data);
-        $registro->load(['campania', 'material', 'fundo', 'lote', 'motivo']);
+        $registro->load(['campania', 'fundo']);
 
         return response()->json([
             'success' => true,
@@ -175,10 +172,7 @@ class RegistroController extends Controller
 
         $validator = Validator::make($request->all(), [
             'campania_id' => 'sometimes|required|exists:campanias,id',
-            'material_id' => 'sometimes|required|exists:materiales,id',
             'fundo_id' => 'sometimes|required|exists:fundos,id',
-            'lote_id' => 'sometimes|required|exists:lotes,id',
-            'motivo_id' => 'sometimes|required|exists:motivos,id',
             'cantidad' => 'sometimes|required|numeric|min:0',
             'numero_tractor' => 'nullable|string|max:255',
             'observaciones' => 'nullable|string',
@@ -193,7 +187,7 @@ class RegistroController extends Controller
         }
 
         $registro->update($validator->validated());
-        $registro->load(['campania', 'material', 'fundo', 'lote', 'motivo']);
+        $registro->load(['campania', 'fundo']);
 
         return response()->json([
             'success' => true,

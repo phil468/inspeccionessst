@@ -1,0 +1,21 @@
+.action-buttons {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+ion-note {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+ion-chip {
+  margin-right: 8px;
+}
+
+ion-item {
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+}

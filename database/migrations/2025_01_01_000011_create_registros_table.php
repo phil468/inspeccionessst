@@ -13,10 +13,7 @@ return new class extends Migration
             $table->uuid('local_id')->unique()->nullable(); // Para sincronización offline
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('campania_id')->constrained('campanias')->onDelete('restrict');
-            $table->foreignId('material_id')->constrained('materiales')->onDelete('restrict');
             $table->foreignId('fundo_id')->constrained('fundos')->onDelete('restrict');
-            $table->foreignId('lote_id')->constrained('lotes')->onDelete('restrict');
-            $table->foreignId('motivo_id')->constrained('motivos')->onDelete('restrict');
             $table->decimal('cantidad', 10, 2);
             $table->string('numero_tractor')->nullable();
             $table->text('observaciones')->nullable();

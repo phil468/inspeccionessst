@@ -1,14 +1,15 @@
 import { Injectable } from '@angular/core';
 import { DatabaseService } from './database.service';
+import { Registro } from '../models/registro.model';
+import { Inspeccion } from '../models/inspeccion.model';
 import {
-  Registro,
   Campania,
-  Material,
   Fundo,
-  Lote,
-  Motivo,
+  Empresa,
+  Area,
   Catalogos,
-} from '../models';
+  Personal,
+} from '../models/catalogo.model';
 
 @Injectable({
   providedIn: 'root',
@@ -120,6 +121,112 @@ export class StorageService {
     return await this.db.registros.count();
   }
 
+  // ==================== INSPECCIONES ====================
+
+  /**
+   * Guardar una inspección en la base de datos local
+   */
+  async saveInspeccion(inspeccion: Inspeccion): Promise<number> {
+    return await this.db.inspecciones.add(inspeccion);
+  }
+
+  /**
+   * Guardar múltiples inspecciones (actualiza si existe, inserta si no)
+   */
+  async saveInspecciones(inspecciones: Inspeccion[]): Promise<void> {
+    await this.db.inspecciones.bulkPut(inspecciones);
+  }
+
+  /**
+   * Obtener todas las inspecciones
+   */
+  async getAllInspecciones(): Promise<Inspeccion[]> {
+    return await this.db.inspecciones.toArray();
+  }
+
+  /**
+   * Obtener inspecciones pendientes de sincronización
+   */
+  async getPendingInspecciones(): Promise<Inspeccion[]> {
+    return await this.db.inspecciones
+      .filter((i) => i.synced === false || i.synced === null)
+      .toArray();
+  }
+
+  /**
+   * Obtener una inspección por local_id
+   */
+  async getInspeccionByLocalId(
+    localId: string
+  ): Promise<Inspeccion | undefined> {
+    return await this.db.inspecciones
+      .filter((i) => i.local_id === localId)
+      .first();
+  }
+
+  /**
+   * Actualizar una inspección
+   */
+  async updateInspeccion(
+    id: number,
+    changes: Partial<Inspeccion>
+  ): Promise<number> {
+    return await this.db.inspecciones.update(id, changes);
+  }
+
+  /**
+   * Marcar inspección como sincronizada
+   */
+  async markInspeccionAsSynced(
+    localId: string,
+    serverId?: number
+  ): Promise<number> {
+    const inspeccion = await this.getInspeccionByLocalId(localId);
+    if (!inspeccion) {
+      throw new Error('Inspección no encontrada con local_id: ' + localId);
+    }
+
+    // Encontrar la clave primaria de IndexedDB
+    const dbKey = await this.db.inspecciones
+      .where('local_id')
+      .equals(localId)
+      .primaryKeys()
+      .then((keys) => keys[0]);
+
+    if (!dbKey) {
+      throw new Error('No se encontró la clave primaria para la inspección');
+    }
+
+    // Actualizar solo synced, no tocar la clave primaria
+    return await this.db.inspecciones.update(dbKey, {
+      synced: true,
+      synced_at: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Eliminar una inspección
+   */
+  async deleteInspeccion(id: number): Promise<void> {
+    await this.db.inspecciones.delete(id);
+  }
+
+  /**
+   * Contar inspecciones pendientes
+   */
+  async countPendingInspecciones(): Promise<number> {
+    return await this.db.inspecciones
+      .filter((i) => i.synced === false || i.synced === null)
+      .count();
+  }
+
+  /**
+   * Contar total de inspecciones
+   */
+  async countInspecciones(): Promise<number> {
+    return await this.db.inspecciones.count();
+  }
+
   // ==================== CATÁLOGOS ====================
 
   /**
@@ -130,57 +237,71 @@ export class StorageService {
       'rw',
       [
         this.db.campanias,
-        this.db.materiales,
         this.db.fundos,
-        this.db.lotes,
-        this.db.motivos,
+        this.db.empresas,
+        this.db.areas,
+        this.db.cargos,
+        this.db.tipos_trabajador,
+        this.db.tipos_personal,
+        this.db.planillas,
       ],
       async () => {
         // Limpiar catálogos existentes
         await this.db.campanias.clear();
-        await this.db.materiales.clear();
         await this.db.fundos.clear();
-        await this.db.lotes.clear();
-        await this.db.motivos.clear();
+        await this.db.empresas.clear();
+        await this.db.areas.clear();
+        await this.db.cargos.clear();
+        await this.db.tipos_trabajador.clear();
+        await this.db.tipos_personal.clear();
+        await this.db.planillas.clear();
 
         // Guardar nuevos catálogos
         if (catalogos.campanias && catalogos.campanias.length > 0) {
           await this.db.campanias.bulkAdd(catalogos.campanias);
         }
-        if (catalogos.materiales && catalogos.materiales.length > 0) {
-          await this.db.materiales.bulkAdd(catalogos.materiales);
-        }
         if (catalogos.fundos && catalogos.fundos.length > 0) {
-          // Los fundos pueden venir con lotes anidados, extraerlos
-          const lotes: any[] = [];
-          const fundosSinLotes = catalogos.fundos.map((fundo: any) => {
-            // Extraer lotes del fundo
-            if (fundo.lotes && Array.isArray(fundo.lotes)) {
-              lotes.push(...fundo.lotes);
-            }
-            // Retornar fundo sin la propiedad lotes
-            const { lotes: _, ...fundoSinLotes } = fundo;
-            return fundoSinLotes;
-          });
-
-          await this.db.fundos.bulkAdd(fundosSinLotes);
-
-          // Guardar lotes extraídos
-          if (lotes.length > 0) {
-            await this.db.lotes.bulkAdd(lotes);
-          }
+          await this.db.fundos.bulkAdd(catalogos.fundos);
         }
-
-        // Si vienen lotes por separado (fallback)
-        if (catalogos.lotes && catalogos.lotes.length > 0) {
-          await this.db.lotes.bulkAdd(catalogos.lotes);
+        if (catalogos.empresas && catalogos.empresas.length > 0) {
+          await this.db.empresas.bulkAdd(catalogos.empresas);
         }
-
-        if (catalogos.motivos && catalogos.motivos.length > 0) {
-          await this.db.motivos.bulkAdd(catalogos.motivos);
+        if (catalogos.areas && catalogos.areas.length > 0) {
+          await this.db.areas.bulkAdd(catalogos.areas);
+        }
+        if (catalogos.cargos && catalogos.cargos.length > 0) {
+          await this.db.cargos.bulkAdd(catalogos.cargos);
+        }
+        if (
+          catalogos.tipos_trabajador &&
+          catalogos.tipos_trabajador.length > 0
+        ) {
+          await this.db.tipos_trabajador.bulkAdd(catalogos.tipos_trabajador);
+        }
+        if (catalogos.tipos_personal && catalogos.tipos_personal.length > 0) {
+          await this.db.tipos_personal.bulkAdd(catalogos.tipos_personal);
+        }
+        if (catalogos.planillas && catalogos.planillas.length > 0) {
+          await this.db.planillas.bulkAdd(catalogos.planillas);
         }
       }
     );
+  }
+
+  /**
+   * Obtener todos los catálogos
+   */
+  async getCatalogos(): Promise<Catalogos> {
+    return {
+      campanias: await this.getCampanias(),
+      fundos: await this.getFundos(),
+      empresas: await this.getEmpresas(),
+      areas: await this.getAreas(),
+      cargos: await this.db.cargos.toArray(),
+      tipos_trabajador: await this.db.tipos_trabajador.toArray(),
+      tipos_personal: await this.db.tipos_personal.toArray(),
+      planillas: await this.db.planillas.toArray(),
+    };
   }
 
   /**
@@ -198,20 +319,6 @@ export class StorageService {
   }
 
   /**
-   * Obtener todos los materiales
-   */
-  async getMateriales(): Promise<Material[]> {
-    return await this.db.materiales.toArray();
-  }
-
-  /**
-   * Obtener materiales activos
-   */
-  async getActiveMateriales(): Promise<Material[]> {
-    return await this.db.materiales.filter((m) => m.activo === true).toArray();
-  }
-
-  /**
    * Obtener todos los fundos
    */
   async getFundos(): Promise<Fundo[]> {
@@ -226,33 +333,40 @@ export class StorageService {
   }
 
   /**
-   * Obtener lotes por fundo
+   * Obtener todas las empresas
    */
-  async getLotesByFundo(fundoId: number): Promise<Lote[]> {
-    return await this.db.lotes
-      .filter((l) => l.fundo_id === fundoId && l.activo === true)
+  async getEmpresas(): Promise<Empresa[]> {
+    return await this.db.empresas.toArray();
+  }
+
+  /**
+   * Obtener empresas activas
+   */
+  async getActiveEmpresas(): Promise<Empresa[]> {
+    return await this.db.empresas.filter((e) => e.activo === true).toArray();
+  }
+
+  /**
+   * Obtener todas las áreas
+   */
+  async getAreas(): Promise<Area[]> {
+    return await this.db.areas.toArray();
+  }
+
+  /**
+   * Obtener áreas activas
+   */
+  async getActiveAreas(): Promise<Area[]> {
+    return await this.db.areas.filter((a) => a.activo === true).toArray();
+  }
+
+  /**
+   * Obtener áreas por empresa
+   */
+  async getAreasByEmpresa(empresaId: number): Promise<Area[]> {
+    return await this.db.areas
+      .filter((a) => a.empresa_id === empresaId && a.activo === true)
       .toArray();
-  }
-
-  /**
-   * Obtener todos los lotes
-   */
-  async getLotes(): Promise<Lote[]> {
-    return await this.db.lotes.toArray();
-  }
-
-  /**
-   * Obtener todos los motivos
-   */
-  async getMotivos(): Promise<Motivo[]> {
-    return await this.db.motivos.toArray();
-  }
-
-  /**
-   * Obtener motivos activos
-   */
-  async getActiveMotivos(): Promise<Motivo[]> {
-    return await this.db.motivos.filter((m) => m.activo === true).toArray();
   }
 
   // ==================== UTILIDADES ====================
@@ -277,10 +391,9 @@ export class StorageService {
   async hasCatalogos(): Promise<boolean> {
     const counts = await Promise.all([
       this.db.campanias.count(),
-      this.db.materiales.count(),
       this.db.fundos.count(),
-      this.db.lotes.count(),
-      this.db.motivos.count(),
+      this.db.empresas.count(),
+      this.db.areas.count(),
     ]);
 
     return counts.some((count) => count > 0);
@@ -299,18 +412,6 @@ export class StorageService {
   }
 
   /**
-   * Actualizar solo materiales
-   */
-  async updateMateriales(materiales: Material[]): Promise<void> {
-    await this.db.transaction('rw', [this.db.materiales], async () => {
-      await this.db.materiales.clear();
-      if (materiales.length > 0) {
-        await this.db.materiales.bulkAdd(materiales);
-      }
-    });
-  }
-
-  /**
    * Actualizar solo fundos
    */
   async updateFundos(fundos: Fundo[]): Promise<void> {
@@ -322,27 +423,74 @@ export class StorageService {
     });
   }
 
+  // ==================== PERSONAL ====================
+
   /**
-   * Actualizar solo lotes
+   * Guardar múltiples registros de personal
    */
-  async updateLotes(lotes: Lote[]): Promise<void> {
-    await this.db.transaction('rw', [this.db.lotes], async () => {
-      await this.db.lotes.clear();
-      if (lotes.length > 0) {
-        await this.db.lotes.bulkAdd(lotes);
-      }
-    });
+  async savePersonal(personal: Personal[]): Promise<void> {
+    await this.db.personal.bulkPut(personal);
   }
 
   /**
-   * Actualizar solo motivos
+   * Obtener todo el personal
    */
-  async updateMotivos(motivos: Motivo[]): Promise<void> {
-    await this.db.transaction('rw', [this.db.motivos], async () => {
-      await this.db.motivos.clear();
-      if (motivos.length > 0) {
-        await this.db.motivos.bulkAdd(motivos);
-      }
-    });
+  async getAllPersonal(): Promise<Personal[]> {
+    return await this.db.personal.toArray();
+  }
+
+  /**
+   * Obtener personal por ID
+   */
+  async getPersonalById(id: number): Promise<Personal | undefined> {
+    return await this.db.personal.get(id);
+  }
+
+  /**
+   * Obtener personal activo (no cesado)
+   */
+  async getActivePersonal(): Promise<Personal[]> {
+    return await this.db.personal.filter((p) => !p.cesado).toArray();
+  }
+
+  /**
+   * Obtener personal por empresa
+   */
+  async getPersonalByEmpresa(empresaId: number): Promise<Personal[]> {
+    return await this.db.personal
+      .where('empresa_id')
+      .equals(empresaId)
+      .toArray();
+  }
+
+  /**
+   * Obtener personal por DNI
+   */
+  async getPersonalByDni(dni: string): Promise<Personal | undefined> {
+    return await this.db.personal.where('dni').equals(dni).first();
+  }
+
+  /**
+   * Buscar personal por nombre
+   */
+  async searchPersonal(query: string): Promise<Personal[]> {
+    const lowerQuery = query.toLowerCase();
+    return await this.db.personal
+      .filter((p) => p.name.toLowerCase().includes(lowerQuery))
+      .toArray();
+  }
+
+  /**
+   * Contar personal activo
+   */
+  async countActivePersonal(): Promise<number> {
+    return await this.db.personal.filter((p) => !p.cesado).count();
+  }
+
+  /**
+   * Limpiar tabla de personal
+   */
+  async clearPersonal(): Promise<void> {
+    await this.db.personal.clear();
   }
 }

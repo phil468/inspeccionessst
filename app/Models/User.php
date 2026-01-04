@@ -24,6 +24,7 @@ class User extends Authenticatable
         'microsoft_id',
         'avatar',
         'activo',
+        'personal_id',
     ];
 
     /**
@@ -56,6 +57,11 @@ class User extends Authenticatable
     public function registros()
     {
         return $this->hasMany(Registro::class);
+    }
+
+    public function personal()
+    {
+        return $this->belongsTo(Personal::class);
     }
 
     // Métodos de permisos

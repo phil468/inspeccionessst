@@ -25,10 +25,24 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Si es 401 (no autorizado), hacer logout
+      // Si es 401 (no autorizado) y no es una ruta excluida
       if (error.status === 401 && !isExcluded) {
-        authService.logout();
-        router.navigate(['/login']);
+        // Solo hacer logout si el error es específicamente de autenticación
+        // y no es un problema de permisos
+        const errorMessage = error.error?.message || '';
+
+        if (
+          errorMessage.includes('Unauthenticated') ||
+          errorMessage.includes('token') ||
+          error.error?.error === 'Unauthenticated'
+        ) {
+          console.warn('Token inválido o expirado. Cerrando sesión...');
+          authService.logout();
+          router.navigate(['/login']);
+        } else {
+          // Si es un error de permisos, solo mostrar el error sin cerrar sesión
+          console.error('Error 401:', errorMessage);
+        }
       }
 
       return throwError(() => error);

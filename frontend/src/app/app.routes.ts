@@ -4,7 +4,7 @@ import { AuthGuard } from './guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'home',
     pathMatch: 'full',
   },
   {
@@ -72,27 +72,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'materiales',
-        loadComponent: () =>
-          import('./pages/materiales/materiales-lista.page').then(
-            (m) => m.MaterialesListaPage
-          ),
-      },
-      {
-        path: 'materiales/nuevo',
-        loadComponent: () =>
-          import('./pages/materiales/materiales-form.page').then(
-            (m) => m.MaterialesFormPage
-          ),
-      },
-      {
-        path: 'materiales/editar/:id',
-        loadComponent: () =>
-          import('./pages/materiales/materiales-form.page').then(
-            (m) => m.MaterialesFormPage
-          ),
-      },
-      {
         path: 'fundos',
         loadComponent: () =>
           import('./pages/fundos/fundos-lista.page').then(
@@ -114,42 +93,67 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'lotes',
+        path: 'empresas',
         loadComponent: () =>
-          import('./pages/lotes/lotes-lista.page').then(
-            (m) => m.LotesListaPage
+          import('./pages/empresas/empresas-lista/empresas-lista.page').then(
+            (m) => m.EmpresasListaPage
           ),
       },
       {
-        path: 'lotes/nuevo',
+        path: 'empresas/form',
         loadComponent: () =>
-          import('./pages/lotes/lotes-form.page').then((m) => m.LotesFormPage),
-      },
-      {
-        path: 'lotes/editar/:id',
-        loadComponent: () =>
-          import('./pages/lotes/lotes-form.page').then((m) => m.LotesFormPage),
-      },
-      {
-        path: 'motivos',
-        loadComponent: () =>
-          import('./pages/motivos/motivos-lista.page').then(
-            (m) => m.MotivosListaPage
+          import('./pages/empresas/empresas-form/empresas-form.page').then(
+            (m) => m.EmpresasFormPage
           ),
       },
       {
-        path: 'motivos/nuevo',
+        path: 'empresas/form/:id',
         loadComponent: () =>
-          import('./pages/motivos/motivos-form.page').then(
-            (m) => m.MotivosFormPage
+          import('./pages/empresas/empresas-form/empresas-form.page').then(
+            (m) => m.EmpresasFormPage
           ),
       },
       {
-        path: 'motivos/editar/:id',
+        path: 'areas',
         loadComponent: () =>
-          import('./pages/motivos/motivos-form.page').then(
-            (m) => m.MotivosFormPage
+          import('./pages/areas/areas-lista/areas-lista.page').then(
+            (m) => m.AreasListaPage
           ),
+      },
+      {
+        path: 'areas/form',
+        loadComponent: () =>
+          import('./pages/areas/areas-form/areas-form.page').then(
+            (m) => m.AreasFormPage
+          ),
+      },
+      {
+        path: 'areas/form/:id',
+        loadComponent: () =>
+          import('./pages/areas/areas-form/areas-form.page').then(
+            (m) => m.AreasFormPage
+          ),
+      },
+      {
+        path: 'inspecciones',
+        loadComponent: () =>
+          import(
+            './pages/inspecciones/inspeccion-lista/inspeccion-lista.page'
+          ).then((m) => m.InspeccionListaPage),
+      },
+      {
+        path: 'inspecciones/form',
+        loadComponent: () =>
+          import(
+            './pages/inspecciones/inspeccion-form/inspeccion-form.page'
+          ).then((m) => m.InspeccionFormPage),
+      },
+      {
+        path: 'inspecciones/form/:id',
+        loadComponent: () =>
+          import(
+            './pages/inspecciones/inspeccion-form/inspeccion-form.page'
+          ).then((m) => m.InspeccionFormPage),
       },
       {
         path: 'usuarios',
@@ -189,6 +193,63 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/roles/roles-form.page').then((m) => m.RolesFormPage),
       },
+      {
+        path: 'personal',
+        loadComponent: () =>
+          import('./pages/personal-lista/personal-lista.page').then(
+            (m) => m.PersonalListaPage
+          ),
+      },
+      {
+        path: 'personal/nuevo',
+        loadComponent: () =>
+          import('./pages/personal-form/personal-form.page').then(
+            (m) => m.PersonalFormPage
+          ),
+      },
+      {
+        path: 'personal/detalle/:detalleId',
+        loadComponent: () =>
+          import('./pages/personal-form/personal-form.page').then(
+            (m) => m.PersonalFormPage
+          ),
+      },
+      {
+        path: 'personal/editar/:id',
+        loadComponent: () =>
+          import('./pages/personal-form/personal-form.page').then(
+            (m) => m.PersonalFormPage
+          ),
+      },
+      {
+        path: 'cargos',
+        loadComponent: () =>
+          import('./pages/cargos/cargos-lista.page').then(
+            (m) => m.CargosListaPage
+          ),
+      },
+      {
+        path: 'cargos/form',
+        loadComponent: () =>
+          import('./pages/cargos/cargos-form.page').then(
+            (m) => m.CargosFormPage
+          ),
+      },
+      {
+        path: 'cargos/form/:id',
+        loadComponent: () =>
+          import('./pages/cargos/cargos-form.page').then(
+            (m) => m.CargosFormPage
+          ),
+      },
     ],
+  },
+  {
+    path: 'mis-inspecciones',
+    loadComponent: () =>
+      import('./pages/mis-inspecciones/mis-inspecciones.component').then(
+        (m) => m.MisInspeccionesComponent
+      ),
+    canActivate: [AuthGuard],
   },
 ];

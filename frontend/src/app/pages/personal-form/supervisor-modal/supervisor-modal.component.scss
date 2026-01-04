@@ -1,0 +1,17 @@
+ion-searchbar {
+  --background: var(--ion-color-light);
+  --border-radius: 8px;
+}
+
+ion-chip {
+  margin-right: 8px;
+}
+
+ion-item {
+  --padding-start: 16px;
+  cursor: pointer;
+}
+
+ion-item:hover {
+  --background: var(--ion-color-light);
+}

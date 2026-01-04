@@ -13,6 +13,10 @@ import {
   bookmarkOutline,
   peopleOutline,
   shieldCheckmarkOutline,
+  businessOutline,
+  homeOutline,
+  personOutline,
+  briefcaseOutline,
 } from 'ionicons/icons';
 
 interface MenuItem {
@@ -39,13 +43,13 @@ export class MantenimientoPage {
       permission: 'campanias.view',
       description: 'Gestionar campañas agrícolas',
     },
-    {
-      title: 'Materiales',
-      icon: 'cube-outline',
-      route: '/materiales',
-      permission: 'materiales.view',
-      description: 'Gestionar materiales y productos',
-    },
+    // {
+    //   title: 'Materiales',
+    //   icon: 'cube-outline',
+    //   route: '/materiales',
+    //   permission: 'materiales.view',
+    //   description: 'Gestionar materiales y productos',
+    // },
     {
       title: 'Fundos',
       icon: 'leaf-outline',
@@ -53,25 +57,25 @@ export class MantenimientoPage {
       permission: 'fundos.view',
       description: 'Gestionar fundos',
     },
-    {
-      title: 'Lotes',
-      icon: 'grid-outline',
-      route: '/lotes',
-      permission: 'lotes.view',
-      description: 'Gestionar lotes',
-    },
-    {
-      title: 'Motivos',
-      icon: 'bookmark-outline',
-      route: '/motivos',
-      permission: 'motivos.view',
-      description: 'Gestionar motivos de aplicación',
-    },
+    // {
+    //   title: 'Lotes',
+    //   icon: 'grid-outline',
+    //   route: '/lotes',
+    //   permission: 'lotes.view',
+    //   description: 'Gestionar lotes',
+    // },
+    // {
+    //   title: 'Motivos',
+    //   icon: 'bookmark-outline',
+    //   route: '/motivos',
+    //   permission: 'motivos.view',
+    //   description: 'Gestionar motivos de aplicación',
+    // },
     {
       title: 'Usuarios',
       icon: 'people-outline',
       route: '/usuarios',
-      permission: 'users.view',
+      permission: 'usuarios.view',
       description: 'Gestionar usuarios del sistema',
     },
     {
@@ -80,6 +84,35 @@ export class MantenimientoPage {
       route: '/roles',
       permission: 'roles.view',
       description: 'Gestionar roles y permisos',
+    },
+    //areas, empresas
+    {
+      title: 'Áreas',
+      icon: 'business-outline',
+      route: '/areas',
+      permission: 'areas.view',
+      description: 'Gestionar áreas de la empresa',
+    },
+    {
+      title: 'Empresas',
+      icon: 'home-outline',
+      route: '/empresas',
+      permission: 'empresas.view',
+      description: 'Gestionar empresas',
+    },
+    {
+      title: 'Personal',
+      icon: 'person-outline',
+      route: '/personal',
+      permission: 'personal.view',
+      description: 'Gestionar personal',
+    },
+    {
+      title: 'Cargos',
+      icon: 'briefcase-outline',
+      route: '/cargos',
+      permission: 'cargos.view',
+      description: 'Gestionar cargos',
     },
   ];
 
@@ -93,6 +126,10 @@ export class MantenimientoPage {
       bookmarkOutline,
       peopleOutline,
       shieldCheckmarkOutline,
+      businessOutline,
+      homeOutline,
+      personOutline,
+      briefcaseOutline,
     });
   }
 

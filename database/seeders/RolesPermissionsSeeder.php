@@ -15,19 +15,21 @@ class RolesPermissionsSeeder extends Seeder
     public function run(): void
     {
         // Limpiar tablas
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         DB::table('role_permission')->delete();
         DB::table('user_role')->delete();
         Permission::truncate();
         Role::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // Crear permisos para cada recurso
         $resources = [
             'campanias' => 'Campañas',
-            'materiales' => 'Materiales',
             'fundos' => 'Fundos',
-            'lotes' => 'Lotes',
-            'motivos' => 'Motivos',
+            'empresas' => 'Empresas',
+            'areas' => 'Áreas',
             'registros' => 'Registros',
+            'inspecciones' => 'Inspecciones',
             'usuarios' => 'Usuarios',
             'roles' => 'Roles y Permisos',
         ];
@@ -53,7 +55,7 @@ class RolesPermissionsSeeder extends Seeder
             }
 
             // Agregar permiso especial de gestionar (manage)
-            if (in_array($resource, ['campanias', 'materiales', 'fundos', 'lotes', 'motivos'])) {
+            if (in_array($resource, ['campanias', 'fundos', 'empresas', 'areas'])) {
                 $permission = Permission::create([
                     'name' => "{$resource}.manage",
                     'description' => "Gestionar {$resourceName}",
@@ -72,6 +74,15 @@ class RolesPermissionsSeeder extends Seeder
             'action' => 'sync',
         ]);
         $permissions['registros.sync'] = $syncPermission;
+
+        // Agregar permisos especiales para inspecciones
+        $syncInspeccionesPermission = Permission::create([
+            'name' => 'inspecciones.sync',
+            'description' => 'Sincronizar Inspecciones',
+            'resource' => 'inspecciones',
+            'action' => 'sync',
+        ]);
+        $permissions['inspecciones.sync'] = $syncInspeccionesPermission;
 
         // Crear roles
         $adminRole = Role::create([
@@ -96,16 +107,21 @@ class RolesPermissionsSeeder extends Seeder
         $supervisorPermissions = [
             // Ver todos los catálogos
             'campanias.view',
-            'materiales.view',
             'fundos.view',
-            'lotes.view',
-            'motivos.view',
+            'empresas.view',
+            'areas.view',
             // Gestionar registros
             'registros.view',
             'registros.create',
             'registros.edit',
             'registros.delete',
             'registros.sync',
+            // Gestionar inspecciones
+            'inspecciones.view',
+            'inspecciones.create',
+            'inspecciones.edit',
+            'inspecciones.delete',
+            'inspecciones.sync',
         ];
         
         $supervisorPermissionIds = Permission::whereIn('name', $supervisorPermissions)->pluck('id');
@@ -115,13 +131,15 @@ class RolesPermissionsSeeder extends Seeder
         $operatorPermissions = [
             // Ver catálogos
             'campanias.view',
-            'materiales.view',
             'fundos.view',
-            'lotes.view',
-            'motivos.view',
+            'empresas.view',
+            'areas.view',
             // Ver y crear registros
             'registros.view',
             'registros.create',
+            // Ver y crear inspecciones
+            'inspecciones.view',
+            'inspecciones.create',
         ];
         
         $operatorPermissionIds = Permission::whereIn('name', $operatorPermissions)->pluck('id');

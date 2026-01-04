@@ -4,8 +4,8 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8080/calibracion/public/api/v1',
-  appName: 'Calibración',
+  apiUrl: 'http://localhost:8080/inspeccionessst/public/api/v1',
+  appName: 'Inspecciones SST',
   version: '1.0.0',
   // Configuración de API
   api: {
@@ -20,7 +20,7 @@ export const environment = {
   },
   // Configuración de storage
   storage: {
-    dbName: 'calibracion_db',
+    dbName: 'inspeccionessst_db',
     dbVersion: 1,
   },
 };

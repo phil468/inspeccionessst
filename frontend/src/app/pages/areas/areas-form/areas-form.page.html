@@ -1,0 +1,74 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/areas"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Editar Área' : 'Nueva Área' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cancelar()">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form [formGroup]="areaForm" (ngSubmit)="guardar()">
+    <ion-list>
+      <ion-item>
+        <ion-select
+          label="Empresa *"
+          labelPlacement="stacked"
+          formControlName="empresa_id"
+          placeholder="Seleccione una empresa"
+          interface="action-sheet"
+        >
+          <ion-select-option *ngFor="let empresa of empresas" [value]="empresa.id">
+            {{ empresa.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-note color="danger" *ngIf="areaForm.get('empresa_id')?.invalid && areaForm.get('empresa_id')?.touched">
+        La empresa es requerida
+      </ion-note>
+
+      <ion-item>
+        <ion-input
+          label="Nombre *"
+          labelPlacement="stacked"
+          formControlName="name"
+          placeholder="Ingrese el nombre del área"
+          [clearInput]="true"
+        ></ion-input>
+      </ion-item>
+      <ion-note color="danger" *ngIf="areaForm.get('name')?.invalid && areaForm.get('name')?.touched">
+        El nombre es requerido
+      </ion-note>
+
+      <ion-item>
+        <ion-input
+          label="Centro de Costo"
+          labelPlacement="stacked"
+          formControlName="centro_costo"
+          placeholder="Ingrese el centro de costo (opcional)"
+          [clearInput]="true"
+        ></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-toggle formControlName="activo">Activo</ion-toggle>
+      </ion-item>
+    </ion-list>
+
+    <div class="ion-padding">
+      <ion-button expand="block" type="submit" [disabled]="!isOnline || areaForm.invalid">
+        <ion-icon slot="start" name="save-outline"></ion-icon>
+        {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+      </ion-button>
+
+      <ion-button expand="block" fill="outline" (click)="cancelar()">
+        Cancelar
+      </ion-button>
+    </div>
+  </form>
+</ion-content>
