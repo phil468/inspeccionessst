@@ -97,6 +97,11 @@ CORS_ALLOWED_ORIGINS=https://app.tudominio.com
 ```bash
 cd /var/www/inspeccionessst
 
+##tal vez sea necesario:
+sudo chown -R john.delacruz:john.delacruz /var/www/inspeccionessst
+
+git config --global --add safe.directory /var/www/inspeccionessst
+
 # Instalar dependencias de Composer (sin dev)
 composer install --optimize-autoloader --no-dev
 
