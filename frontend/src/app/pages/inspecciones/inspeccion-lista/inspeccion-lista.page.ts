@@ -298,7 +298,9 @@ export class InspeccionListaPage implements OnInit {
         {
           text: 'Enviar',
           handler: async () => {
+            // Ejecutar en segundo plano sin bloquear el cierre del alert
             await this.enviarNotificacionesConfirmado(inspeccion);
+            return true; // Cierra el alert inmediatamente
           },
         },
       ],
@@ -308,25 +310,23 @@ export class InspeccionListaPage implements OnInit {
   }
 
   private async enviarNotificacionesConfirmado(inspeccion: Inspeccion) {
-    const loading = await this.loadingController.create({
-      message: 'Enviando notificaciones...',
-    });
-    await loading.present();
+    console.log('Enviando notificaciones para inspección ID:', inspeccion.id);
+    
+    // Toast inicial con duración larga para que el usuario sepa que está procesando
+    await this.showToast('Enviando notificaciones...', 'primary', 5000);
 
     try {
       const response: any = await this.inspeccionService.enviarNotificaciones(
         inspeccion.id!
       );
-      await loading.dismiss();
 
       if (response.success) {
-        await this.showToast(response.message, 'success');
+        await this.showToast(response.message || 'Notificaciones enviadas con éxito', 'success');
       } else {
         await this.showToast('Error al enviar notificaciones', 'danger');
       }
     } catch (error) {
       console.error('Error al enviar notificaciones:', error);
-      await loading.dismiss();
       await this.showToast('Error al enviar notificaciones', 'danger');
     }
   }
@@ -367,10 +367,10 @@ export class InspeccionListaPage implements OnInit {
     }
   }
 
-  private async showToast(message: string, color: string = 'dark') {
+  private async showToast(message: string, color: string = 'dark', duration: number = 3000) {
     const toast = await this.toastController.create({
       message,
-      duration: 3000,
+      duration,
       position: 'bottom',
       color,
     });

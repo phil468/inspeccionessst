@@ -28,6 +28,11 @@ class NotificationService
         // Agrupar resultados por personal (responsables, visores, responsables levantamiento)
         $resultadosPorPersonal = $this->agruparResultadosPorPersonal($inspeccion);
 
+        // return[
+        //     'enviadas' => 0,
+        //     'detalles' => $resultadosPorPersonal,
+        // ];
+
         foreach ($resultadosPorPersonal as $personalId => $datos) {
             $personal = Personal::find($personalId);
             
@@ -65,25 +70,25 @@ class NotificationService
                 );
 
                 // Enviar push notification si el personal tiene usuario
-                $user = User::where('personal_id', $personalId)->first();
-                if ($user) {
-                    $pushTitle = $tipoNotificacion === 'felicitaciones'
-                        ? "✓ Inspección Completada"
-                        : "⚠ Hallazgos Pendientes";
+                // $user = User::where('personal_id', $personalId)->first();
+                // if ($user) {
+                //     $pushTitle = $tipoNotificacion === 'felicitaciones'
+                //         ? "✓ Inspección Completada"
+                //         : "⚠ Hallazgos Pendientes";
                     
-                    $pushBody = "Tienes " . count($datos['resultados']) . " hallazgo(s) en {$inspeccion->empresa->name}";
+                //     $pushBody = "Tienes " . count($datos['resultados']) . " hallazgo(s) en {$inspeccion->empresa->name}";
                     
-                    $this->pushService->sendToUser(
-                        $user,
-                        $pushTitle,
-                        $pushBody,
-                        [
-                            'type' => 'inspeccion',
-                            'inspeccion_id' => $inspeccion->id,
-                            'notification_type' => $tipoNotificacion,
-                        ]
-                    );
-                }
+                //     $this->pushService->sendToUser(
+                //         $user,
+                //         $pushTitle,
+                //         $pushBody,
+                //         [
+                //             'type' => 'inspeccion',
+                //             'inspeccion_id' => $inspeccion->id,
+                //             'notification_type' => $tipoNotificacion,
+                //         ]
+                //     );
+                // }
 
                 $notificacionesEnviadas[] = [
                     'personal_id' => $personalId,

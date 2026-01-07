@@ -607,8 +607,8 @@ class SyncController extends Controller
 
                 // 3.1 Sincronizar visores del resultado
                 if (isset($resultadoData['visores']) && is_array($resultadoData['visores'])) {
-                    // Limpiar visores existentes
-                    \App\Models\ResultadoVisor::where('resultado_id', $resultado->id)->delete();
+                    // Limpiar visores existentes (forceDelete para eliminar físicamente, no soft delete)
+                    \App\Models\ResultadoVisor::where('resultado_id', $resultado->id)->forceDelete();
                     
                     foreach ($resultadoData['visores'] as $visorData) {
                         $personalId = is_array($visorData) ? ($visorData['personal_id'] ?? $visorData['id'] ?? null) : $visorData;
@@ -624,8 +624,8 @@ class SyncController extends Controller
 
                 // 3.2 Sincronizar responsables de levantamiento del resultado
                 if (isset($resultadoData['responsablesLevantamiento']) && is_array($resultadoData['responsablesLevantamiento'])) {
-                    // Limpiar responsables existentes
-                    \App\Models\ResultadoResponsableLevantamiento::where('resultado_id', $resultado->id)->delete();
+                    // Limpiar responsables existentes (forceDelete para eliminar físicamente, no soft delete)
+                    \App\Models\ResultadoResponsableLevantamiento::where('resultado_id', $resultado->id)->forceDelete();
                     
                     foreach ($resultadoData['responsablesLevantamiento'] as $respData) {
                         $personalId = is_array($respData) ? ($respData['personal_id'] ?? $respData['id'] ?? null) : $respData;

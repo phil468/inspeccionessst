@@ -533,10 +533,30 @@ export class InspeccionFormPage implements OnInit {
     }
 
     // 3. Guardar resultados/hallazgos
-    const resultadosConId = this.resultados.map((r) => ({
-      ...r,
-      inspeccion_id: inspeccionIndexedDBId,
-    }));
+    const resultadosConId = this.resultados.map((r) => {
+      // Crear copia limpia del resultado
+      const resultadoLimpio: any = {
+        ...r,
+        inspeccion_id: inspeccionIndexedDBId,
+      };
+
+      // Limpiar visores: copiar objetos completos válidos
+      if (r.visores && Array.isArray(r.visores)) {
+        resultadoLimpio.visores = r.visores
+          .filter((v) => v && v.id !== undefined)
+          .map((v) => ({ ...v }));
+      }
+
+      // Limpiar responsablesLevantamiento: copiar objetos completos válidos
+      if (r.responsablesLevantamiento && Array.isArray(r.responsablesLevantamiento)) {
+        resultadoLimpio.responsablesLevantamiento = r.responsablesLevantamiento
+          .filter((rl) => rl && rl.id !== undefined)
+          .map((rl) => ({ ...rl }));
+      }
+
+      return resultadoLimpio;
+    });
+    
     if (resultadosConId.length > 0) {
       await this.databaseService.saveResultadosInspeccion(resultadosConId);
     }

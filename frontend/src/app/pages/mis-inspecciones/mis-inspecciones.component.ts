@@ -6,6 +6,8 @@ import { AuthService } from '../../services/auth.service';
 import { InspeccionService } from '../../services/inspeccion.service';
 import { Inspeccion, ResultadoInspeccion } from '../../models/inspeccion.model';
 import { Personal } from '../../models/catalogo.model';
+import { addIcons } from 'ionicons';
+import { arrowBackOutline } from 'ionicons/icons';
 
 interface InspeccionConResultados extends Inspeccion {
   resultados?: ResultadoInspeccion[];
@@ -29,7 +31,9 @@ export class MisInspeccionesComponent implements OnInit {
     private authService: AuthService,
     private inspeccionService: InspeccionService,
     private navController: NavController
-  ) {}
+  ) {    
+      addIcons({ arrowBackOutline });
+  }
 
   async ngOnInit() {
     this.currentUser = await this.authService.getCurrentUser();
@@ -62,6 +66,8 @@ export class MisInspeccionesComponent implements OnInit {
 
     // Si es administrador, mostrar todas
     if (userRoles.includes('Administrador')) {
+      console.log('Usuario Administrador - mostrando todas las inspecciones');
+      console.log('Total inspecciones:', inspecciones.length);
       return inspecciones;
     }
 

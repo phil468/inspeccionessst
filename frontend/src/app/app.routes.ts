@@ -242,14 +242,13 @@ export const routes: Routes = [
             (m) => m.CargosFormPage
           ),
       },
+      {
+        path: 'mis-inspecciones',
+        loadComponent: () =>
+          import('./pages/mis-inspecciones/mis-inspecciones.component').then(
+            (m) => m.MisInspeccionesComponent
+          ),
+      },
     ],
-  },
-  {
-    path: 'mis-inspecciones',
-    loadComponent: () =>
-      import('./pages/mis-inspecciones/mis-inspecciones.component').then(
-        (m) => m.MisInspeccionesComponent
-      ),
-    canActivate: [AuthGuard],
   },
 ];
