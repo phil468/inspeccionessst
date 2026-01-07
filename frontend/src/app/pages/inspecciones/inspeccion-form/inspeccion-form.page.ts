@@ -548,7 +548,10 @@ export class InspeccionFormPage implements OnInit {
       }
 
       // Limpiar responsablesLevantamiento: copiar objetos completos válidos
-      if (r.responsablesLevantamiento && Array.isArray(r.responsablesLevantamiento)) {
+      if (
+        r.responsablesLevantamiento &&
+        Array.isArray(r.responsablesLevantamiento)
+      ) {
         resultadoLimpio.responsablesLevantamiento = r.responsablesLevantamiento
           .filter((rl) => rl && rl.id !== undefined)
           .map((rl) => ({ ...rl }));
@@ -556,7 +559,7 @@ export class InspeccionFormPage implements OnInit {
 
       return resultadoLimpio;
     });
-    
+
     if (resultadosConId.length > 0) {
       await this.databaseService.saveResultadosInspeccion(resultadosConId);
     }

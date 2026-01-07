@@ -29,7 +29,7 @@ import {
   trashOutline,
   statsChartOutline,
   wifiOutline,
-  cloudOfflineOutline
+  cloudOfflineOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -76,7 +76,7 @@ export class InspeccionListaPage implements OnInit {
       trashOutline,
       statsChartOutline,
       wifiOutline,
-      cloudOfflineOutline
+      cloudOfflineOutline,
     });
   }
 
@@ -311,7 +311,7 @@ export class InspeccionListaPage implements OnInit {
 
   private async enviarNotificacionesConfirmado(inspeccion: Inspeccion) {
     console.log('Enviando notificaciones para inspección ID:', inspeccion.id);
-    
+
     // Toast inicial con duración larga para que el usuario sepa que está procesando
     await this.showToast('Enviando notificaciones...', 'primary', 5000);
 
@@ -321,7 +321,10 @@ export class InspeccionListaPage implements OnInit {
       );
 
       if (response.success) {
-        await this.showToast(response.message || 'Notificaciones enviadas con éxito', 'success');
+        await this.showToast(
+          response.message || 'Notificaciones enviadas con éxito',
+          'success'
+        );
       } else {
         await this.showToast('Error al enviar notificaciones', 'danger');
       }
@@ -367,7 +370,11 @@ export class InspeccionListaPage implements OnInit {
     }
   }
 
-  private async showToast(message: string, color: string = 'dark', duration: number = 3000) {
+  private async showToast(
+    message: string,
+    color: string = 'dark',
+    duration: number = 3000
+  ) {
     const toast = await this.toastController.create({
       message,
       duration,
