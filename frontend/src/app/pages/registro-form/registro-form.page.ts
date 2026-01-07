@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -26,6 +26,7 @@ import { arrowBackOutline, saveOutline } from 'ionicons/icons';
   templateUrl: './registro-form.page.html',
   styleUrls: ['./registro-form.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule, ReactiveFormsModule],
 })
 export class RegistroFormPage implements OnInit {

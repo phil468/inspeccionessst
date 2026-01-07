@@ -51,9 +51,27 @@
         (ionChange)="toggleInspector(personal)"
       ></ion-checkbox>
       <ion-label>
-        <h2>{{ getNombreCompleto(personal) }}</h2>
+        <h2>
+          {{ getNombreCompleto(personal) }}
+          <ion-icon 
+            *ngIf="!personal.correo_empresa" 
+            name="mail-outline" 
+            color="warning"
+            style="margin-left: 4px; font-size: 14px;"
+            title="Sin correo empresarial"
+          ></ion-icon>
+        </h2>
         <p *ngIf="personal.dni">DNI: {{ personal.dni }}</p>
-        <p *ngIf="personal.correo_empresa">Correo: {{ personal.correo_empresa }}</p>
+        <p *ngIf="personal.correo_empresa">
+          <ion-icon name="mail" style="font-size: 12px; margin-right: 4px;"></ion-icon>
+          {{ personal.correo_empresa }}
+        </p>
+        <p *ngIf="!personal.correo_empresa" class="ion-text-wrap">
+          <ion-text color="warning">
+            <ion-icon name="warning-outline" style="font-size: 12px;"></ion-icon>
+            <small> Sin correo - se solicitará al confirmar</small>
+          </ion-text>
+        </p>
         <p *ngIf="personal.cargo?.name">Cargo: {{ personal.cargo?.name }}</p>
       </ion-label>
     </ion-item>
@@ -79,6 +97,10 @@
 
 <ion-footer>
   <ion-toolbar>
+    <ion-note *ngIf="!isOnline" color="warning" style="display: block; text-align: center; padding: 8px;">
+      <ion-icon name="cloud-offline-outline"></ion-icon>
+      Modo offline - la validación de acceso se hará cuando haya conexión
+    </ion-note>
     <ion-button expand="block" (click)="confirmar()" [disabled]="inspectoresSeleccionados.length === 0">
       <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
       Confirmar ({{ inspectoresSeleccionados.length }})

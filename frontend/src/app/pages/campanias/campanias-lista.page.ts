@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
@@ -21,6 +21,7 @@ import {
   templateUrl: './campanias-lista.page.html',
   styleUrls: ['./campanias-lista.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class CampaniasListaPage implements OnInit {

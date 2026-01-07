@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import {
   IonicModule,
@@ -24,6 +24,7 @@ import { saveOutline, closeOutline } from 'ionicons/icons';
   templateUrl: './areas-form.page.html',
   styleUrls: ['./areas-form.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule, FormsModule, ReactiveFormsModule],
 })
 export class AreasFormPage implements OnInit {

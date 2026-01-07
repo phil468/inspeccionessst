@@ -1,67 +1,64 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { IonicModule, AlertController } from '@ionic/angular';
+import { IonicModule, ModalController, AlertController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { addIcons } from 'ionicons';
 import {
   homeOutline,
-  addCircleOutline,
   listOutline,
-  menuOutline,
-  ellipsisVerticalOutline,
   documentTextOutline,
-  clipboardOutline,
   settingsOutline,
   flaskOutline,
   businessOutline,
+  logOutOutline,
+  personCircleOutline,
+  shieldOutline,
+  clipboardOutline,
   briefcaseOutline,
   layersOutline,
   peopleOutline,
-  shieldOutline,
   keyOutline,
-  logOutOutline,
-  personCircleOutline,
   closeOutline,
 } from 'ionicons/icons';
 
 @Component({
-  selector: 'app-tabs',
-  templateUrl: 'tabs.page.html',
-  styleUrls: ['tabs.page.scss'],
+  selector: 'app-side-menu',
+  templateUrl: './side-menu.component.html',
+  styleUrls: ['./side-menu.component.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [CommonModule, IonicModule],
 })
-export class TabsPage {
-  isMenuOpen = false;
+export class SideMenuComponent implements OnInit {
   userName = '';
 
   constructor(
+    private modalController: ModalController,
     private router: Router,
     private authService: AuthService,
     private alertController: AlertController
   ) {
     addIcons({
       homeOutline,
-      addCircleOutline,
       listOutline,
-      menuOutline,
-      ellipsisVerticalOutline,
       documentTextOutline,
-      clipboardOutline,
       settingsOutline,
       flaskOutline,
       businessOutline,
+      logOutOutline,
+      personCircleOutline,
+      shieldOutline,
+      clipboardOutline,
       briefcaseOutline,
       layersOutline,
       peopleOutline,
-      shieldOutline,
       keyOutline,
-      logOutOutline,
-      personCircleOutline,
       closeOutline,
     });
+  }
+
+  ngOnInit() {
     this.loadUserInfo();
   }
 
@@ -72,21 +69,17 @@ export class TabsPage {
     }
   }
 
-  toggleMenu() {
-    this.isMenuOpen = !this.isMenuOpen;
-  }
-
-  closeMenu() {
-    this.isMenuOpen = false;
-  }
-
   hasPermission(permission: string): boolean {
     return this.authService.hasPermission(permission);
   }
 
-  navigateTo(route: string) {
-    this.closeMenu();
+  async navigateTo(route: string) {
+    await this.modalController.dismiss();
     this.router.navigate([route]);
+  }
+
+  async closeMenu() {
+    await this.modalController.dismiss();
   }
 
   async logout() {
@@ -94,12 +87,15 @@ export class TabsPage {
       header: 'Confirmar cierre de sesión',
       message: '¿Estás seguro de que deseas cerrar sesión?',
       buttons: [
-        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+        },
         {
           text: 'Cerrar Sesión',
           role: 'destructive',
-          handler: () => {
-            this.closeMenu();
+          handler: async () => {
+            await this.modalController.dismiss();
             this.authService.logout();
             this.router.navigate(['/login']);
           },

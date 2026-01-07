@@ -41,6 +41,8 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/inspeccionessst/",
+              "optimization": true,
               "budgets": [
                 {
                   "type": "initial",

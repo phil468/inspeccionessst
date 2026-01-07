@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -9,11 +9,39 @@ import {
 } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import {
-  IonicModule,
   ToastController,
   LoadingController,
   ModalController,
-} from '@ionic/angular';
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonContent,
+  IonList,
+  IonListHeader,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonTextarea,
+  IonSelect,
+  IonSelectOption,
+  IonDatetime,
+  IonDatetimeButton,
+  IonModal,
+  IonChip,
+  IonThumbnail,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonAccordionGroup,
+  IonAccordion,
+  IonSpinner,
+  IonNote,
+  IonBackButton,
+} from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DatabaseService } from '../../../services/database.service';
@@ -41,6 +69,8 @@ import {
   trashOutline,
   cameraOutline,
   searchOutline,
+  checkmarkCircleOutline,
+  chevronForwardOutline,
 } from 'ionicons/icons';
 import { AreaSelectionModalComponent } from './area-selection-modal/area-selection-modal.component';
 import { InspectorSelectionModalComponent } from './inspector-selection-modal/inspector-selection-modal.component';
@@ -50,7 +80,38 @@ import { InspectorSelectionModalComponent } from './inspector-selection-modal/in
   templateUrl: './inspeccion-form.page.html',
   styleUrls: ['./inspeccion-form.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, ReactiveFormsModule, FormsModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonContent,
+    IonList,
+    IonListHeader,
+    IonItem,
+    IonLabel,
+    IonInput,
+    IonTextarea,
+    IonSelect,
+    IonSelectOption,
+    IonDatetime,
+    IonDatetimeButton,
+    IonModal,
+    IonChip,
+    IonThumbnail,
+    IonCard,
+    IonCardHeader,
+    IonCardTitle,
+    IonCardContent,
+    IonNote,
+    IonBackButton,
+  ],
 })
 export class InspeccionFormPage implements OnInit {
   inspeccionForm!: FormGroup;
@@ -99,6 +160,8 @@ export class InspeccionFormPage implements OnInit {
       trashOutline,
       cameraOutline,
       searchOutline,
+      checkmarkCircleOutline,
+      chevronForwardOutline,
     });
   }
 
@@ -569,6 +632,10 @@ export class InspeccionFormPage implements OnInit {
       visores: [],
       responsablesLevantamiento: [],
     };
+    
+    // Calcular fecha límite automática según nivel de riesgo
+    this.calcularFechaLimite(nuevoResultado);
+    
     this.resultados.push(nuevoResultado);
   }
 
@@ -627,6 +694,77 @@ export class InspeccionFormPage implements OnInit {
         return 'success';
       default:
         return 'medium';
+    }
+  }
+
+  /**
+   * Obtener el plazo máximo según nivel de riesgo
+   */
+  getPlazoTexto(nivel: NivelRiesgo): string {
+    switch (nivel) {
+      case 'Alto':
+        return '0-48 hrs';
+      case 'Medio':
+        return '0-7 días';
+      case 'Bajo':
+        return '0-15 días';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Obtener días de plazo según nivel de riesgo
+   */
+  getDiasPlazo(nivel: NivelRiesgo): number {
+    switch (nivel) {
+      case 'Alto':
+        return 2; // 48 horas = 2 días
+      case 'Medio':
+        return 7;
+      case 'Bajo':
+        return 15;
+      default:
+        return 7;
+    }
+  }
+
+  /**
+   * Calcular fecha límite automática según nivel de riesgo
+   */
+  calcularFechaLimite(resultado: ResultadoInspeccion): void {
+    // Solo calcular automáticamente si está en Pendiente o En Proceso
+    if (resultado.estado === 'Pendiente' || resultado.estado === 'En Proceso') {
+      const fechaInspeccion = this.inspeccionForm.get('fecha_hora_inspeccion')?.value;
+      const fechaBase = fechaInspeccion ? new Date(fechaInspeccion) : new Date();
+      const diasPlazo = this.getDiasPlazo(resultado.nivel_riesgo);
+      
+      const fechaLimite = new Date(fechaBase);
+      fechaLimite.setDate(fechaLimite.getDate() + diasPlazo);
+      
+      resultado.fecha_cierre = fechaLimite.toISOString();
+    }
+  }
+
+  /**
+   * Evento cuando cambia el nivel de riesgo
+   */
+  onNivelRiesgoChange(resultado: ResultadoInspeccion): void {
+    this.calcularFechaLimite(resultado);
+  }
+
+  /**
+   * Evento cuando cambia el estado
+   */
+  onEstadoChange(resultado: ResultadoInspeccion): void {
+    if (resultado.estado === 'Ejecutado' || resultado.estado === 'Cerrado') {
+      // Si cambia a Ejecutado o Cerrado, usar fecha actual si no tiene fecha
+      if (!resultado.fecha_cierre) {
+        resultado.fecha_cierre = new Date().toISOString();
+      }
+    } else {
+      // Si vuelve a Pendiente o En Proceso, recalcular fecha límite
+      this.calcularFechaLimite(resultado);
     }
   }
 

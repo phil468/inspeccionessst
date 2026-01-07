@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { IonicModule, NavController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
@@ -15,6 +16,7 @@ interface InspeccionConResultados extends Inspeccion {
   templateUrl: './mis-inspecciones.component.html',
   styleUrls: ['./mis-inspecciones.component.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule],
 })
 export class MisInspeccionesComponent implements OnInit {
@@ -23,6 +25,7 @@ export class MisInspeccionesComponent implements OnInit {
   currentUser: any;
 
   constructor(
+    private router: Router,
     private authService: AuthService,
     private inspeccionService: InspeccionService,
     private navController: NavController
@@ -103,5 +106,9 @@ export class MisInspeccionesComponent implements OnInit {
   async doRefresh(event: any) {
     await this.cargarInspecciones();
     event.target.complete();
+  }
+
+  goBack() {
+    this.router.navigate(['/home']);
   }
 }

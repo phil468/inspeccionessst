@@ -1,23 +1,23 @@
-.connection-status {
-  padding: 8px 16px;
+// Barra de estado de sincronización con chips
+.sync-status-bar {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  
-  &.online {
-    background-color: var(--ion-color-success-tint);
-    color: var(--ion-color-success-contrast);
-  }
-  
-  &.offline {
-    background-color: var(--ion-color-warning-tint);
-    color: var(--ion-color-warning-contrast);
-  }
-  
-  ion-icon {
-    font-size: 20px;
+  padding: 12px 16px;
+  background: var(--ion-color-light);
+  border-bottom: 1px solid var(--ion-color-light-shade);
+
+  ion-chip {
+    margin: 0;
+    
+    ion-icon {
+      font-size: 18px;
+    }
+    
+    ion-label {
+      font-size: 13px;
+      font-weight: 500;
+    }
   }
 }
 
@@ -37,43 +37,6 @@
     border-radius: 9px;
     z-index: 10;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-}
-
-.sync-status-card {
-  margin: 12px;
-  
-  .sync-info {
-    display: flex;
-    justify-content: space-around;
-    gap: 16px;
-    
-    .stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      
-      .label {
-        font-size: 12px;
-        color: var(--ion-color-medium);
-        text-transform: uppercase;
-      }
-      
-      .value {
-        font-size: 24px;
-        font-weight: bold;
-        color: var(--ion-color-dark);
-      }
-      
-      &.success .value {
-        color: var(--ion-color-success);
-      }
-      
-      &.warning .value {
-        color: var(--ion-color-warning);
-      }
-    }
   }
 }
 

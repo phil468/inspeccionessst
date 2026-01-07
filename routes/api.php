@@ -150,6 +150,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/', [PersonalController::class, 'index']);
         Route::get('/{id}', [PersonalController::class, 'show']);
         
+        // Validación para notificaciones (necesario para seleccionar personal en inspecciones)
+        Route::get('/{id}/validar-notificacion', [PersonalController::class, 'validarParaNotificacion']);
+        Route::post('/{id}/asegurar-acceso', [PersonalController::class, 'asegurarAccesoSistema']);
+        
         // Sincronización (sin restricción por ahora)
         Route::post('/sync-from-api', [PersonalController::class, 'syncFromExternalApi']);
         

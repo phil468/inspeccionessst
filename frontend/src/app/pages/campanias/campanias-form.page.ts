@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -21,6 +21,7 @@ import { arrowBackOutline, saveOutline } from 'ionicons/icons';
   templateUrl: './campanias-form.page.html',
   styleUrls: ['./campanias-form.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule, ReactiveFormsModule],
 })
 export class CampaniasFormPage implements OnInit {

@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://apps.vanguardfresh.pe/app-calibracion/api/v1',
+  apiUrl: 'https://apps.vanguardfresh.pe/inspeccionessstapi/api/v1',
   appName: 'Inspecciones SST',
   version: '1.0.0',
   // Configuración de API

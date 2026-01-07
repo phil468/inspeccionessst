@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController } from '@ionic/angular';
 import { MenuController } from '@ionic/angular/standalone';
@@ -8,6 +8,7 @@ import { addIcons } from 'ionicons';
 import {
   homeOutline,
   listOutline,
+  documentTextOutline,
   settingsOutline,
   flaskOutline,
   cubeOutline,
@@ -17,6 +18,9 @@ import {
   logOutOutline,
   personCircleOutline,
   shieldOutline,
+  clipboardOutline,
+  briefcaseOutline,
+  layersOutline,
   peopleOutline,
   keyOutline,
 } from 'ionicons/icons';
@@ -34,6 +38,7 @@ interface MenuItem {
   templateUrl: './menu.component.html',
   styleUrls: ['./menu.component.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [CommonModule, IonicModule],
 })
 export class MenuComponent implements OnInit {
@@ -116,6 +121,7 @@ export class MenuComponent implements OnInit {
     addIcons({
       homeOutline,
       listOutline,
+      documentTextOutline,
       settingsOutline,
       flaskOutline,
       cubeOutline,
@@ -125,6 +131,9 @@ export class MenuComponent implements OnInit {
       logOutOutline,
       personCircleOutline,
       shieldOutline,
+      clipboardOutline,
+      briefcaseOutline,
+      layersOutline,
       peopleOutline,
       keyOutline,
     });

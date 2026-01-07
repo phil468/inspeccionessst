@@ -1,5 +1,17 @@
+.menu-header {
+  padding: 20px 20px 10px 20px;
+  background: var(--ion-color-primary);
+  color: white;
+  
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+}
+
 .user-info {
-  padding: 20px;
+  padding: 10px 20px 20px 20px;
   background: var(--ion-color-primary);
   color: white;
   display: flex;

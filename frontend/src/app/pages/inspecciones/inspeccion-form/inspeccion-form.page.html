@@ -67,36 +67,36 @@
       <ion-item>
         <ion-label position="stacked">Vigencia Desde</ion-label>
         <ion-datetime-button datetime="vigencia-desde"></ion-datetime-button>
+        <ion-modal [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime
+              id="vigencia-desde"
+              formControlName="vigencia_desde"
+              presentation="date-time"
+              [showDefaultButtons]="true"
+              cancelText="Cancelar"
+              doneText="Aceptar"
+            ></ion-datetime>
+          </ng-template>
+        </ion-modal>
       </ion-item>
-      <ion-modal [keepContentsMounted]="true">
-        <ng-template>
-          <ion-datetime
-            id="vigencia-desde"
-            formControlName="vigencia_desde"
-            presentation="date-time"
-            [showDefaultButtons]="true"
-            cancelText="Cancelar"
-            doneText="Aceptar"
-          ></ion-datetime>
-        </ng-template>
-      </ion-modal>
 
       <ion-item>
         <ion-label position="stacked">Vigencia Hasta</ion-label>
         <ion-datetime-button datetime="vigencia-hasta"></ion-datetime-button>
+        <ion-modal [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime
+              id="vigencia-hasta"
+              formControlName="vigencia_hasta"
+              presentation="date-time"
+              [showDefaultButtons]="true"
+              cancelText="Cancelar"
+              doneText="Aceptar"
+            ></ion-datetime>
+          </ng-template>
+        </ion-modal>
       </ion-item>
-      <ion-modal [keepContentsMounted]="true">
-        <ng-template>
-          <ion-datetime
-            id="vigencia-hasta"
-            formControlName="vigencia_hasta"
-            presentation="date-time"
-            [showDefaultButtons]="true"
-            cancelText="Cancelar"
-            doneText="Aceptar"
-          ></ion-datetime>
-        </ng-template>
-      </ion-modal>
 
       <ion-list-header>
         <ion-label>Datos de la Inspección</ion-label>
@@ -113,21 +113,21 @@
       </ion-item>
 
       <ion-item>
+        <ion-label position="stacked">Fecha y Hora de Inspección</ion-label>
         <ion-datetime-button datetime="fecha-hora-inspeccion"></ion-datetime-button>
-        <ion-label>Fecha y Hora de Inspección</ion-label>
+        <ion-modal [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime
+              id="fecha-hora-inspeccion"
+              formControlName="fecha_hora_inspeccion"
+              presentation="date-time"
+              [showDefaultButtons]="true"
+              cancelText="Cancelar"
+              doneText="Aceptar"
+            ></ion-datetime>
+          </ng-template>
+        </ion-modal>
       </ion-item>
-      <ion-modal [keepContentsMounted]="true">
-        <ng-template>
-          <ion-datetime
-            id="fecha-hora-inspeccion"
-            formControlName="fecha_hora_inspeccion"
-            presentation="date-time"
-            [showDefaultButtons]="true"
-            cancelText="Cancelar"
-            doneText="Aceptar"
-          ></ion-datetime>
-        </ng-template>
-      </ion-modal>
 
       <ion-item>
         <ion-textarea
@@ -236,14 +236,18 @@
         </ion-button>
       </ion-list-header>
 
-      <ion-card *ngFor="let resultado of resultados; let i = index">
-        <ion-card-header>
-          <ion-toolbar  color="primary">
-            <ion-card-title slot="start">Resultados #{{ i + 1 }}</ion-card-title>
-            <ion-button slot="end" fill="clear" color="danger" (click)="eliminarResultado(i)">
-              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+      <ion-card *ngFor="let resultado of resultados; let i = index" class="resultado-card">
+        <ion-card-header color="primary">
+          <div class="resultado-header">
+            <ion-card-title color="light">
+              <ion-icon name="clipboard-outline" class="resultado-icon"></ion-icon>
+              Resultado #{{ i + 1 }}
+            </ion-card-title>
+            <ion-button fill="solid" color="danger" size="small" (click)="eliminarResultado(i)">
+              <ion-icon slot="start" name="trash-outline"></ion-icon>
+              Eliminar
             </ion-button>
-          </ion-toolbar>
+          </div>
         </ion-card-header>
 
         <ion-card-content>
@@ -265,6 +269,7 @@
               [(ngModel)]="resultado.nivel_riesgo"
               [ngModelOptions]="{standalone: true}"
               interface="action-sheet"
+              (ionChange)="onNivelRiesgoChange(resultado)"
             >
               <ion-select-option *ngFor="let nivel of nivelesRiesgo" [value]="nivel">
                 {{ nivel }}
@@ -272,6 +277,7 @@
             </ion-select>
             <ion-chip [color]="getRiesgoColor(resultado.nivel_riesgo)" slot="end">
               {{ resultado.nivel_riesgo }}
+              <ion-label class="plazo-label">{{ getPlazoTexto(resultado.nivel_riesgo) }}</ion-label>
             </ion-chip>
           </ion-item>
 
@@ -385,6 +391,7 @@
               [(ngModel)]="resultado.estado"
               [ngModelOptions]="{standalone: true}"
               interface="action-sheet"
+              (ionChange)="onEstadoChange(resultado)"
             >
               <ion-select-option *ngFor="let estado of estadosResultado" [value]="estado">
                 {{ estado }}
@@ -395,23 +402,29 @@
             </ion-chip>
           </ion-item>
 
-          <ion-item *ngIf="resultado.estado === 'Ejecutado' || resultado.estado === 'Cerrado'">
-            <ion-datetime-button datetime="fecha-cierre-{{ i }}"></ion-datetime-button>
-            <ion-label>Fecha de Cierre</ion-label>
+          <!-- Fecha de Ejecución/Cierre - siempre visible -->
+          <ion-item>
+            <ion-label position="stacked">
+              {{ resultado.estado === 'Ejecutado' || resultado.estado === 'Cerrado' ? 'Fecha de Ejecución' : 'Fecha Límite (calculada)' }}
+            </ion-label>
+            <ion-datetime-button datetime="fecha-cierre-{{ i }}" [disabled]="resultado.estado === 'Pendiente' || resultado.estado === 'En Proceso'"></ion-datetime-button>
+            <ion-modal [keepContentsMounted]="true">
+              <ng-template>
+                <ion-datetime
+                  id="fecha-cierre-{{ i }}"
+                  [(ngModel)]="resultado.fecha_cierre"
+                  [ngModelOptions]="{standalone: true}"
+                  presentation="date"
+                  [showDefaultButtons]="true"
+                  cancelText="Cancelar"
+                  doneText="Aceptar"
+                ></ion-datetime>
+              </ng-template>
+            </ion-modal>
+            <ion-note slot="end" *ngIf="resultado.estado === 'Pendiente' || resultado.estado === 'En Proceso'">
+              <small>Auto: {{ getPlazoTexto(resultado.nivel_riesgo) }}</small>
+            </ion-note>
           </ion-item>
-          <ion-modal [keepContentsMounted]="true">
-            <ng-template>
-              <ion-datetime
-                id="fecha-cierre-{{ i }}"
-                [(ngModel)]="resultado.fecha_cierre"
-                [ngModelOptions]="{standalone: true}"
-                presentation="date"
-                [showDefaultButtons]="true"
-                cancelText="Cancelar"
-                doneText="Aceptar"
-              ></ion-datetime>
-            </ng-template>
-          </ion-modal>
 
           <ion-item *ngIf="resultado.estado === 'Cerrado' || puedeSubirFotoFinal(resultado)">
             <ion-label>Foto Final</ion-label>

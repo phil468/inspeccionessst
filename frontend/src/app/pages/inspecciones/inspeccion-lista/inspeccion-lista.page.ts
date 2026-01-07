@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
@@ -27,6 +27,9 @@ import {
   businessOutline,
   notificationsOutline,
   trashOutline,
+  statsChartOutline,
+  wifiOutline,
+  cloudOfflineOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -34,6 +37,7 @@ import {
   templateUrl: './inspeccion-lista.page.html',
   styleUrls: ['./inspeccion-lista.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class InspeccionListaPage implements OnInit {
@@ -70,6 +74,9 @@ export class InspeccionListaPage implements OnInit {
       businessOutline,
       notificationsOutline,
       trashOutline,
+      statsChartOutline,
+      wifiOutline,
+      cloudOfflineOutline
     });
   }
 

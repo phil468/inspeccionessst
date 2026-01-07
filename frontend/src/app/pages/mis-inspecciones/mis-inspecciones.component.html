@@ -2,8 +2,9 @@
   <ion-toolbar color="primary">
     <ion-title>Mis Inspecciones</ion-title>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/inspecciones"></ion-back-button>
-    </ion-buttons>
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 

@@ -1,4 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
@@ -31,6 +36,7 @@ import {
   templateUrl: './registro-lista.page.html',
   styleUrls: ['./registro-lista.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class RegistroListaPage implements OnInit, OnDestroy {

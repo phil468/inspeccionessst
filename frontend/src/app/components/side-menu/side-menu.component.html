@@ -1,0 +1,104 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Menú</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeMenu()">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- User Info -->
+  <div class="user-info">
+    <ion-icon name="person-circle-outline" class="user-avatar"></ion-icon>
+    <div class="user-details">
+      <h3>{{ userName }}</h3>
+    </div>
+  </div>
+
+  <ion-list>
+    <!-- Inicio -->
+    <ion-item button (click)="navigateTo('/home')">
+      <ion-icon slot="start" name="home-outline"></ion-icon>
+      <ion-label>Inicio</ion-label>
+    </ion-item>
+
+    <!-- Registros -->
+    <ion-item button (click)="navigateTo('/registro-lista')">
+      <ion-icon slot="start" name="list-outline"></ion-icon>
+      <ion-label>Registros</ion-label>
+    </ion-item>
+
+    <!-- Inspecciones -->
+    <ion-item button (click)="navigateTo('/inspecciones')">
+      <ion-icon slot="start" name="document-text-outline"></ion-icon>
+      <ion-label>Inspecciones</ion-label>
+    </ion-item>
+
+    <!-- Mis Inspecciones -->
+    <ion-item button (click)="navigateTo('/mis-inspecciones')">
+      <ion-icon slot="start" name="clipboard-outline"></ion-icon>
+      <ion-label>Mis Inspecciones</ion-label>
+    </ion-item>
+
+    <!-- Mantenimiento -->
+    <ion-accordion-group>
+      <ion-accordion value="mantenimiento">
+        <ion-item slot="header">
+          <ion-icon slot="start" name="settings-outline"></ion-icon>
+          <ion-label>Mantenimiento</ion-label>
+        </ion-item>
+        <div slot="content" class="submenu">
+          <ion-item *ngIf="hasPermission('campanias.view')" button (click)="navigateTo('/campanias')" lines="none">
+            <ion-icon slot="start" name="flask-outline"></ion-icon>
+            <ion-label>Campañas</ion-label>
+          </ion-item>
+          <ion-item *ngIf="hasPermission('fundos.view')" button (click)="navigateTo('/fundos')" lines="none">
+            <ion-icon slot="start" name="business-outline"></ion-icon>
+            <ion-label>Fundos</ion-label>
+          </ion-item>
+          <ion-item *ngIf="hasPermission('empresas.view')" button (click)="navigateTo('/empresas')" lines="none">
+            <ion-icon slot="start" name="briefcase-outline"></ion-icon>
+            <ion-label>Empresas</ion-label>
+          </ion-item>
+          <ion-item *ngIf="hasPermission('areas.view')" button (click)="navigateTo('/areas')" lines="none">
+            <ion-icon slot="start" name="layers-outline"></ion-icon>
+            <ion-label>Áreas</ion-label>
+          </ion-item>
+          <ion-item *ngIf="hasPermission('personal.view')" button (click)="navigateTo('/personal')" lines="none">
+            <ion-icon slot="start" name="people-outline"></ion-icon>
+            <ion-label>Personal</ion-label>
+          </ion-item>
+        </div>
+      </ion-accordion>
+
+      <!-- Administración -->
+      <ion-accordion value="administracion">
+        <ion-item slot="header">
+          <ion-icon slot="start" name="shield-outline"></ion-icon>
+          <ion-label>Administración</ion-label>
+        </ion-item>
+        <div slot="content" class="submenu">
+          <ion-item *ngIf="hasPermission('users.manage')" button (click)="navigateTo('/usuarios')" lines="none">
+            <ion-icon slot="start" name="people-outline"></ion-icon>
+            <ion-label>Usuarios</ion-label>
+          </ion-item>
+          <ion-item *ngIf="hasPermission('roles.manage')" button (click)="navigateTo('/roles')" lines="none">
+            <ion-icon slot="start" name="key-outline"></ion-icon>
+            <ion-label>Roles y Permisos</ion-label>
+          </ion-item>
+        </div>
+      </ion-accordion>
+    </ion-accordion-group>
+  </ion-list>
+
+  <!-- Logout Button -->
+  <div class="logout-section">
+    <ion-button expand="block" color="danger" (click)="logout()">
+      <ion-icon slot="start" name="log-out-outline"></ion-icon>
+      Cerrar Sesión
+    </ion-button>
+  </div>
+</ion-content>

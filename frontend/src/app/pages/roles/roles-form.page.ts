@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -21,6 +21,7 @@ interface PermissionGroup {
   templateUrl: './roles-form.page.html',
   styleUrls: ['./roles-form.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [CommonModule, ReactiveFormsModule, IonicModule],
 })
 export class RolesFormPage implements OnInit {

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   IonicModule,
@@ -27,6 +27,7 @@ import {
   templateUrl: './empresas-lista.page.html',
   styleUrls: ['./empresas-lista.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class EmpresasListaPage implements OnInit {

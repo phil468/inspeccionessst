@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
@@ -32,6 +32,7 @@ interface MenuItem {
   templateUrl: './mantenimiento.page.html',
   styleUrls: ['./mantenimiento.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [IonicModule, CommonModule],
 })
 export class MantenimientoPage {

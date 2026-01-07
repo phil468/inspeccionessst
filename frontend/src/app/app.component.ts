@@ -1,18 +1,16 @@
-import { Component, OnInit } from '@angular/core';
-import {
-  IonApp,
-  IonRouterOutlet,
-  AlertController,
-} from '@ionic/angular/standalone';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { IonicModule, AlertController } from '@ionic/angular';
 import { SyncService } from './services/sync.service';
 import { AuthService } from './services/auth.service';
 import { PushNotificationService } from './services/push-notification.service';
-import { MenuComponent } from './components/menu/menu.component';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [IonApp, IonRouterOutlet, MenuComponent],
+  styleUrls: ['app.component.scss'],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  imports: [CommonModule, IonicModule],
 })
 export class AppComponent implements OnInit {
   constructor(

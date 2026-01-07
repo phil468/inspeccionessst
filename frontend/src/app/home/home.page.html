@@ -55,7 +55,7 @@
   <!-- Action Cards -->
   <div class="actions-container">
     <!-- Crear Registro Card -->
-    <ion-card 
+    <!-- <ion-card 
       button 
       (click)="goToRegistroForm()" 
       *ngIf="hasPermission('registros.create')"
@@ -67,10 +67,10 @@
         <h2>CREAR REGISTRO</h2>
         <p>Nuevo registro de calibración</p>
       </ion-card-content>
-    </ion-card>
+    </ion-card> -->
 
     <!-- Historial Card -->
-    <ion-card 
+    <!-- <ion-card 
       button 
       (click)="goToHistorial()" 
       *ngIf="hasPermission('registros.view')"
@@ -82,7 +82,7 @@
         <h2>HISTORIAL</h2>
         <p>Ver registros anteriores</p>
       </ion-card-content>
-    </ion-card>
+    </ion-card> -->
 
     <!-- Nueva Inspección Card -->
     <ion-card 
@@ -111,6 +111,21 @@
         </div>
         <h2>INSPECCIONES</h2>
         <p>Ver lista de inspecciones</p>
+      </ion-card-content>
+    </ion-card>
+    
+    <!-- Lista Mis Inspecciones Card -->
+    <ion-card 
+      button 
+      (click)="goToMisInspecciones()" 
+      *ngIf="hasPermission('inspecciones.view')"
+      class="action-card">
+      <ion-card-content>
+        <div class="card-icon-wrapper">
+          <ion-icon name="clipboard-outline" class="card-icon"></ion-icon>
+        </div>
+        <h2>MIS INSPECCIONES</h2>
+        <p>Ver mis inspecciones asignadas</p>
       </ion-card-content>
     </ion-card>
 

@@ -26,31 +26,25 @@
 </ion-header>
 
 <ion-content>
-  <!-- Estado de conexión -->
-  <div class="connection-status" [class.online]="isOnline" [class.offline]="!isOnline">
-    <ion-icon [name]="isOnline ? 'cloud-done-outline' : 'cloud-upload-outline'"></ion-icon>
-    <span>{{ isOnline ? 'Conectado' : 'Modo Offline' }}</span>
+  <!-- Barra de estado de sincronización -->
+  <div class="sync-status-bar">
+    <ion-chip [color]="isOnline ? 'success' : 'danger'">
+      <ion-icon [name]="isOnline ? 'wifi-outline' : 'cloud-offline-outline'"></ion-icon>
+      <ion-label>{{ isOnline ? 'En línea' : 'Sin conexión' }}</ion-label>
+    </ion-chip>
+    <ion-chip color="primary">
+      <ion-icon name="stats-chart-outline"></ion-icon>
+      <ion-label>Total: {{ syncStatus.total }}</ion-label>
+    </ion-chip>
+    <ion-chip color="success">
+      <ion-icon name="cloud-done-outline"></ion-icon>
+      <ion-label>Sync: {{ syncStatus.sincronizados }}</ion-label>
+    </ion-chip>
+    <ion-chip color="warning">
+      <ion-icon name="cloud-upload-outline"></ion-icon>
+      <ion-label>Pend: {{ syncStatus.pendientes }}</ion-label>
+    </ion-chip>
   </div>
-
-  <!-- Estado de sincronización -->
-  <ion-card class="sync-status-card" *ngIf="syncStatus.total > 0">
-    <ion-card-content>
-      <div class="sync-info">
-        <div class="stat">
-          <span class="label">Total</span>
-          <span class="value">{{ syncStatus.total }}</span>
-        </div>
-        <div class="stat success">
-          <span class="label">Sincronizados</span>
-          <span class="value">{{ syncStatus.sincronizados }}</span>
-        </div>
-        <div class="stat warning">
-          <span class="label">Pendientes</span>
-          <span class="value">{{ syncStatus.pendientes }}</span>
-        </div>
-      </div>
-    </ion-card-content>
-  </ion-card>
 
   <!-- Lista de inspecciones -->
   <ion-list *ngIf="inspeccionesFiltradas.length > 0">

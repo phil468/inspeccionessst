@@ -284,4 +284,193 @@ class PersonalController extends Controller
             'data' => $personal,
         ]);
     }
+
+    /**
+     * Validar si el personal tiene correo y usuario.
+     * Si falta correo, solicita uno.
+     * Si falta usuario, lo crea automáticamente con rol Visor.
+     */
+    public function validarParaNotificacion(Request $request, $id)
+    {
+        $personal = Personal::findOrFail($id);
+        
+        // Verificar si tiene correo_empresa
+        $tieneCorreo = !empty($personal->correo_empresa);
+        
+        // Buscar usuario vinculado a este personal
+        $usuario = \App\Models\User::where('personal_id', $personal->id)->first();
+        $tieneUsuario = $usuario !== null;
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'personal_id' => $personal->id,
+                'nombre_completo' => $personal->name,
+                'correo_empresa' => $personal->correo_empresa,
+                'tiene_correo' => $tieneCorreo,
+                'tiene_usuario' => $tieneUsuario,
+                'usuario' => $tieneUsuario ? [
+                    'id' => $usuario->id,
+                    'name' => $usuario->name,
+                    'email' => $usuario->email,
+                    'activo' => $usuario->activo,
+                ] : null,
+            ],
+        ]);
+    }
+
+    /**
+     * Actualizar correo del personal y asegurar que tenga usuario.
+     * Si ya existe usuario con ese correo, solicitar confirmación para reasignar.
+     */
+    public function asegurarAccesoSistema(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'correo_empresa' => 'required|email|max:250',
+            'forzar_reasignacion' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Correo inválido',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $personal = Personal::findOrFail($id);
+        $correo = $request->correo_empresa;
+        $forzarReasignacion = $request->boolean('forzar_reasignacion', false);
+
+        // 1. Verificar si ya existe un usuario con ese correo
+        $usuarioExistente = \App\Models\User::where('email', $correo)->first();
+        
+        if ($usuarioExistente) {
+            // El correo ya está en uso
+            if ($usuarioExistente->personal_id === $personal->id) {
+                // El usuario ya está vinculado a este personal, todo OK
+                return response()->json([
+                    'success' => true,
+                    'message' => 'El personal ya tiene usuario vinculado',
+                    'data' => [
+                        'personal' => $personal,
+                        'usuario' => $usuarioExistente,
+                        'accion' => 'ya_vinculado',
+                    ],
+                ]);
+            }
+            
+            // CASO NUEVO: El usuario existe pero NO tiene personal_id (está libre)
+            // En este caso, simplemente lo vinculamos al personal actual sin pedir confirmación
+            if ($usuarioExistente->personal_id === null) {
+                $usuarioExistente->update([
+                    'personal_id' => $personal->id,
+                    'name' => $personal->name,
+                ]);
+                
+                // Actualizar correo del personal
+                $personal->update(['correo_empresa' => $correo]);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Usuario vinculado exitosamente al personal',
+                    'data' => [
+                        'personal' => $personal->fresh(),
+                        'usuario' => $usuarioExistente->fresh()->load('roles'),
+                        'accion' => 'usuario_vinculado',
+                    ],
+                ]);
+            }
+            
+            // El correo pertenece a un usuario que YA tiene otro personal vinculado
+            if (!$forzarReasignacion) {
+                // Informar el conflicto y pedir confirmación
+                $otroPersonal = Personal::find($usuarioExistente->personal_id);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El correo ya está asignado a otro usuario que tiene personal vinculado',
+                    'error_code' => 'CORREO_EN_USO',
+                    'data' => [
+                        'usuario_existente' => [
+                            'id' => $usuarioExistente->id,
+                            'name' => $usuarioExistente->name,
+                            'email' => $usuarioExistente->email,
+                            'personal_actual' => $otroPersonal ? $otroPersonal->name : 'Sin personal vinculado',
+                            'personal_actual_id' => $usuarioExistente->personal_id,
+                        ],
+                        'personal_nuevo' => [
+                            'id' => $personal->id,
+                            'name' => $personal->name,
+                        ],
+                    ],
+                ], 409); // Conflict
+            }
+            
+            // Reasignar el usuario existente a este personal
+            $usuarioExistente->update([
+                'personal_id' => $personal->id,
+                'name' => $personal->name,
+            ]);
+            
+            // Actualizar correo del personal
+            $personal->update(['correo_empresa' => $correo]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario reasignado exitosamente al nuevo personal',
+                'data' => [
+                    'personal' => $personal->fresh(),
+                    'usuario' => $usuarioExistente->fresh(),
+                    'accion' => 'reasignado',
+                ],
+            ]);
+        }
+
+        // 2. No existe usuario con ese correo, verificar si el personal ya tiene usuario
+        $usuarioDelPersonal = \App\Models\User::where('personal_id', $personal->id)->first();
+        
+        if ($usuarioDelPersonal) {
+            // El personal ya tiene usuario, actualizar su correo
+            $usuarioDelPersonal->update(['email' => $correo]);
+            $personal->update(['correo_empresa' => $correo]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Correo actualizado en personal y usuario',
+                'data' => [
+                    'personal' => $personal->fresh(),
+                    'usuario' => $usuarioDelPersonal->fresh(),
+                    'accion' => 'correo_actualizado',
+                ],
+            ]);
+        }
+
+        // 3. No tiene usuario, crear uno nuevo con rol Visor
+        $personal->update(['correo_empresa' => $correo]);
+        
+        $nuevoUsuario = \App\Models\User::create([
+            'name' => $personal->name,
+            'email' => $correo,
+            'password' => bcrypt(\Illuminate\Support\Str::random(16)), // Password aleatorio (usará Microsoft SSO)
+            'personal_id' => $personal->id,
+            'activo' => true,
+        ]);
+        
+        // Asignar rol Visor
+        $rolVisor = \App\Models\Role::where('name', 'Visor')->first();
+        if ($rolVisor) {
+            $nuevoUsuario->roles()->attach($rolVisor->id);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario creado exitosamente con rol Visor',
+            'data' => [
+                'personal' => $personal->fresh(),
+                'usuario' => $nuevoUsuario->load('roles'),
+                'accion' => 'usuario_creado',
+            ],
+        ]);
+    }
 }

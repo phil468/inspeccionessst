@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, AlertController } from '@ionic/angular';
@@ -21,6 +21,7 @@ import {
   templateUrl: './roles-lista.page.html',
   styleUrls: ['./roles-lista.page.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [CommonModule, FormsModule, IonicModule],
 })
 export class RolesListaPage implements OnInit {
@@ -42,7 +43,7 @@ export class RolesListaPage implements OnInit {
       arrowBackOutline,
       searchOutline,
     });
-}
+  }
 
   ngOnInit() {
     this.loadRoles();

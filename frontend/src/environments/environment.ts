@@ -4,6 +4,7 @@
 
 export const environment = {
   production: false,
+  // apiUrl: 'https://apps.vanguardfresh.pe/inspeccionessstapi/api/v1',
   apiUrl: 'http://localhost:8080/inspeccionessst/public/api/v1',
   appName: 'Inspecciones SST',
   version: '1.0.0',

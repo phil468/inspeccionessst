@@ -9,29 +9,76 @@
  * https://ionicframework.com/docs/layout/global-stylesheets
  */
 
-/* Core CSS required for Ionic components to work properly */
-@import "@ionic/angular/css/core.css";
+/* Ionic 8 - Import all CSS bundles */
+@import "@ionic/angular/css/ionic.bundle.css";
 
-/* Basic CSS for apps built with Ionic */
-@import "@ionic/angular/css/normalize.css";
-@import "@ionic/angular/css/structure.css";
-@import "@ionic/angular/css/typography.css";
-@import "@ionic/angular/css/display.css";
+// ===== GLOBAL FIXES FOR TABS =====
+ion-tab-bar {
+  contain: layout style !important;
+  height: 56px !important;
+  display: flex !important;
+  
+  ion-tab-button {
+    contain: layout style !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 56px !important;
+    
+    ion-icon {
+      font-size: 24px !important;
+      margin-bottom: 2px !important;
+    }
+    
+    ion-label {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      font-size: 10px !important;
+      margin-top: 2px !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+  }
+}
 
-/* Optional CSS utils that can be commented out */
-@import "@ionic/angular/css/padding.css";
-@import "@ionic/angular/css/float-elements.css";
-@import "@ionic/angular/css/text-alignment.css";
-@import "@ionic/angular/css/text-transformation.css";
-@import "@ionic/angular/css/flex-utils.css";
+// Force [hidden] attribute to work
+[hidden] {
+  display: none !important;
+}
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
+// Modal del menú lateral - slide desde la izquierda
+.side-menu-modal {
+  --width: 280px;
+  --height: 100%;
+  --border-radius: 0;
+  
+  &::part(content) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 280px;
+    max-width: 85vw;
+  }
+  
+  &::part(backdrop) {
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+// Animación personalizada para el menú
+ion-modal.side-menu-modal {
+  --backdrop-opacity: 0.4;
+  
+  .modal-wrapper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 280px !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+  }
+}
