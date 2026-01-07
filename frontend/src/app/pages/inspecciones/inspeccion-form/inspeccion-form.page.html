@@ -405,9 +405,9 @@
           <!-- Fecha de Ejecución/Cierre - siempre visible -->
           <ion-item>
             <ion-label position="stacked">
-              {{ resultado.estado === 'Ejecutado' || resultado.estado === 'Cerrado' ? 'Fecha de Ejecución' : 'Fecha Límite (calculada)' }}
+              {{ resultado.estado === 'Pendiente' ? 'Fecha Límite (calculada)' : 'Fecha de Ejecución' }}
             </ion-label>
-            <ion-datetime-button datetime="fecha-cierre-{{ i }}" [disabled]="resultado.estado === 'Pendiente' || resultado.estado === 'En Proceso'"></ion-datetime-button>
+            <ion-datetime-button datetime="fecha-cierre-{{ i }}" [disabled]="resultado.estado === 'Pendiente'"></ion-datetime-button>
             <ion-modal [keepContentsMounted]="true">
               <ng-template>
                 <ion-datetime
@@ -421,12 +421,12 @@
                 ></ion-datetime>
               </ng-template>
             </ion-modal>
-            <ion-note slot="end" *ngIf="resultado.estado === 'Pendiente' || resultado.estado === 'En Proceso'">
+            <ion-note slot="end" *ngIf="resultado.estado === 'Pendiente'">
               <small>Auto: {{ getPlazoTexto(resultado.nivel_riesgo) }}</small>
             </ion-note>
           </ion-item>
 
-          <ion-item *ngIf="resultado.estado === 'Cerrado' || puedeSubirFotoFinal(resultado)">
+          <ion-item *ngIf="resultado.estado === 'Ejecutado' || puedeSubirFotoFinal(resultado)">
             <ion-label>Foto Final</ion-label>
             <ion-button fill="outline" (click)="tomarFoto(resultado, 'final')" [disabled]="!puedeSubirFotoFinal(resultado)">
               <ion-icon slot="start" name="camera-outline"></ion-icon>

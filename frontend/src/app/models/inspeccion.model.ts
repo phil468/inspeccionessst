@@ -3,10 +3,10 @@ import { Empresa, Area, Personal } from './catalogo.model';
 export type TipoInspeccion = 'Planeada' | 'No Planeada' | 'Otro';
 export type NivelRiesgo = 'Alto' | 'Medio' | 'Bajo';
 export type EstadoResultado =
+  | 'Buena Práctica'
+  | 'Cumplimiento'
   | 'Pendiente'
-  | 'En Proceso'
-  | 'Ejecutado'
-  | 'Cerrado';
+  | 'Ejecutado';
 
 // Tabla pivot: inspección -> áreas
 export interface InspeccionArea {

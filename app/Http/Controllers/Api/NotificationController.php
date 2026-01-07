@@ -29,6 +29,10 @@ class NotificationController extends Controller
             'resultados.responsablesLevantamiento',
         ])->findOrFail($inspeccionId);
 
+        // return response()->json([
+        //     'success' => true,
+        //     'data' => $inspeccion,
+        // ]);
         // dd($inspeccion);
 
         // Verificar que el usuario tenga permisos

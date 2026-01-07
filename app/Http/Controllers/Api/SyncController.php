@@ -589,6 +589,7 @@ class SyncController extends Controller
                     'fecha_cierre' => $resultadoData['fecha_cierre'] ?? null,
                     'registro_fotografico_inicial' => $resultadoData['registro_fotografico_inicial'] ?? null,
                     'registro_fotografico_final' => $resultadoData['registro_fotografico_final'] ?? null,
+                    'responsable_id' => $resultadoData['responsable_id'] ?? null,
                     'synced' => true,
                     'synced_at' => now(),
                 ];
@@ -598,10 +599,44 @@ class SyncController extends Controller
                     $resultado->update($datosResultado);
                 } else {
                     // Crear nuevo
-                    ResultadoInspeccion::create([
+                    $resultado = ResultadoInspeccion::create([
                         'local_id' => $resultadoData['local_id'],
                         ...$datosResultado,
                     ]);
+                }
+
+                // 3.1 Sincronizar visores del resultado
+                if (isset($resultadoData['visores']) && is_array($resultadoData['visores'])) {
+                    // Limpiar visores existentes
+                    \App\Models\ResultadoVisor::where('resultado_id', $resultado->id)->delete();
+                    
+                    foreach ($resultadoData['visores'] as $visorData) {
+                        $personalId = is_array($visorData) ? ($visorData['personal_id'] ?? $visorData['id'] ?? null) : $visorData;
+                        if ($personalId) {
+                            \App\Models\ResultadoVisor::create([
+                                'local_id' => \Illuminate\Support\Str::uuid(),
+                                'resultado_id' => $resultado->id,
+                                'personal_id' => $personalId,
+                            ]);
+                        }
+                    }
+                }
+
+                // 3.2 Sincronizar responsables de levantamiento del resultado
+                if (isset($resultadoData['responsablesLevantamiento']) && is_array($resultadoData['responsablesLevantamiento'])) {
+                    // Limpiar responsables existentes
+                    \App\Models\ResultadoResponsableLevantamiento::where('resultado_id', $resultado->id)->delete();
+                    
+                    foreach ($resultadoData['responsablesLevantamiento'] as $respData) {
+                        $personalId = is_array($respData) ? ($respData['personal_id'] ?? $respData['id'] ?? null) : $respData;
+                        if ($personalId) {
+                            \App\Models\ResultadoResponsableLevantamiento::create([
+                                'local_id' => \Illuminate\Support\Str::uuid(),
+                                'resultado_id' => $resultado->id,
+                                'personal_id' => $personalId,
+                            ]);
+                        }
+                    }
                 }
             }
         }

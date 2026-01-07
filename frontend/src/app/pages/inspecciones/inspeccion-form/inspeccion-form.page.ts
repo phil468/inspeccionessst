@@ -128,10 +128,10 @@ export class InspeccionFormPage implements OnInit {
   tiposInspeccion: TipoInspeccion[] = ['Planeada', 'No Planeada', 'Otro'];
   nivelesRiesgo: NivelRiesgo[] = ['Alto', 'Medio', 'Bajo'];
   estadosResultado: EstadoResultado[] = [
+    'Buena Práctica',
+    'Cumplimiento',
     'Pendiente',
-    'En Proceso',
     'Ejecutado',
-    'Cerrado',
   ];
 
   // Arrays para gestionar selecciones múltiples
@@ -632,10 +632,10 @@ export class InspeccionFormPage implements OnInit {
       visores: [],
       responsablesLevantamiento: [],
     };
-    
+
     // Calcular fecha límite automática según nivel de riesgo
     this.calcularFechaLimite(nuevoResultado);
-    
+
     this.resultados.push(nuevoResultado);
   }
 
@@ -733,15 +733,19 @@ export class InspeccionFormPage implements OnInit {
    * Calcular fecha límite automática según nivel de riesgo
    */
   calcularFechaLimite(resultado: ResultadoInspeccion): void {
-    // Solo calcular automáticamente si está en Pendiente o En Proceso
-    if (resultado.estado === 'Pendiente' || resultado.estado === 'En Proceso') {
-      const fechaInspeccion = this.inspeccionForm.get('fecha_hora_inspeccion')?.value;
-      const fechaBase = fechaInspeccion ? new Date(fechaInspeccion) : new Date();
+    // Solo calcular automáticamente si está en Pendiente
+    if (resultado.estado === 'Pendiente') {
+      const fechaInspeccion = this.inspeccionForm.get(
+        'fecha_hora_inspeccion'
+      )?.value;
+      const fechaBase = fechaInspeccion
+        ? new Date(fechaInspeccion)
+        : new Date();
       const diasPlazo = this.getDiasPlazo(resultado.nivel_riesgo);
-      
+
       const fechaLimite = new Date(fechaBase);
       fechaLimite.setDate(fechaLimite.getDate() + diasPlazo);
-      
+
       resultado.fecha_cierre = fechaLimite.toISOString();
     }
   }
@@ -757,27 +761,34 @@ export class InspeccionFormPage implements OnInit {
    * Evento cuando cambia el estado
    */
   onEstadoChange(resultado: ResultadoInspeccion): void {
-    if (resultado.estado === 'Ejecutado' || resultado.estado === 'Cerrado') {
-      // Si cambia a Ejecutado o Cerrado, usar fecha actual si no tiene fecha
-      if (!resultado.fecha_cierre) {
-        resultado.fecha_cierre = new Date().toISOString();
-      }
+    // Buena Práctica, Cumplimiento y Ejecutado: fecha = fecha de inspección
+    if (
+      resultado.estado === 'Buena Práctica' ||
+      resultado.estado === 'Cumplimiento' ||
+      resultado.estado === 'Ejecutado'
+    ) {
+      const fechaInspeccion = this.inspeccionForm.get(
+        'fecha_hora_inspeccion'
+      )?.value;
+      resultado.fecha_cierre = fechaInspeccion
+        ? fechaInspeccion
+        : new Date().toISOString();
     } else {
-      // Si vuelve a Pendiente o En Proceso, recalcular fecha límite
+      // Pendiente: recalcular fecha límite según nivel de riesgo
       this.calcularFechaLimite(resultado);
     }
   }
 
   getEstadoColor(estado: EstadoResultado): string {
     switch (estado) {
+      case 'Buena Práctica':
+        return 'success';
+      case 'Cumplimiento':
+        return 'primary';
       case 'Pendiente':
-        return 'danger';
-      case 'En Proceso':
         return 'warning';
       case 'Ejecutado':
-        return 'primary';
-      case 'Cerrado':
-        return 'success';
+        return 'tertiary';
       default:
         return 'medium';
     }

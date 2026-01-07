@@ -37,6 +37,11 @@ class NotificationService
 
             // Determinar tipo de notificación
             $tipoNotificacion = $this->determinarTipoNotificacion($datos['resultados']);
+            
+        // return [
+        //     'enviadas' => 0,
+        //     'detalles' => $tipoNotificacion,
+        // ];
 
             try {
                 // Enviar email

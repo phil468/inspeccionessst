@@ -387,16 +387,49 @@ export class SyncService {
           inspeccion.local_id
         );
 
+        // Transformar resultados para incluir visores y responsablesLevantamiento en formato correcto
+        const resultadosTransformados = resultados.map((r) => ({
+          ...r,
+          // Transformar visores: Personal[] -> { personal_id }[]
+          visores: (r.visores || []).map((v: any) => ({
+            personal_id: v.personal_id ?? v.id,
+          })),
+          // Transformar responsablesLevantamiento: Personal[] -> { personal_id }[]
+          responsablesLevantamiento: (r.responsablesLevantamiento || []).map(
+            (rl: any) => ({
+              personal_id: rl.personal_id ?? rl.id,
+            })
+          ),
+        }));
+
         return {
           ...inspeccion,
           // Transformar áreas al formato esperado por el backend: { area_id }
           areas: areas.map((a) => ({ area_id: a.area_id })),
           // Transformar inspectores al formato esperado: { personal_id }
           inspectores: inspectores.map((i) => ({ personal_id: i.personal_id })),
-          // Resultados ya están en el formato correcto
-          resultados,
+          // Resultados con visores y responsables transformados
+          resultados: resultadosTransformados,
         } as InspeccionSync;
       })
+    );
+
+    // LOG para depuración de relaciones
+    console.log(
+      '📤 Inspecciones a sincronizar:',
+      JSON.stringify(
+        inspeccionesConRelaciones.map((i) => ({
+          local_id: i.local_id,
+          resultados: i.resultados?.map((r) => ({
+            local_id: r.local_id,
+            responsable_id: r.responsable_id,
+            visores: r.visores,
+            responsablesLevantamiento: r.responsablesLevantamiento,
+          })),
+        })),
+        null,
+        2
+      )
     );
 
     try {
