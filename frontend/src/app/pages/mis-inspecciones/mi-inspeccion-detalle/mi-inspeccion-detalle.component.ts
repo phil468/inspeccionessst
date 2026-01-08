@@ -2,13 +2,38 @@ import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import {
-  IonicModule,
   NavController,
   AlertController,
   LoadingController,
   ActionSheetController,
   ModalController,
-} from '@ionic/angular';
+} from '@ionic/angular/standalone';
+import {
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonTitle,
+  IonContent,
+  IonRefresher,
+  IonRefresherContent,
+  IonSpinner,
+  IonCard,
+  IonCardHeader,
+  IonCardSubtitle,
+  IonCardTitle,
+  IonCardContent,
+  IonItem,
+  IonLabel,
+  IonChip,
+  IonListHeader,
+  IonRow,
+  IonCol,
+  IonBadge,
+  IonText,
+  IonGrid,
+} from '@ionic/angular/standalone';
 import { AuthService } from '../../../services/auth.service';
 import { InspeccionService } from '../../../services/inspeccion.service';
 import { ApiService } from '../../../services/api.service';
@@ -49,7 +74,33 @@ interface ResultadoConRol extends ResultadoInspeccion {
   styleUrls: ['./mi-inspeccion-detalle.component.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule],
+  imports: [
+    CommonModule,
+    IonHeader,
+    IonToolbar,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonTitle,
+    IonContent,
+    IonRefresher,
+    IonRefresherContent,
+    IonSpinner,
+    IonCard,
+    IonCardHeader,
+    IonCardSubtitle,
+    IonCardTitle,
+    IonCardContent,
+    IonItem,
+    IonLabel,
+    IonChip,
+    IonListHeader,
+    IonRow,
+    IonCol,
+    IonBadge,
+    IonText,
+    IonGrid,
+  ],
 })
 export class MiInspeccionDetalleComponent implements OnInit {
   inspeccion: Inspeccion | null = null;

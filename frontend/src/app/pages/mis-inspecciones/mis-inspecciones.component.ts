@@ -1,7 +1,7 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { IonicModule, NavController } from '@ionic/angular';
+import { NavController } from '@ionic/angular/standalone';
 import { AuthService } from '../../services/auth.service';
 import { InspeccionService } from '../../services/inspeccion.service';
 import { Inspeccion, ResultadoInspeccion } from '../../models/inspeccion.model';
@@ -14,6 +14,25 @@ import {
   cloudDoneOutline,
   cloudOfflineOutline,
 } from 'ionicons/icons';
+import {
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonTitle,
+  IonContent,
+  IonRefresher,
+  IonRefresherContent,
+  IonSpinner,
+  IonCard,
+  IonCardContent,
+  IonChip,
+  IonCol,
+  IonGrid,
+  IonRow,
+  IonText,
+} from '@ionic/angular/standalone';
 
 interface InspeccionConResultados extends Inspeccion {
   resultados?: ResultadoInspeccion[];
@@ -25,7 +44,26 @@ interface InspeccionConResultados extends Inspeccion {
   styleUrls: ['./mis-inspecciones.component.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule],
+  imports: [
+    CommonModule,
+    IonHeader,
+    IonToolbar,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonTitle,
+    IonContent,
+    IonRefresher,
+    IonRefresherContent,
+    IonSpinner,
+    IonCard,
+    IonCardContent,
+    IonChip,
+    IonCol,
+    IonGrid,
+    IonRow,
+    IonText,
+  ],
 })
 export class MisInspeccionesComponent implements OnInit {
   inspecciones: InspeccionConResultados[] = [];

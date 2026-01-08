@@ -1,6 +1,16 @@
 import { Component, Input, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule, ModalController } from '@ionic/angular';
+import { ModalController } from '@ionic/angular/standalone';
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonContent,
+  IonFooter,
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { closeOutline, downloadOutline, expandOutline } from 'ionicons/icons';
 
@@ -69,7 +79,17 @@ import { closeOutline, downloadOutline, expandOutline } from 'ionicons/icons';
   ],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule],
+  imports: [
+    CommonModule,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonContent,
+    IonFooter,
+  ],
 })
 export class FotoViewerModalComponent {
   @Input() fotoUrl: string = '';

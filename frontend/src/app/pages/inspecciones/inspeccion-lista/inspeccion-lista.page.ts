@@ -2,11 +2,26 @@ import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
-  IonicModule,
   ToastController,
   LoadingController,
   AlertController,
-} from '@ionic/angular';
+} from '@ionic/angular/standalone';
+import {
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonBackButton,
+  IonButton,
+  IonIcon,
+  IonTitle,
+  IonBadge,
+  IonSearchbar,
+  IonContent,
+  IonChip,
+  IonLabel,
+  IonList,
+  IonItem,
+} from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { DatabaseService } from '../../../services/database.service';
 import { SyncService } from '../../../services/sync.service';
@@ -30,6 +45,7 @@ import {
   statsChartOutline,
   wifiOutline,
   cloudOfflineOutline,
+  documentTextOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -38,7 +54,24 @@ import {
   styleUrls: ['./inspeccion-lista.page.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    IonHeader,
+    IonToolbar,
+    IonButtons,
+    IonBackButton,
+    IonButton,
+    IonIcon,
+    IonTitle,
+    IonBadge,
+    IonSearchbar,
+    IonContent,
+    IonChip,
+    IonLabel,
+    IonList,
+    IonItem,
+  ],
 })
 export class InspeccionListaPage implements OnInit {
   inspecciones: Inspeccion[] = [];
@@ -312,13 +345,17 @@ export class InspeccionListaPage implements OnInit {
   private async enviarNotificacionesConfirmado(inspeccion: Inspeccion) {
     console.log('Enviando notificaciones para inspección ID:', inspeccion.id);
 
-    // Toast inicial con duración larga para que el usuario sepa que está procesando
-    await this.showToast('Enviando notificaciones...', 'primary', 5000);
+    const loading = await this.loadingController.create({
+      message: 'Enviando notificaciones...',
+    });
+    await loading.present();
 
     try {
       const response: any = await this.inspeccionService.enviarNotificaciones(
         inspeccion.id!
       );
+
+      await loading.dismiss();
 
       if (response.success) {
         await this.showToast(
@@ -330,6 +367,7 @@ export class InspeccionListaPage implements OnInit {
       }
     } catch (error) {
       console.error('Error al enviar notificaciones:', error);
+      await loading.dismiss();
       await this.showToast('Error al enviar notificaciones', 'danger');
     }
   }
