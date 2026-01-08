@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Inspeccion;
 use App\Models\Personal;
 use App\Models\User;
+use App\Mail\NotificacionInspeccion;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
@@ -59,24 +60,15 @@ class NotificationService
 
                 $resultadosUnicos = collect($datos['resultados'])->unique('id')->values()->all();
 
-                Mail::send(
-                    'emails.notificacion-inspeccion',
-                    [
-                        'personal' => $personal,
-                        'inspeccion' => $inspeccion,
-                        'resultados' => $resultadosUnicos,
-                        'roles' => $datos['roles'],
-                        'tipo' => $tipoNotificacion, // 'felicitaciones' o 'pendientes'
-                    ],
-                    function ($message) use ($personal, $inspeccion, $tipoNotificacion) {
-                        $message->to($personal->correo_empresa, $personal->name)
-                            ->subject(
-                                $tipoNotificacion === 'felicitaciones'
-                                    ? "✓ Inspección Completada - {$inspeccion->empresa->name}"
-                                    : "⚠ Resultados Pendientes - {$inspeccion->empresa->name}"
-                            );
-                    }
-                );
+                // Método moderno con Mailable
+                Mail::to($personal->correo_empresa, $personal->name)
+                    ->send(new NotificacionInspeccion(
+                        $personal,
+                        $inspeccion,
+                        $resultadosUnicos,
+                        $datos['roles'],
+                        $tipoNotificacion
+                    ));
 
                 // Enviar push notification si el personal tiene usuario
                 // $user = User::where('personal_id', $personalId)->first();
