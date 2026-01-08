@@ -197,6 +197,38 @@
             color: #667eea;
             text-decoration: none;
         }
+
+        .btn-ver-inspeccion {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            padding: 14px 32px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-ver-inspeccion:hover {
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .cta-section p {
+            margin-bottom: 15px;
+            color: #555;
+        }
     </style>
 </head>
 
@@ -208,7 +240,7 @@
                 {{ $tipo === 'felicitaciones' ? '✓' : '⚠' }}
             </div>
             <h1>
-                {{ $tipo === 'felicitaciones' ? 'Inspección Completada' : 'Hallazgos Pendientes' }}
+                {{ $tipo === 'felicitaciones' ? 'Inspección Completada' : 'Resultados Pendientes' }}
             </h1>
         </div>
 
@@ -219,9 +251,9 @@
             </p>
 
             @if ($tipo === 'felicitaciones')
-                <p>¡Felicitaciones! Se han completado todos los hallazgos de la inspección.</p>
+                <p>¡Felicitaciones! Se han completado todos los resultados de la inspección.</p>
             @else
-                <p>Tienes hallazgos pendientes que requieren tu atención en la siguiente inspección:</p>
+                <p>Tienes resultados pendientes que requieren tu atención en la siguiente inspección:</p>
             @endif
 
             <!-- Información de la Inspección -->
@@ -254,12 +286,12 @@
 
             <!-- Resultados/Hallazgos -->
             <div class="resultados">
-                <h3>Hallazgos Asignados ({{ count($resultados) }})</h3>
+                <h3>Resultados Asignados ({{ count($resultados) }})</h3>
 
                 @foreach ($resultados as $index => $resultado)
                     <div class="resultado-item">
                         <div class="resultado-header">
-                            <span class="resultado-titulo">Hallazgo #{{ $index + 1 }}</span>
+                            <span class="resultado-titulo">Resultado #{{ $index + 1 }}</span>
                             <span class="badge badge-{{ strtolower($resultado->estado) }}">
                                 {{ $resultado->estado }}
                             </span>
@@ -284,12 +316,21 @@
                 @endforeach
             </div>
 
-            @if ($tipo === 'pendientes')
-                <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                    Por favor, ingresa al sistema para revisar y trabajar en estos hallazgos.
-                </p>
-            @else
-                <p style="margin-top: 30px; font-size: 14px; color: #666;">
+            <!-- Botón para ver inspección -->
+            <div class="cta-section">
+                @if ($tipo === 'pendientes')
+                    <p>Ingresa al sistema para revisar y trabajar en estos resultados:</p>
+                @else
+                    <p>Puedes ver los detalles de la inspección aquí:</p>
+                @endif
+                <a href="{{ config('app.frontend_url') }}/mis-inspecciones?inspeccion={{ $inspeccion->id }}"
+                    class="btn-ver-inspeccion">
+                    📋 Ver Inspección
+                </a>
+            </div>
+
+            @if ($tipo === 'felicitaciones')
+                <p style="margin-top: 20px; font-size: 14px; color: #666; text-align: center;">
                     Gracias por tu compromiso con la seguridad y calidad en el trabajo.
                 </p>
             @endif

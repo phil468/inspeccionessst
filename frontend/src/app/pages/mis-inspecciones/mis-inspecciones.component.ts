@@ -7,7 +7,11 @@ import { InspeccionService } from '../../services/inspeccion.service';
 import { Inspeccion, ResultadoInspeccion } from '../../models/inspeccion.model';
 import { Personal } from '../../models/catalogo.model';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline } from 'ionicons/icons';
+import {
+  arrowBackOutline,
+  documentOutline,
+  documentTextOutline,
+} from 'ionicons/icons';
 
 interface InspeccionConResultados extends Inspeccion {
   resultados?: ResultadoInspeccion[];
@@ -31,8 +35,8 @@ export class MisInspeccionesComponent implements OnInit {
     private authService: AuthService,
     private inspeccionService: InspeccionService,
     private navController: NavController
-  ) {    
-      addIcons({ arrowBackOutline });
+  ) {
+    addIcons({ arrowBackOutline, documentOutline, documentTextOutline });
   }
 
   async ngOnInit() {

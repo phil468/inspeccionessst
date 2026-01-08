@@ -50,12 +50,21 @@ class NotificationService
 
             try {
                 // Enviar email
+                // return [
+                //     'enviadas' => 0,
+                //     'detalles' => $datos['resultados'],
+                // ]; 
+
+                // HACER QUE $datos['resultados'] NO SE MANDEN DUPLICADOS SI UNA MISMA PERSONA ES RESPONSABLE Y VISOR O TRIPLICADO SI ES RESPONSABLE, VISOR Y RESPONSABLE DE LEVANTAMIENTO
+
+                $resultadosUnicos = collect($datos['resultados'])->unique('id')->values()->all();
+
                 Mail::send(
                     'emails.notificacion-inspeccion',
                     [
                         'personal' => $personal,
                         'inspeccion' => $inspeccion,
-                        'resultados' => $datos['resultados'],
+                        'resultados' => $resultadosUnicos,
                         'roles' => $datos['roles'],
                         'tipo' => $tipoNotificacion, // 'felicitaciones' o 'pendientes'
                     ],
@@ -64,7 +73,7 @@ class NotificationService
                             ->subject(
                                 $tipoNotificacion === 'felicitaciones'
                                     ? "✓ Inspección Completada - {$inspeccion->empresa->name}"
-                                    : "⚠ Hallazgos Pendientes - {$inspeccion->empresa->name}"
+                                    : "⚠ Resultados Pendientes - {$inspeccion->empresa->name}"
                             );
                     }
                 );
@@ -76,7 +85,7 @@ class NotificationService
                 //         ? "✓ Inspección Completada"
                 //         : "⚠ Hallazgos Pendientes";
                     
-                //     $pushBody = "Tienes " . count($datos['resultados']) . " hallazgo(s) en {$inspeccion->empresa->name}";
+                //     $pushBody = "Tienes " . count(resultadosUnicos) . " hallazgo(s) en {$inspeccion->empresa->name}";
                     
                 //     $this->pushService->sendToUser(
                 //         $user,
@@ -94,7 +103,7 @@ class NotificationService
                     'personal_id' => $personalId,
                     'email' => $personal->correo_empresa,
                     'tipo' => $tipoNotificacion,
-                    'resultados_count' => count($datos['resultados']),
+                    'resultados_count' => count($resultadosUnicos),
                 ];
 
                 Log::info("Notificación enviada a: {$personal->correo_empresa}");

@@ -148,7 +148,7 @@ export class InspectorSelectionModalComponent implements OnInit {
     // Si no hay validación activa o está offline, confirmar directamente
     if (!this.validarCorreoUsuario || !this.isOnline) {
       this.modalController.dismiss({
-        inspectoresSeleccionados: this.inspectoresSeleccionados,
+        inspectores: this.inspectoresSeleccionados,
       });
       return;
     }
@@ -188,7 +188,7 @@ export class InspectorSelectionModalComponent implements OnInit {
       } else {
         // Todos tienen acceso, confirmar
         this.modalController.dismiss({
-          inspectoresSeleccionados: this.inspectoresSeleccionados,
+          inspectores: this.inspectoresSeleccionados,
         });
       }
     } catch (error) {
@@ -199,7 +199,7 @@ export class InspectorSelectionModalComponent implements OnInit {
         'warning'
       );
       this.modalController.dismiss({
-        inspectoresSeleccionados: this.inspectoresSeleccionados,
+        inspectores: this.inspectoresSeleccionados,
       });
     }
   }
@@ -271,7 +271,7 @@ export class InspectorSelectionModalComponent implements OnInit {
     // Después de procesar todos, confirmar con los que quedaron
     if (this.inspectoresSeleccionados.length > 0) {
       this.modalController.dismiss({
-        inspectoresSeleccionados: this.inspectoresSeleccionados,
+        inspectores: this.inspectoresSeleccionados,
       });
     } else {
       await this.showToast('No se seleccionó ningún personal', 'warning');
