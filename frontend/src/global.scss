@@ -82,3 +82,11 @@ ion-modal.side-menu-modal {
     border-radius: 0 !important;
   }
 }
+
+// Modal para visor de fotos - pantalla completa
+ion-modal.foto-viewer-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+  --background: #000;
+}

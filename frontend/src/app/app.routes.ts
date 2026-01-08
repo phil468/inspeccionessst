@@ -19,6 +19,23 @@ export const routes: Routes = [
         (m) => m.AuthCallbackPage
       ),
   },
+  // Rutas directas para mis-inspecciones (acceso desde correo)
+  {
+    path: 'mis-inspecciones',
+    loadComponent: () =>
+      import('./pages/mis-inspecciones/mis-inspecciones.component').then(
+        (m) => m.MisInspeccionesComponent
+      ),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'mis-inspecciones/:id',
+    loadComponent: () =>
+      import(
+        './pages/mis-inspecciones/mi-inspeccion-detalle/mi-inspeccion-detalle.component'
+      ).then((m) => m.MiInspeccionDetalleComponent),
+    canActivate: [AuthGuard],
+  },
   {
     path: '',
     loadComponent: () =>
@@ -248,6 +265,13 @@ export const routes: Routes = [
           import('./pages/mis-inspecciones/mis-inspecciones.component').then(
             (m) => m.MisInspeccionesComponent
           ),
+      },
+      {
+        path: 'mis-inspecciones/:id',
+        loadComponent: () =>
+          import(
+            './pages/mis-inspecciones/mi-inspeccion-detalle/mi-inspeccion-detalle.component'
+          ).then((m) => m.MiInspeccionDetalleComponent),
       },
     ],
   },

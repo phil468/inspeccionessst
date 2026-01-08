@@ -1,0 +1,120 @@
+.resultado-card {
+  margin: 12px;
+}
+
+.descripcion {
+  margin: 12px 0;
+  color: var(--ion-color-dark);
+  line-height: 1.5;
+}
+
+.accion-tomar {
+  background-color: var(--ion-color-light);
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.fotos-row {
+  margin-top: 16px;
+}
+
+.foto-container {
+  text-align: center;
+
+  ion-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+}
+
+.foto-preview {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--ion-color-light-shade);
+  cursor: pointer;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.foto-placeholder {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ion-color-light);
+  border-radius: 8px;
+  border: 2px dashed var(--ion-color-medium);
+
+  ion-icon {
+    font-size: 32px;
+    color: var(--ion-color-medium);
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    margin-top: 4px;
+  }
+}
+
+.foto-estado-badge {
+  margin-top: 8px;
+}
+
+.rechazo-comentario {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: rgba(var(--ion-color-danger-rgb), 0.1);
+  border-radius: 4px;
+  text-align: left;
+
+  ion-icon {
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+}
+
+.acciones {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+.validacion-buttons {
+  margin: 0;
+}
+
+.visor-message,
+.revision-message {
+  --background: transparent;
+  margin-top: 8px;
+}
+
+ion-badge[color="riesgo-alto"] {
+  --background: #eb445a;
+  --color: white;
+}
+
+ion-badge[color="riesgo-medio"] {
+  --background: #ffc409;
+  --color: #333;
+}
+
+ion-badge[color="riesgo-bajo"] {
+  --background: #2dd36f;
+  --color: white;
+}
+
+ion-chip {
+  margin-left: 4px;
+}

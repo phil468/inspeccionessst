@@ -5,12 +5,14 @@ import { IonicModule, NavController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { InspeccionService } from '../../services/inspeccion.service';
 import { Inspeccion, ResultadoInspeccion } from '../../models/inspeccion.model';
-import { Personal } from '../../models/catalogo.model';
 import { addIcons } from 'ionicons';
 import {
   arrowBackOutline,
   documentOutline,
   documentTextOutline,
+  chevronForwardOutline,
+  cloudDoneOutline,
+  cloudOfflineOutline,
 } from 'ionicons/icons';
 
 interface InspeccionConResultados extends Inspeccion {
@@ -36,7 +38,14 @@ export class MisInspeccionesComponent implements OnInit {
     private inspeccionService: InspeccionService,
     private navController: NavController
   ) {
-    addIcons({ arrowBackOutline, documentOutline, documentTextOutline });
+    addIcons({
+      arrowBackOutline,
+      documentOutline,
+      documentTextOutline,
+      chevronForwardOutline,
+      cloudDoneOutline,
+      cloudOfflineOutline,
+    });
   }
 
   async ngOnInit() {
@@ -65,41 +74,69 @@ export class MisInspeccionesComponent implements OnInit {
   ): InspeccionConResultados[] {
     if (!this.currentUser) return [];
 
-    const userId = this.currentUser.id;
+    const personalId = this.currentUser.personal_id; // Usar personal_id, no user id
     const userRoles = this.currentUser.roles || [];
 
+    console.log('Current User:', this.currentUser);
+    console.log('Personal ID del usuario:', personalId);
+    console.log(
+      'Roles del usuario:',
+      userRoles.map((r: any) => r.name)
+    );
+
     // Si es administrador, mostrar todas
-    if (userRoles.includes('Administrador')) {
+    if (userRoles.some((r: any) => r.name === 'Administrador')) {
       console.log('Usuario Administrador - mostrando todas las inspecciones');
       console.log('Total inspecciones:', inspecciones.length);
       return inspecciones;
+    }
+
+    // Si no tiene personal_id asignado, no puede ver inspecciones
+    if (!personalId) {
+      console.warn('El usuario no tiene personal_id asignado');
+      return [];
     }
 
     // Filtrar según los diferentes roles
     return inspecciones.filter((inspeccion: InspeccionConResultados) => {
       // Inspector: ve inspecciones donde está como inspector
       const esInspector = inspeccion.inspectores?.some(
-        (inspector) => inspector.personal_id === userId
+        (inspector) => inspector.personal_id === personalId
       );
 
       // Responsable: ve resultados donde está como responsable
       const esResponsable = inspeccion.resultados?.some(
-        (resultado: ResultadoInspeccion) => resultado.responsable_id === userId
+        (resultado: ResultadoInspeccion) =>
+          resultado.responsable_id === personalId
       );
 
       // Visor: ve resultados donde está como visor
       const esVisor = inspeccion.resultados?.some(
         (resultado: ResultadoInspeccion) =>
-          resultado.visores?.some((visor) => visor.personal_id === userId)
+          resultado.visores?.some((visor) => visor.personal_id === personalId)
       );
 
       // Responsable de levantamiento: ve resultados donde está como responsable de levantamiento
       const esResponsableLevantamiento = inspeccion.resultados?.some(
         (resultado: ResultadoInspeccion) =>
           resultado.responsablesLevantamiento?.some(
-            (resp) => resp.personal_id === userId
+            (resp) => resp.personal_id === personalId
           )
       );
+
+      if (
+        esInspector ||
+        esResponsable ||
+        esVisor ||
+        esResponsableLevantamiento
+      ) {
+        console.log(`Inspección ${inspeccion.id} coincide:`, {
+          esInspector,
+          esResponsable,
+          esVisor,
+          esResponsableLevantamiento,
+        });
+      }
 
       return (
         esInspector || esResponsable || esVisor || esResponsableLevantamiento
@@ -107,10 +144,13 @@ export class MisInspeccionesComponent implements OnInit {
     });
   }
 
+  getConteoEstado(inspeccion: InspeccionConResultados, estado: string): number {
+    if (!inspeccion.resultados) return 0;
+    return inspeccion.resultados.filter((r) => r.estado === estado).length;
+  }
+
   verDetalle(inspeccion: Inspeccion) {
-    this.navController.navigateForward(
-      `/tabs/inspecciones/form/${inspeccion.id}`
-    );
+    this.navController.navigateForward(`/mis-inspecciones/${inspeccion.id}`);
   }
 
   async doRefresh(event: any) {
@@ -119,6 +159,6 @@ export class MisInspeccionesComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/home']);
+    this.navController.back();
   }
 }

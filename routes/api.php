@@ -133,6 +133,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Aprobación de fotos
     Route::prefix('resultados')->group(function () {
         Route::post('/{id}/foto-inicial/aprobar', [\App\Http\Controllers\Api\FotoApprovalController::class, 'aprobarFotoInicial']);
+        Route::post('/{id}/foto-final', [\App\Http\Controllers\Api\FotoApprovalController::class, 'subirFotoFinal']);
+        Route::post('/{id}/foto-final/validar', [\App\Http\Controllers\Api\FotoApprovalController::class, 'aprobarFotoFinal']);
         Route::post('/{id}/foto-final/aprobar', [\App\Http\Controllers\Api\FotoApprovalController::class, 'aprobarFotoFinal']);
         Route::get('/{id}/aprobaciones', [\App\Http\Controllers\Api\FotoApprovalController::class, 'obtenerHistorial']);
     });

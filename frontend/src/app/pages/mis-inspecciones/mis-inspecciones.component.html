@@ -1,10 +1,11 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
-    <ion-title>Mis Inspecciones</ion-title>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
         <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
-      </ion-button>    </ion-buttons>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Mis Inspecciones</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -13,40 +14,65 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  <div class="ion-padding" *ngIf="loading">
+  <div class="ion-padding ion-text-center" *ngIf="loading">
     <ion-spinner></ion-spinner>
     <p>Cargando inspecciones...</p>
   </div>
 
-  <ion-list *ngIf="!loading && inspecciones.length > 0">
-    <ion-item-sliding *ngFor="let inspeccion of inspecciones">
-      <ion-item button (click)="verDetalle(inspeccion)">
-        <ion-icon name="document-text-outline" slot="start" color="primary"></ion-icon>
-        <ion-label>
-          <h2>{{ inspeccion.empresa?.name || 'Sin empresa' }}</h2>
-          <p>
-            <ion-text color="medium">
-              {{ inspeccion.area?.name || 'Sin área' }} - 
-              {{ inspeccion.fecha_hora_inspeccion | date: 'dd/MM/yyyy' }}
-            </ion-text>
-          </p>
-          <p *ngIf="inspeccion.tipo_inspeccion">
-            <ion-chip size="small" color="primary">
-              {{ inspeccion.tipo_inspeccion }}
-            </ion-chip>
-          </p>
-        </ion-label>
-        <ion-note slot="end">
-          <ion-badge [color]="inspeccion.synced ? 'success' : 'warning'">
-            {{ inspeccion.synced ? 'Sincronizado' : 'Pendiente' }}
-          </ion-badge>
-        </ion-note>
-      </ion-item>
-    </ion-item-sliding>
-  </ion-list>
+  <div *ngIf="!loading && inspecciones.length > 0">
+    <ion-card *ngFor="let inspeccion of inspecciones" class="inspeccion-card" (click)="verDetalle(inspeccion)">
+      <ion-card-content>
+        <ion-row>
+          <!-- Columna izquierda: Info de la inspección -->
+          <ion-col size="7" size-md="8">
+            <div class="inspeccion-info">
+              <p class="empresa-name">{{ inspeccion.empresa?.name || 'Sin empresa' }}</p>
+              <h2 class="area-name">{{ inspeccion.area?.name || 'Sin área' }}</h2>
+              <p class="fecha">{{ inspeccion.fecha_hora_inspeccion | date:'dd/MM/yyyy' }}</p>
+              <ion-chip color="primary">
+                {{ inspeccion.tipo_inspeccion }}
+              </ion-chip>
+            </div>
+          </ion-col>
+
+          <!-- Columna derecha: Resumen de resultados -->
+          <ion-col size="5" size-md="4">
+            <div class="resumen-column" *ngIf="inspeccion.resultados && inspeccion.resultados.length > 0">
+              <div class="stat-row stat-buena-practica">
+                <span class="stat-label">Buena práctica:</span>
+                <span class="stat-value">{{ getConteoEstado(inspeccion, 'Buena Práctica') }}</span>
+              </div>
+              <div class="stat-row stat-cumplimiento">
+                <span class="stat-label">Cumplimiento:</span>
+                <span class="stat-value">{{ getConteoEstado(inspeccion, 'Cumplimiento') }}</span>
+              </div>
+              <div class="stat-row stat-pendiente">
+                <span class="stat-label">Pendiente:</span>
+                <span class="stat-value">{{ getConteoEstado(inspeccion, 'Pendiente') }}</span>
+              </div>
+              <div class="stat-row stat-ejecutado">
+                <span class="stat-label">Ejecutado:</span>
+                <span class="stat-value">{{ getConteoEstado(inspeccion, 'Ejecutado') }}</span>
+              </div>
+            </div>
+            <div class="ver-detalle">
+              <ion-text color="primary">
+                Ver detalle <ion-icon name="chevron-forward-outline"></ion-icon>
+              </ion-text>
+            </div>
+          </ion-col>
+        </ion-row>
+      </ion-card-content>
+
+      <!-- Indicador de sincronización -->
+      <!-- <div class="sync-indicator" [class.synced]="inspeccion.synced">
+        <ion-icon [name]="inspeccion.synced ? 'cloud-done-outline' : 'cloud-offline-outline'"></ion-icon>
+      </div> -->
+    </ion-card>
+  </div>
 
   <div class="ion-padding ion-text-center" *ngIf="!loading && inspecciones.length === 0">
     <ion-icon name="document-outline" size="large" color="medium"></ion-icon>
-    <p color="medium">No tienes inspecciones asignadas</p>
+    <p>No tienes inspecciones asignadas</p>
   </div>
 </ion-content>

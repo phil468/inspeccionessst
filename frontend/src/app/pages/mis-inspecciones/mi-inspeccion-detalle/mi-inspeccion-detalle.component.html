@@ -1,0 +1,195 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Detalle de Inspección</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading -->
+  <div class="ion-padding ion-text-center" *ngIf="loading">
+    <ion-spinner></ion-spinner>
+    <p>Cargando inspección...</p>
+  </div>
+
+  <div *ngIf="!loading && inspeccion">
+    <!-- Información de la Inspección -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-subtitle>{{ inspeccion.tipo_inspeccion }}</ion-card-subtitle>
+        <ion-card-title>{{ inspeccion.empresa?.name }}</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item lines="none">
+          <ion-label>
+            <p><strong>Área:</strong> {{ inspeccion.area?.name || 'N/A' }}</p>
+            <p><strong>Fecha:</strong> {{ inspeccion.fecha_hora_inspeccion | date:'dd/MM/yyyy HH:mm' }}</p>
+          </ion-label>
+        </ion-item>
+
+        <!-- Rol del usuario -->
+        <ion-chip *ngIf="esInspector" color="tertiary">
+          <ion-icon name="eye-outline"></ion-icon>
+          <ion-label>Eres Inspector de esta inspección</ion-label>
+        </ion-chip>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Lista de Resultados -->
+    <ion-list-header>
+      <ion-label>
+        <h2>Resultados Asignados ({{ resultados.length }})</h2>
+      </ion-label>
+    </ion-list-header>
+
+    <ion-card *ngFor="let resultado of resultados" class="resultado-card">
+      <ion-card-header>
+        <ion-row class="ion-align-items-center">
+          <ion-col size="8">
+            <ion-badge [color]="getEstadoColor(resultado.estado)">
+              {{ resultado.estado }}
+            </ion-badge>
+            <ion-chip *ngIf="resultado.miRol" [color]="getRolColor(resultado.miRol)" size="small">
+              {{ getRolTexto(resultado.miRol) }}
+            </ion-chip>
+          </ion-col>
+          <ion-col size="4" class="ion-text-end">
+            <ion-badge [color]="'riesgo-' + resultado.nivel_riesgo.toLowerCase()">
+              Riesgo {{ resultado.nivel_riesgo }}
+            </ion-badge>
+          </ion-col>
+        </ion-row>
+      </ion-card-header>
+
+      <ion-card-content>
+        <!-- Descripción -->
+        <p class="descripcion">{{ resultado.descripcion }}</p>
+
+        <!-- Acción a tomar -->
+        <div class="accion-tomar" *ngIf="resultado.accion_tomar">
+          <ion-text color="primary">
+            <strong>Acción a tomar:</strong>
+          </ion-text>
+          <p>{{ resultado.accion_tomar }}</p>
+        </div>
+
+        <!-- Fotos -->
+        <ion-row class="fotos-row">
+          <!-- Foto Inicial -->
+          <ion-col size="6">
+            <div class="foto-container">
+              <ion-label><strong>Foto Inicial</strong></ion-label>
+              <div class="foto-preview" *ngIf="resultado.registro_fotografico_inicial" (click)="verFoto(resultado.registro_fotografico_inicial, 'Foto Inicial')">
+                <img [src]="(resultado.registro_fotografico_inicial)" alt="Foto inicial">
+              </div>
+              <div class="foto-placeholder" *ngIf="!resultado.registro_fotografico_inicial">
+                <ion-icon name="image-outline"></ion-icon>
+                <span>Sin foto</span>
+              </div>
+            </div>
+          </ion-col>
+
+          <!-- Foto Final / Levantamiento -->
+          <ion-col size="6">
+            <div class="foto-container">
+              <ion-label><strong>Foto Levantamiento</strong></ion-label>
+              
+              <!-- Si hay foto -->
+              <div class="foto-preview" *ngIf="resultado.registro_fotografico_final" (click)="verFoto(resultado.registro_fotografico_final, 'Foto Levantamiento')">
+                <img [src]="(resultado.registro_fotografico_final)" alt="Foto final">
+              </div>
+
+              <!-- Si no hay foto -->
+              <div class="foto-placeholder" *ngIf="!resultado.registro_fotografico_final">
+                <ion-icon name="image-outline"></ion-icon>
+                <span>Sin foto</span>
+              </div>
+
+              <!-- Estado de la foto -->
+              <ion-badge *ngIf="resultado.registro_fotografico_final" [color]="getFotoEstadoColor(resultado.foto_final_estado)" class="foto-estado-badge">
+                {{ getFotoEstadoTexto(resultado.foto_final_estado) }}
+              </ion-badge>
+
+              <!-- Comentario de rechazo -->
+              <div class="rechazo-comentario" *ngIf="resultado.foto_final_estado === 'rechazada' && resultado.foto_final_comentario">
+                <ion-text color="danger">
+                  <small><ion-icon name="warning-outline"></ion-icon> {{ resultado.foto_final_comentario }}</small>
+                </ion-text>
+              </div>
+            </div>
+          </ion-col>
+        </ion-row>
+
+        <!-- Acciones -->
+        <div class="acciones">
+          <!-- Botón para subir foto (responsable de levantamiento) -->
+          <ion-button 
+            *ngIf="resultado.puedeSubirFoto" 
+            expand="block" 
+            (click)="subirFoto(resultado)"
+            color="primary">
+            <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
+            {{ resultado.foto_final_estado === 'rechazada' ? 'Subir Nueva Foto' : 'Subir Foto de Levantamiento' }}
+          </ion-button>
+
+          <!-- Botones de validación (inspector) -->
+          <ion-row *ngIf="resultado.puedeValidar" class="validacion-buttons">
+            <ion-col size="6">
+              <ion-button expand="block" color="success" (click)="validarFoto(resultado, true)">
+                <ion-icon slot="start" name="thumbs-up-outline"></ion-icon>
+                Aprobar
+              </ion-button>
+            </ion-col>
+            <ion-col size="6">
+              <ion-button expand="block" color="danger" (click)="validarFoto(resultado, false)">
+                <ion-icon slot="start" name="thumbs-down-outline"></ion-icon>
+                Rechazar
+              </ion-button>
+            </ion-col>
+          </ion-row>
+
+          <!-- Mensaje informativo para visor -->
+          <ion-item *ngIf="resultado.miRol === 'visor'" lines="none" class="visor-message">
+            <ion-icon name="eye-outline" slot="start" color="secondary"></ion-icon>
+            <ion-label class="ion-text-wrap">
+              <ion-text color="secondary">
+                <small>Tienes acceso de solo lectura a este resultado.</small>
+              </ion-text>
+            </ion-label>
+          </ion-item>
+
+          <!-- Mensaje cuando está en revisión (solo si hay foto subida) -->
+          <ion-item *ngIf="resultado.registro_fotografico_final && resultado.foto_final_estado === 'pendiente' && !resultado.puedeValidar" lines="none" class="revision-message">
+            <ion-icon name="alert-circle-outline" slot="start" color="warning"></ion-icon>
+            <ion-label class="ion-text-wrap">
+              <ion-text color="warning">
+                <small>Foto enviada. Esperando validación del inspector.</small>
+              </ion-text>
+            </ion-label>
+          </ion-item>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Mensaje si no hay resultados -->
+    <div class="ion-padding ion-text-center" *ngIf="resultados.length === 0">
+      <ion-icon name="checkmark-circle-outline" size="large" color="success"></ion-icon>
+      <p>No tienes resultados asignados en esta inspección.</p>
+    </div>
+  </div>
+
+  <!-- Inspección no encontrada -->
+  <div class="ion-padding ion-text-center" *ngIf="!loading && !inspeccion">
+    <ion-icon name="alert-circle-outline" size="large" color="danger"></ion-icon>
+    <p>No se encontró la inspección.</p>
+    <ion-button (click)="goBack()">Volver</ion-button>
+  </div>
+</ion-content>

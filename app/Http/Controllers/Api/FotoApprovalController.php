@@ -6,9 +6,99 @@ use App\Http\Controllers\Controller;
 use App\Models\ResultadoInspeccion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class FotoApprovalController extends Controller
 {
+    /**
+     * Subir foto final de levantamiento (para responsables de levantamiento)
+     */
+    public function subirFotoFinal(Request $request, $resultadoId)
+    {
+        $validator = Validator::make($request->all(), [
+            'foto' => 'required|string', // Base64
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $resultado = ResultadoInspeccion::with(['responsablesLevantamiento'])->findOrFail($resultadoId);
+        $user = $request->user();
+
+        // Verificar que el usuario sea responsable de levantamiento del resultado
+        $esResponsableLevantamiento = $resultado->responsablesLevantamiento
+            ->contains('personal_id', $user->personal_id);
+
+        if (!$esResponsableLevantamiento && !$user->hasRole('Administrador')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo los responsables de levantamiento pueden subir la foto final',
+            ], 403);
+        }
+
+        // Verificar que el resultado esté en estado Pendiente o que la foto haya sido rechazada
+        if ($resultado->estado !== 'Pendiente' && $resultado->foto_final_estado !== 'rechazada') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se puede subir foto en resultados pendientes o con foto rechazada',
+            ], 400);
+        }
+
+        try {
+            // Procesar imagen base64
+            $fotoBase64 = $request->foto;
+            
+            // Remover el prefijo data:image si existe
+            if (preg_match('/^data:image\/(\w+);base64,/', $fotoBase64, $type)) {
+                $fotoBase64 = substr($fotoBase64, strpos($fotoBase64, ',') + 1);
+            }
+            
+            $fotoData = base64_decode($fotoBase64);
+            
+            if ($fotoData === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al decodificar la imagen',
+                ], 400);
+            }
+
+            // Generar nombre único
+            $filename = 'levantamiento_' . $resultadoId . '_' . Str::random(10) . '.jpg';
+            $path = 'inspecciones/fotos_finales/' . $filename;
+            
+            // Guardar archivo
+            Storage::disk('public')->put($path, $fotoData);
+
+            // Actualizar resultado
+            $resultado->update([
+                'registro_fotografico_final' => $path,
+                'foto_final_estado' => 'pendiente',
+                'foto_final_comentario' => null,
+                'foto_final_aprobador_id' => null,
+                'foto_final_aprobada_at' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Foto de levantamiento subida correctamente. Pendiente de validación por el inspector.',
+                'data' => [
+                    'registro_fotografico_final' => $path,
+                    'foto_final_estado' => 'pendiente',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar la imagen: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Aprobar o rechazar foto inicial
      */
@@ -109,18 +199,25 @@ class FotoApprovalController extends Controller
         // Actualizar estado
         $estado = $request->accion === 'aprobar' ? 'aprobada' : 'rechazada';
         
-        $resultado->update([
+        $updateData = [
             'foto_final_estado' => $estado,
             'foto_final_comentario' => $request->comentario,
             'foto_final_aprobador_id' => $user->personal_id,
             'foto_final_aprobada_at' => now(),
-        ]);
+        ];
+
+        // Si se aprueba la foto final, cambiar el estado del resultado a "Ejecutado"
+        if ($request->accion === 'aprobar') {
+            $updateData['estado'] = 'Ejecutado';
+        }
+
+        $resultado->update($updateData);
 
         return response()->json([
             'success' => true,
             'message' => $request->accion === 'aprobar' 
-                ? 'Foto final aprobada correctamente' 
-                : 'Foto final rechazada',
+                ? 'Foto final aprobada correctamente. El resultado ha sido marcado como Ejecutado.' 
+                : 'Foto final rechazada. El responsable debe subir una nueva foto.',
             'data' => $resultado->fresh(['fotoFinalAprobador']),
         ]);
     }
