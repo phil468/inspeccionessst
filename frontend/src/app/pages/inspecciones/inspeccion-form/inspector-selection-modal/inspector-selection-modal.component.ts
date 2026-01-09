@@ -124,7 +124,7 @@ export class InspectorSelectionModalComponent implements OnInit {
     const index = this.inspectoresSeleccionados.findIndex(
       (p) => p.id === personal.id
     );
-    
+
     if (index > -1) {
       // Si ya está seleccionado, deseleccionar
       this.inspectoresSeleccionados.splice(index, 1);
