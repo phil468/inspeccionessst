@@ -182,6 +182,14 @@ class SyncController extends Controller
                     ->where('estado', 1)
                     ->orderBy('name')
                     ->get(),
+                // Personal activo (no cesado) - para selects de inspectores/responsables
+                'personal' => \App\Models\Personal::select([
+                        'id', 'dni', 'nombres', 'apellido_paterno', 'apellido_materno',
+                        'empresa_id', 'area_id', 'cargo_id', 'inspector', 'cesado', 'correo_empresa'
+                    ])
+                    ->where('cesado', false)
+                    ->orderBy('nombres')
+                    ->get(),
             ];
 
             return response()->json([

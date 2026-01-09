@@ -145,4 +145,5 @@ export interface Catalogos {
   tipos_trabajador: TipoDeTrabajador[];
   tipos_personal: TipoDePersonal[];
   planillas: Planilla[];
+  personal?: Personal[];
 }

@@ -582,10 +582,89 @@ export class SyncService {
         console.log(
           `✅ ${inspecciones.length} inspecciones guardadas/actualizadas en IndexedDB`
         );
+
+        // Guardar las relaciones en sus tablas separadas
+        await this.guardarRelacionesInspecciones(inspecciones);
       }
     } catch (error) {
       console.error('Error descargando inspecciones:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Guardar relaciones de inspecciones (áreas, inspectores, resultados) en IndexedDB
+   * Usa local_id como clave primaria para garantizar unicidad (similar a sync() de Laravel)
+   * bulkPut hará upsert automáticamente: inserta si no existe, actualiza si existe
+   */
+  private async guardarRelacionesInspecciones(
+    inspecciones: any[]
+  ): Promise<void> {
+    const todasAreas: any[] = [];
+    const todosInspectores: any[] = [];
+    const todosResultados: any[] = [];
+
+    for (const inspeccion of inspecciones) {
+      const inspeccionId = inspeccion.id;
+
+      // Guardar áreas de la inspección
+      // local_id = "inspeccion_id-area_id" garantiza unicidad de la relación
+      if (inspeccion.areas && Array.isArray(inspeccion.areas)) {
+        for (const area of inspeccion.areas) {
+          todasAreas.push({
+            local_id: `insp-${inspeccionId}-area-${area.id}`,
+            inspeccion_id: inspeccionId,
+            area_id: area.id,
+            synced: true,
+          });
+        }
+      }
+
+      // Guardar inspectores de la inspección
+      // local_id = "inspeccion_id-personal_id" garantiza unicidad
+      if (inspeccion.inspectores && Array.isArray(inspeccion.inspectores)) {
+        for (const inspector of inspeccion.inspectores) {
+          todosInspectores.push({
+            local_id: `insp-${inspeccionId}-inspector-${inspector.id}`,
+            inspeccion_id: inspeccionId,
+            personal_id: inspector.id,
+            synced: true,
+          });
+        }
+      }
+
+      // Guardar resultados de la inspección
+      // Los resultados ya tienen su propio local_id del servidor
+      if (inspeccion.resultados && Array.isArray(inspeccion.resultados)) {
+        for (const resultado of inspeccion.resultados) {
+          // Asegurar que tenga un local_id único
+          const resultadoLocalId =
+            resultado.local_id || `resultado-${resultado.id}`;
+          todosResultados.push({
+            ...resultado,
+            local_id: resultadoLocalId,
+            inspeccion_id: inspeccionId,
+            synced: true,
+          });
+        }
+      }
+    }
+
+    // Guardar todas las relaciones en IndexedDB
+    // bulkPut con local_id como clave primaria = upsert automático (no hay duplicados)
+    if (todasAreas.length > 0) {
+      await this.databaseService.saveInspeccionAreas(todasAreas);
+      console.log(`📥 ${todasAreas.length} áreas de inspección sincronizadas`);
+    }
+
+    if (todosInspectores.length > 0) {
+      await this.databaseService.saveInspeccionInspectores(todosInspectores);
+      console.log(`📥 ${todosInspectores.length} inspectores sincronizados`);
+    }
+
+    if (todosResultados.length > 0) {
+      await this.databaseService.saveResultadosInspeccion(todosResultados);
+      console.log(`📥 ${todosResultados.length} resultados sincronizados`);
     }
   }
 

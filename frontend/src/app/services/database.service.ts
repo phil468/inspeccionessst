@@ -58,7 +58,8 @@ export class DatabaseService extends Dexie {
   constructor() {
     super(environment.storage.dbName);
 
-    this.version(environment.storage.dbVersion).stores({
+    // Versión 1: Esquema original
+    this.version(1).stores({
       registros: '++id, local_id, user_id, synced, fecha_registro, created_at',
       inspecciones:
         '++id, local_id, user_id, empresa_id, area_id, synced, fecha_inspeccion, created_at',
@@ -73,6 +74,39 @@ export class DatabaseService extends Dexie {
       resultado_responsables_levantamiento:
         '++id, local_id, resultado_id, personal_id',
       responsable_registro: '++id, local_id, inspeccion_id, personal_id',
+      campanias: '++id, nombre, activo',
+      fundos: '++id, nombre, activo',
+      empresas: '++id, name, activo',
+      areas: '++id, empresa_id, name, activo',
+      personal:
+        '++id, dni, name, empresa_id, area_id, cargo_id, cesado, seleccionado, inspector',
+      cargos: '++id, empresa_id, name, activo, tipo_de_puesto_id, reporta_a',
+      tipos_trabajador: '++id, empresa_id, name, estado',
+      tipos_personal: '++id, empresa_id, name, estado',
+      planillas: '++id, empresa_id, name, estado',
+      tiposDePuesto: '++id, name, estado, nivel_jerarquico_id',
+      nivelesJerarquicos: '++id, name, estado',
+    });
+
+    // Versión 2: Usar local_id como clave primaria en tablas de relaciones
+    // Esto permite usar bulkPut para "sync" (upsert) sin duplicados
+    this.version(2).stores({
+      registros: '++id, local_id, user_id, synced, fecha_registro, created_at',
+      inspecciones:
+        '++id, local_id, user_id, empresa_id, area_id, synced, fecha_inspeccion, created_at',
+      // Tablas de relaciones con local_id como clave primaria (sin ++)
+      inspeccion_areas: 'local_id, inspeccion_id, area_id',
+      inspeccion_inspectores: 'local_id, inspeccion_id, personal_id',
+      inspeccion_responsables_area:
+        'local_id, inspeccion_id, area_id, personal_id',
+      resultados_inspeccion:
+        'local_id, inspeccion_id, responsable_id, synced, estado, nivel_riesgo',
+      resultado_responsables: 'local_id, resultado_id, personal_id',
+      resultado_visores: 'local_id, resultado_id, personal_id',
+      resultado_responsables_levantamiento:
+        'local_id, resultado_id, personal_id',
+      responsable_registro: 'local_id, inspeccion_id, personal_id',
+      // Catálogos mantienen ++id
       campanias: '++id, nombre, activo',
       fundos: '++id, nombre, activo',
       empresas: '++id, name, activo',

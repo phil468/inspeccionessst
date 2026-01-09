@@ -114,9 +114,16 @@ export class InspeccionListaPage implements OnInit {
   }
 
   async ngOnInit() {
+    // Primero verificar conectividad
+    await this.checkConnectivity();
+
     await this.loadInspecciones();
     await this.loadSyncStatus();
-    this.checkConnectivity();
+
+    // Si no hay inspecciones locales y estamos online, sincronizar automáticamente
+    if (this.inspecciones.length === 0 && this.isOnline) {
+      await this.sincronizarAutomatico();
+    }
 
     this.syncSubscription = this.syncService.syncStatus$.subscribe(
       async (status: any) => {
@@ -126,6 +133,21 @@ export class InspeccionListaPage implements OnInit {
         }
       }
     );
+  }
+
+  /**
+   * Sincronización automática silenciosa para primera carga
+   */
+  private async sincronizarAutomatico() {
+    try {
+      console.log('🔄 Sincronización automática inicial...');
+      await this.syncService.syncAll();
+      await this.loadInspecciones();
+      await this.loadSyncStatus();
+      console.log('✅ Sincronización automática completada');
+    } catch (error) {
+      console.error('Error en sincronización automática:', error);
+    }
   }
 
   async ionViewWillEnter() {

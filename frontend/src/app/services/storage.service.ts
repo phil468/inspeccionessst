@@ -244,6 +244,7 @@ export class StorageService {
         this.db.tipos_trabajador,
         this.db.tipos_personal,
         this.db.planillas,
+        this.db.personal,
       ],
       async () => {
         // Limpiar catálogos existentes
@@ -255,6 +256,7 @@ export class StorageService {
         await this.db.tipos_trabajador.clear();
         await this.db.tipos_personal.clear();
         await this.db.planillas.clear();
+        await this.db.personal.clear();
 
         // Guardar nuevos catálogos
         if (catalogos.campanias && catalogos.campanias.length > 0) {
@@ -283,6 +285,11 @@ export class StorageService {
         }
         if (catalogos.planillas && catalogos.planillas.length > 0) {
           await this.db.planillas.bulkAdd(catalogos.planillas);
+        }
+        // Guardar personal
+        if (catalogos.personal && catalogos.personal.length > 0) {
+          await this.db.personal.bulkAdd(catalogos.personal);
+          console.log(`📥 ${catalogos.personal.length} personal guardado`);
         }
       }
     );

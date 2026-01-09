@@ -1,6 +1,10 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IonicModule, LoadingController } from '@ionic/angular';
+import {
+  LoadingController,
+  IonContent,
+  IonSpinner,
+} from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { SyncService } from '../../services/sync.service';
@@ -12,7 +16,7 @@ import { environment } from '../../../environments/environment';
   styleUrls: ['./auth-callback.page.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule],
+  imports: [CommonModule, IonContent, IonSpinner],
 })
 export class AuthCallbackPage implements OnInit {
   constructor(
@@ -24,11 +28,11 @@ export class AuthCallbackPage implements OnInit {
   ) {}
 
   async ngOnInit() {
-    // const loading = await this.loadingController.create({
-    //   message: 'Completando autenticación...',
-    //   spinner: 'crescent'
-    // });
-    // await loading.present();
+    const loading = await this.loadingController.create({
+      message: 'Completando autenticación...',
+      spinner: 'crescent',
+    });
+    await loading.present();
 
     try {
       // Obtener parámetros de la URL
@@ -37,7 +41,7 @@ export class AuthCallbackPage implements OnInit {
 
       if (error) {
         console.error('Error en callback:', error);
-        // await loading.dismiss();
+        await loading.dismiss();
         this.router.navigate(['/login'], {
           queryParams: { error: 'authentication_failed' },
         });
@@ -46,7 +50,7 @@ export class AuthCallbackPage implements OnInit {
 
       if (!sessionKey) {
         console.error('No se recibió session key en el callback');
-        // await loading.dismiss();
+        await loading.dismiss();
         this.router.navigate(['/login'], {
           queryParams: { error: 'no_session' },
         });
@@ -54,7 +58,7 @@ export class AuthCallbackPage implements OnInit {
       }
 
       // Obtener datos de sesión desde el backend
-      // loading.message = 'Obteniendo datos de sesión...';
+      loading.message = 'Obteniendo datos de sesión...';
 
       const sessionUrl = `${environment.apiUrl}/auth/session?session=${sessionKey}`;
       console.log('🔍 Obteniendo sesión desde:', sessionUrl);
@@ -113,7 +117,7 @@ export class AuthCallbackPage implements OnInit {
         !sessionData.data.user
       ) {
         console.error('❌ Datos incompletos en la sesión:', sessionData);
-        // await loading.dismiss();
+        await loading.dismiss();
         this.router.navigate(['/login'], {
           queryParams: { error: 'invalid_session' },
         });
@@ -137,26 +141,35 @@ export class AuthCallbackPage implements OnInit {
       );
 
       // Actualizar mensaje de loading
-      // loading.message = 'Descargando datos iniciales...';
+      loading.message = 'Descargando datos iniciales...';
 
-      // Descargar datos iniciales (catálogos y registros)
+      // Descargar datos iniciales (catálogos, registros e inspecciones)
       try {
         console.log('📥 Iniciando descarga de datos después del login...');
         await this.syncService.downloadCatalogos();
+        console.log('✅ Catálogos descargados');
+
+        loading.message = 'Descargando inspecciones...';
+        await this.syncService.downloadInspecciones();
+        console.log('✅ Inspecciones descargadas');
+
+        loading.message = 'Descargando registros...';
         await this.syncService.downloadRegistros();
-        console.log('✅ Datos iniciales descargados correctamente');
+        console.log('✅ Registros descargados');
+
+        console.log('✅ Todos los datos iniciales descargados correctamente');
       } catch (syncError) {
         console.error('⚠️ Error descargando datos iniciales:', syncError);
         // No bloqueamos el login si falla la descarga, se puede intentar después
       }
 
-      // await loading.dismiss();
+      await loading.dismiss();
 
       // Redirigir al home
       this.router.navigate(['/home']);
     } catch (error) {
       console.error('Error procesando callback:', error);
-      // await loading.dismiss();
+      await loading.dismiss();
       this.router.navigate(['/login'], {
         queryParams: { error: 'processing_error' },
       });
