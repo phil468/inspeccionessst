@@ -152,8 +152,18 @@ class InspeccionController extends Controller
             ], 404);
         }
 
-        // Verificar que la inspección pertenezca al usuario
-        if ($inspeccion->user_id !== $user->id) {
+        // Verificar permisos: creador, inspector o personal asignado
+        $personalId = $user->personal_id;
+        $esCreador = $inspeccion->user_id === $user->id;
+        $esInspector = $inspeccion->inspectores->contains('id', $personalId);
+        $esAsignado = $inspeccion->resultados->contains(function ($resultado) use ($personalId) {
+            return $resultado->responsable_id === $personalId ||
+                   $resultado->visores->contains('id', $personalId) ||
+                   $resultado->responsablesLevantamiento->contains('id', $personalId);
+        });
+        $esAdmin = $user->hasRole('Administrador');
+
+        if (!$esCreador && !$esInspector && !$esAsignado && !$esAdmin) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permiso para ver esta inspección',

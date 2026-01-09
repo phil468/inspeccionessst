@@ -31,11 +31,11 @@
         }
 
         .header-felicitaciones {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #667eea;
         }
 
         .header-pendientes {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background-color: #f5576c;
         }
 
         .header h1 {
@@ -200,7 +200,7 @@
 
         .btn-ver-inspeccion {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #667eea;
             color: #ffffff !important;
             padding: 14px 32px;
             border-radius: 25px;
@@ -208,13 +208,6 @@
             font-weight: 600;
             font-size: 16px;
             margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        .btn-ver-inspeccion:hover {
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-            transform: translateY(-2px);
         }
 
         .cta-section {
@@ -230,6 +223,13 @@
             color: #555;
         }
     </style>
+    <!--[if mso]>
+    <style type="text/css">
+        .btn-ver-inspeccion {
+            background-color: #667eea !important;
+        }
+    </style>
+    <![endif]-->
 </head>
 
 <body>
@@ -323,10 +323,27 @@
                 @else
                     <p>Puedes ver los detalles de la inspección aquí:</p>
                 @endif
-                <a href="{{ config('app.frontend_url') }}/mis-inspecciones?inspeccion={{ $inspeccion->id }}"
-                    class="btn-ver-inspeccion">
-                    📋 Ver Inspección
-                </a>
+
+                <!-- Botón bulletproof compatible con Outlook -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"
+                    style="margin: auto;">
+                    <tr>
+                        <td style="border-radius: 25px; background-color: #667eea;">
+                            <!--[if mso]>
+                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ config('app.frontend_url') }}/mis-inspecciones" style="height:48px;v-text-anchor:middle;width:200px;" arcsize="50%" strokecolor="#667eea" fillcolor="#667eea">
+                            <w:anchorlock/>
+                            <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">📋 Ver Inspección</center>
+                            </v:roundrect>
+                            <![endif]-->
+                            <!--[if !mso]><!-->
+                            <a href="{{ config('app.frontend_url') }}/mis-inspecciones/{{ $inspeccion->id }}"
+                                style="background-color: #667eea; border-radius: 25px; color: #ffffff; display: inline-block; font-family: sans-serif; font-size: 16px; font-weight: bold; line-height: 48px; text-align: center; text-decoration: none; width: 200px; -webkit-text-size-adjust: none;">
+                                📋 Ver Inspección
+                            </a>
+                            <!--<![endif]-->
+                        </td>
+                    </tr>
+                </table>
             </div>
 
             @if ($tipo === 'felicitaciones')

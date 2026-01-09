@@ -304,6 +304,11 @@
               <p *ngIf="resultado.visores && resultado.visores.length > 0">
                 <ion-text color="primary">{{ resultado.visores.length }} seleccionado(s)</ion-text>
               </p>
+              <p *ngIf="resultado.visores && resultado.visores.length > 0" class="ion-text-wrap">
+                <ion-text color="medium">
+                  <small>{{ getVisoresNombresLista(resultado) }}</small>
+                </ion-text>
+              </p>
               <p *ngIf="!resultado.visores || resultado.visores.length === 0">
                 <ion-text color="medium">Sin visores asignados</ion-text>
               </p>
@@ -321,6 +326,11 @@
               <h3>Responsables de Levantamiento</h3>
               <p *ngIf="resultado.responsablesLevantamiento && resultado.responsablesLevantamiento.length > 0">
                 <ion-text color="warning">{{ resultado.responsablesLevantamiento.length }} seleccionado(s)</ion-text>
+              </p>
+              <p *ngIf="resultado.responsablesLevantamiento && resultado.responsablesLevantamiento.length > 0" class="ion-text-wrap">
+                <ion-text color="medium">
+                  <small>{{ getResponsablesLevantamientoNombresLista(resultado) }}</small>
+                </ion-text>
               </p>
               <p *ngIf="!resultado.responsablesLevantamiento || resultado.responsablesLevantamiento.length === 0">
                 <ion-text color="medium">Sin responsables asignados</ion-text>

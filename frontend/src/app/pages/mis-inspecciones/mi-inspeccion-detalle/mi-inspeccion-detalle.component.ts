@@ -150,8 +150,9 @@ export class MiInspeccionDetalleComponent implements OnInit {
   async cargarInspeccion(id: number) {
     this.loading = true;
     try {
+      // Cargar desde el servidor para obtener datos frescos con todas las relaciones
       this.inspeccion =
-        (await this.inspeccionService.getInspeccionById(id)) || null;
+        (await this.inspeccionService.getInspeccionByIdFromServer(id)) || null;
       if (this.inspeccion) {
         this.verificarRolInspector();
         this.procesarResultados();
@@ -180,12 +181,20 @@ export class MiInspeccionDetalleComponent implements OnInit {
 
     const personalId = this.currentUser.personal_id;
 
+    console.log('Procesando resultados para personal ID:', personalId);
+    console.log('Resultados originales:', this.inspeccion.resultados);
+
     this.resultados = this.inspeccion.resultados.map((resultado) => {
       // Determinar el rol del usuario en este resultado
-      const esResponsableLevantamiento =
+      // Puede subir foto si es responsable_id O está en responsablesLevantamiento
+      const esResponsableDirecto = resultado.responsable_id === personalId;
+      const esResponsableLevantamientoPivot =
         resultado.responsablesLevantamiento?.some(
           (r) => r.personal_id === personalId
         ) ?? false;
+      const esResponsableLevantamiento =
+        esResponsableDirecto || esResponsableLevantamientoPivot;
+
       const esVisor =
         resultado.visores?.some((v) => v.personal_id === personalId) ?? false;
 
@@ -199,17 +208,49 @@ export class MiInspeccionDetalleComponent implements OnInit {
       }
 
       // Determinar si puede subir foto:
-      // - Es responsable de levantamiento
+      // - Es responsable de levantamiento (responsable_id O responsablesLevantamiento)
       // - Y el resultado está en estado Pendiente
       // - Y NO hay foto subida O la foto fue rechazada
       const noHayFotoOFueRechazada =
         !resultado.registro_fotografico_final ||
         resultado.foto_final_estado === 'rechazada';
 
+      console.log('Resultado ID:', resultado.id);
+      console.log(
+        'Es responsable directo (responsable_id):',
+        esResponsableDirecto
+      );
+      console.log(
+        'Es responsable levantamiento (pivot):',
+        esResponsableLevantamientoPivot
+      );
+      console.log(
+        'Es responsable de levantamiento (combinado):',
+        esResponsableLevantamiento
+      );
+      console.log('Estado del resultado:', resultado.estado);
+      console.log(
+        'Registro fotográfico final:',
+        resultado.registro_fotografico_final
+      );
+      console.log('Estado de la foto final:', resultado.foto_final_estado);
+      console.log('No hay foto o fue rechazada:', noHayFotoOFueRechazada);
+
       const puedeSubirFoto: boolean =
         esResponsableLevantamiento &&
         resultado.estado === 'Pendiente' &&
         noHayFotoOFueRechazada;
+
+      console.log('Puede subir foto:', puedeSubirFoto);
+
+      console.log('Mi rol en este resultado:', miRol);
+      console.log('Es inspector:', this.esInspector);
+      console.log(
+        'Puede validar:',
+        this.esInspector &&
+          !!resultado.registro_fotografico_final &&
+          resultado.foto_final_estado === 'pendiente'
+      );
 
       // Determinar si puede validar (inspector y HAY foto Y está pendiente de revisión)
       const puedeValidar: boolean =

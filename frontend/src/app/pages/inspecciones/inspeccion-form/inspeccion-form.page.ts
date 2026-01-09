@@ -71,6 +71,9 @@ import {
   searchOutline,
   checkmarkCircleOutline,
   chevronForwardOutline,
+  constructOutline,
+  eyeOutline,
+  personOutline
 } from 'ionicons/icons';
 import { AreaSelectionModalComponent } from './area-selection-modal/area-selection-modal.component';
 import { InspectorSelectionModalComponent } from './inspector-selection-modal/inspector-selection-modal.component';
@@ -162,6 +165,9 @@ export class InspeccionFormPage implements OnInit {
       searchOutline,
       checkmarkCircleOutline,
       chevronForwardOutline,
+      constructOutline,
+      eyeOutline,
+      personOutline
     });
   }
 
@@ -838,6 +844,7 @@ export class InspeccionFormPage implements OnInit {
           ? [this.resultados[resultadoIndex].responsable!]
           : [],
         filtrarSoloInspectores: false, // Mostrar todo el personal
+        seleccionUnica: true, // Solo puede seleccionar un responsable
       },
     });
 
@@ -849,10 +856,17 @@ export class InspeccionFormPage implements OnInit {
       data.inspectoresSeleccionados &&
       data.inspectoresSeleccionados.length > 0
     ) {
-      this.resultados[resultadoIndex].responsable =
-        data.inspectoresSeleccionados[0];
-      this.resultados[resultadoIndex].responsable_id =
-        data.inspectoresSeleccionados[0].id;
+      // Actualizar el responsable
+      const nuevoResponsable = data.inspectoresSeleccionados[0];
+      this.resultados[resultadoIndex].responsable = nuevoResponsable;
+      this.resultados[resultadoIndex].responsable_id = nuevoResponsable.id;
+      // Forzar detección de cambios reasignando el array
+      this.resultados = [...this.resultados];
+    } else if (data && data.inspectoresSeleccionados && data.inspectoresSeleccionados.length === 0) {
+      // Si deseleccionó todo, limpiar el responsable
+      this.resultados[resultadoIndex].responsable = undefined;
+      this.resultados[resultadoIndex].responsable_id = undefined;
+      this.resultados = [...this.resultados];
     }
   }
 
@@ -876,7 +890,43 @@ export class InspeccionFormPage implements OnInit {
 
     if (data && data.inspectoresSeleccionados) {
       this.resultados[resultadoIndex].visores = data.inspectoresSeleccionados;
+      // Forzar detección de cambios
+      this.resultados = [...this.resultados];
     }
+  }
+
+  // Obtener lista de nombres de visores para un resultado
+  getVisoresNombresLista(resultado: ResultadoInspeccion): string {
+    if (!resultado.visores || resultado.visores.length === 0) return '';
+    return resultado.visores
+      .map((v: any) => {
+        // Puede ser Personal directamente o ResultadoVisor con personal anidado
+        if (v.nombres) {
+          return this.getNombrePersonal(v as Personal);
+        } else if (v.personal) {
+          return this.getNombrePersonal(v.personal);
+        }
+        return '';
+      })
+      .filter((n: string) => n)
+      .join(', ');
+  }
+
+  // Obtener lista de nombres de responsables de levantamiento para un resultado
+  getResponsablesLevantamientoNombresLista(resultado: ResultadoInspeccion): string {
+    if (!resultado.responsablesLevantamiento || resultado.responsablesLevantamiento.length === 0) return '';
+    return resultado.responsablesLevantamiento
+      .map((r: any) => {
+        // Puede ser Personal directamente o ResultadoResponsableLevantamiento con personal anidado
+        if (r.nombres) {
+          return this.getNombrePersonal(r as Personal);
+        } else if (r.personal) {
+          return this.getNombrePersonal(r.personal);
+        }
+        return '';
+      })
+      .filter((n: string) => n)
+      .join(', ');
   }
 
   async seleccionarResponsablesLevantamiento(resultadoIndex: number) {
@@ -901,6 +951,8 @@ export class InspeccionFormPage implements OnInit {
     if (data && data.inspectoresSeleccionados) {
       this.resultados[resultadoIndex].responsablesLevantamiento =
         data.inspectoresSeleccionados;
+      // Forzar detección de cambios
+      this.resultados = [...this.resultados];
     }
   }
 

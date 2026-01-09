@@ -28,6 +28,7 @@ export class InspectorSelectionModalComponent implements OnInit {
   inspectoresSeleccionados: Personal[] = [];
   filtrarSoloInspectores: boolean = true;
   validarCorreoUsuario: boolean = true; // Activar validación de correo y usuario
+  seleccionUnica: boolean = false; // Modo de selección única (solo un elemento)
 
   searchTerm = '';
   personalFiltrado: Personal[] = [];
@@ -123,10 +124,18 @@ export class InspectorSelectionModalComponent implements OnInit {
     const index = this.inspectoresSeleccionados.findIndex(
       (p) => p.id === personal.id
     );
+    
     if (index > -1) {
+      // Si ya está seleccionado, deseleccionar
       this.inspectoresSeleccionados.splice(index, 1);
     } else {
-      this.inspectoresSeleccionados.push(personal);
+      if (this.seleccionUnica) {
+        // En modo selección única, reemplazar la selección
+        this.inspectoresSeleccionados = [personal];
+      } else {
+        // En modo múltiple, agregar a la lista
+        this.inspectoresSeleccionados.push(personal);
+      }
     }
 
     // Reordenar para mantener seleccionados al inicio

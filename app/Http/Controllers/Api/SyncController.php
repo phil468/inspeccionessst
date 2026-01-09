@@ -509,6 +509,9 @@ class SyncController extends Controller
                     'resultados' => function($q) {
                         $q->orderBy('nivel_riesgo', 'asc'); // Alto primero
                     },
+                    'resultados.visores:id,nombres,apellido_paterno,apellido_materno',
+                    'resultados.responsablesLevantamiento:id,nombres,apellido_paterno,apellido_materno',
+                    'resultados.responsable:id,nombres,apellido_paterno,apellido_materno',
                     'responsableRegistro.personal:id,nombres,apellido_paterno,apellido_materno',
                 ])
                 ->orderBy('fecha_hora_inspeccion', 'desc');

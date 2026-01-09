@@ -24,10 +24,31 @@ export class InspeccionService {
   }
 
   /**
-   * Obtener inspección por ID
+   * Obtener inspección por ID (offline-first, cae a local si falla)
    */
   async getInspeccionById(id: number): Promise<Inspeccion | undefined> {
     return await this.databaseService.inspecciones.get(id);
+  }
+
+  /**
+   * Obtener inspección por ID directamente del servidor (para datos frescos)
+   */
+  async getInspeccionByIdFromServer(
+    id: number
+  ): Promise<Inspeccion | undefined> {
+    try {
+      const response: any = await firstValueFrom(
+        this.http.get(`${this.apiUrl}/${id}`)
+      );
+      if (response.success && response.data) {
+        return response.data as Inspeccion;
+      }
+      return undefined;
+    } catch (error) {
+      console.error('Error al obtener inspección del servidor:', error);
+      // Fallback a datos locales
+      return await this.databaseService.inspecciones.get(id);
+    }
   }
 
   /**
