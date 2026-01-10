@@ -306,14 +306,24 @@ export class PersonalFormPage implements OnInit {
       return dateString.split('T')[0];
     };
 
-    // Separar el nombre completo en partes
-    const nameParts = this.extractNameParts(this.personal.name || '');
+    // Usar los campos individuales si existen, de lo contrario extraer del nombre completo
+    let nombres = this.personal.nombres || '';
+    let apellido_paterno = this.personal.apellido_paterno || '';
+    let apellido_materno = this.personal.apellido_materno || '';
+
+    // Si los campos individuales están vacíos pero hay un nombre completo, extraerlos
+    if (!nombres && !apellido_paterno && this.personal.name) {
+      const nameParts = this.extractNameParts(this.personal.name);
+      nombres = nameParts.nombres;
+      apellido_paterno = nameParts.apellido_paterno;
+      apellido_materno = nameParts.apellido_materno;
+    }
 
     this.personalForm.patchValue({
       dni: this.personal.dni,
-      nombres: nameParts.nombres,
-      apellido_paterno: nameParts.apellido_paterno,
-      apellido_materno: nameParts.apellido_materno,
+      nombres: nombres,
+      apellido_paterno: apellido_paterno,
+      apellido_materno: apellido_materno,
       empresa_id: this.personal.empresa_id,
       area_id: this.personal.area_id,
       cargo_id: this.personal.cargo_id,

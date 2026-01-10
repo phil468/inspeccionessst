@@ -48,6 +48,36 @@ class Personal extends Model
         'inspector' => 'boolean',
     ];
 
+    /**
+     * Bootstrap del modelo
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Generar nombre completo antes de crear
+        static::creating(function ($personal) {
+            if (empty($personal->name) && ($personal->apellido_paterno || $personal->nombres)) {
+                $personal->name = trim(
+                    ($personal->apellido_paterno ?? '') . ' ' .
+                    ($personal->apellido_materno ?? '') . ' ' .
+                    ($personal->nombres ?? '')
+                );
+            }
+        });
+
+        // Generar nombre completo antes de actualizar
+        static::updating(function ($personal) {
+            if ($personal->isDirty(['apellido_paterno', 'apellido_materno', 'nombres'])) {
+                $personal->name = trim(
+                    ($personal->apellido_paterno ?? '') . ' ' .
+                    ($personal->apellido_materno ?? '') . ' ' .
+                    ($personal->nombres ?? '')
+                );
+            }
+        });
+    }
+
     // Relaciones
     public function empresa()
     {
