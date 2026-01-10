@@ -80,12 +80,14 @@ class Inspeccion extends Model
     public function areas()
     {
         return $this->belongsToMany(Area::class, 'inspeccion_areas', 'inspeccion_id', 'area_id')
+            ->wherePivotNull('deleted_at')
             ->withTimestamps();
     }
 
     public function inspectores()
     {
         return $this->belongsToMany(Personal::class, 'inspeccion_inspectores', 'inspeccion_id', 'personal_id')
+            ->wherePivotNull('deleted_at')
             ->select(['personal.id', 'personal.nombres', 'personal.apellido_paterno', 'personal.apellido_materno', 'personal.dni'])
             ->withTimestamps();
     }
@@ -153,6 +155,8 @@ class Inspeccion extends Model
             'resultados.responsable:id,nombres,apellido_paterno,apellido_materno,cargo_id',
             'resultados.visores:id,nombres,apellido_paterno,apellido_materno,cargo_id',
             'resultados.responsablesLevantamiento:id,nombres,apellido_paterno,apellido_materno,cargo_id',
+            'resultados.fotoFinalAprobador:id,nombres,apellido_paterno,apellido_materno,cargo_id',
+            'resultados.fotoInicialAprobador:id,nombres,apellido_paterno,apellido_materno,cargo_id',
             'responsableRegistro.personal:id,nombres,apellido_paterno,apellido_materno,cargo_id'
         ]);
     }

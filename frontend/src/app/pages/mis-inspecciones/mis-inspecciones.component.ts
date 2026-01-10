@@ -138,8 +138,10 @@ export class MisInspeccionesComponent implements OnInit {
     // Filtrar según los diferentes roles
     return inspecciones.filter((inspeccion: InspeccionConResultados) => {
       // Inspector: ve inspecciones donde está como inspector
+      // El backend puede retornar Personal con id o con personal_id
       const esInspector = inspeccion.inspectores?.some(
-        (inspector) => inspector.personal_id === personalId
+        (inspector: any) =>
+          inspector.id === personalId || inspector.personal_id === personalId
       );
 
       // Responsable: ve resultados donde está como responsable
@@ -149,17 +151,32 @@ export class MisInspeccionesComponent implements OnInit {
       );
 
       // Visor: ve resultados donde está como visor
-      const esVisor = inspeccion.resultados?.some(
-        (resultado: ResultadoInspeccion) =>
-          resultado.visores?.some((visor) => visor.personal_id === personalId)
-      );
+      // El backend puede retornar con snake_case o camelCase
+      const esVisor = inspeccion.resultados?.some((resultado: any) => {
+        const visoresList = resultado.visores || [];
+        return visoresList.some(
+          (visor: any) =>
+            visor.id === personalId ||
+            visor.personal_id === personalId ||
+            visor.pivot?.personal_id === personalId
+        );
+      });
 
       // Responsable de levantamiento: ve resultados donde está como responsable de levantamiento
+      // El backend puede retornar con snake_case o camelCase
       const esResponsableLevantamiento = inspeccion.resultados?.some(
-        (resultado: ResultadoInspeccion) =>
-          resultado.responsablesLevantamiento?.some(
-            (resp) => resp.personal_id === personalId
-          )
+        (resultado: any) => {
+          const responsablesLev =
+            resultado.responsables_levantamiento ||
+            resultado.responsablesLevantamiento ||
+            [];
+          return responsablesLev.some(
+            (resp: any) =>
+              resp.id === personalId ||
+              resp.personal_id === personalId ||
+              resp.pivot?.personal_id === personalId
+          );
+        }
       );
 
       if (

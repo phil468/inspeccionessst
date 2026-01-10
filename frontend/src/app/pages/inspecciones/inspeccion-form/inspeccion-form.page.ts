@@ -60,6 +60,7 @@ import {
   InspeccionInspector,
 } from '../../../models/inspeccion.model';
 import { Empresa, Area, Personal } from '../../../models/catalogo.model';
+import { environment } from '../../../../environments/environment';
 import { v4 as uuidv4 } from 'uuid';
 import { addIcons } from 'ionicons';
 import {
@@ -70,10 +71,17 @@ import {
   cameraOutline,
   searchOutline,
   checkmarkCircleOutline,
+  checkmarkCircle,
   chevronForwardOutline,
   constructOutline,
   eyeOutline,
   personOutline,
+  businessOutline,
+  peopleOutline,
+  clipboardOutline,
+  closeCircleOutline,
+  closeCircle,
+  time,
 } from 'ionicons/icons';
 import { AreaSelectionModalComponent } from './area-selection-modal/area-selection-modal.component';
 import { InspectorSelectionModalComponent } from './inspector-selection-modal/inspector-selection-modal.component';
@@ -157,17 +165,24 @@ export class InspeccionFormPage implements OnInit {
     private modalController: ModalController
   ) {
     addIcons({
-      saveOutline,
-      closeOutline,
-      addOutline,
-      trashOutline,
-      cameraOutline,
-      searchOutline,
-      checkmarkCircleOutline,
-      chevronForwardOutline,
-      constructOutline,
-      eyeOutline,
-      personOutline,
+      'save-outline': saveOutline,
+      'close-outline': closeOutline,
+      'add-outline': addOutline,
+      'trash-outline': trashOutline,
+      'camera-outline': cameraOutline,
+      'search-outline': searchOutline,
+      'checkmark-circle-outline': checkmarkCircleOutline,
+      'checkmark-circle': checkmarkCircle,
+      'chevron-forward-outline': chevronForwardOutline,
+      'construct-outline': constructOutline,
+      'eye-outline': eyeOutline,
+      'person-outline': personOutline,
+      'business-outline': businessOutline,
+      'people-outline': peopleOutline,
+      'clipboard-outline': clipboardOutline,
+      'close-circle-outline': closeCircleOutline,
+      'close-circle': closeCircle,
+      time: time,
     });
   }
 
@@ -298,13 +313,17 @@ export class InspeccionFormPage implements OnInit {
       this.filterAreas(inspeccion.empresa_id);
 
       // Normalizar fechas al formato ISO 8601 sin microsegundos
+      // ion-datetime solo acepta hasta 3 decimales (milisegundos)
       const normalizarFecha = (
         fecha: string | undefined
       ): string | undefined => {
         if (!fecha) return undefined;
         try {
+          // Eliminar microsegundos extras (más de 3 decimales) antes de parsear
+          // Ej: 2026-01-14T00:00:00.000000Z -> 2026-01-14T00:00:00.000Z
+          const fechaLimpia = fecha.replace(/(\.\d{3})\d*Z$/, '$1Z');
           // Convertir a Date y luego a ISO string estándar
-          return new Date(fecha).toISOString();
+          return new Date(fechaLimpia).toISOString();
         } catch {
           return undefined;
         }
@@ -364,9 +383,48 @@ export class InspeccionFormPage implements OnInit {
         }
 
         // Cargar resultados
-        this.resultados = await this.databaseService.getResultadosByInspeccion(
-          inspeccion.id
-        );
+        const resultadosRaw =
+          await this.databaseService.getResultadosByInspeccion(inspeccion.id);
+
+        // Normalizar resultados: convertir snake_case a camelCase
+        this.resultados = resultadosRaw.map((resultado: any) => {
+          // Normalizar responsables_levantamiento → responsablesLevantamiento
+          if (
+            resultado.responsables_levantamiento &&
+            !resultado.responsablesLevantamiento
+          ) {
+            resultado.responsablesLevantamiento =
+              resultado.responsables_levantamiento;
+          }
+
+          // Normalizar visores
+          if (!resultado.visores) {
+            resultado.visores = [];
+          }
+
+          // Normalizar fotoFinalAprobador
+          if (resultado.foto_final_aprobador && !resultado.fotoFinalAprobador) {
+            resultado.fotoFinalAprobador = resultado.foto_final_aprobador;
+          }
+
+          // Normalizar fotoInicialAprobador
+          if (
+            resultado.foto_inicial_aprobador &&
+            !resultado.fotoInicialAprobador
+          ) {
+            resultado.fotoInicialAprobador = resultado.foto_inicial_aprobador;
+          }
+
+          // Normalizar fecha_cierre (quitar microsegundos extra)
+          if (resultado.fecha_cierre) {
+            resultado.fecha_cierre = resultado.fecha_cierre.replace(
+              /(\.[0-9]{3})[0-9]*Z$/,
+              '$1Z'
+            );
+          }
+
+          return resultado;
+        });
       }
     } catch (error) {
       console.error('Error al cargar inspección:', error);
@@ -697,7 +755,14 @@ export class InspeccionFormPage implements OnInit {
         await this.showToast('Foto inicial capturada', 'success');
       } else {
         resultado.registro_fotografico_final = imageData;
-        await this.showToast('Foto final capturada', 'success');
+        resultado.foto_final_estado = 'pendiente';
+
+        // Si el resultado ya está guardado en el servidor (tiene ID), subir la foto inmediatamente
+        if (resultado.id && this.isOnline) {
+          await this.subirFotoFinalAlServidor(resultado, imageData);
+        } else {
+          await this.showToast('Foto final capturada', 'success');
+        }
       }
     } catch (error: any) {
       console.error('Error al capturar foto:', error);
@@ -710,6 +775,49 @@ export class InspeccionFormPage implements OnInit {
       } else {
         await this.showToast('Error al capturar foto', 'danger');
       }
+    }
+  }
+
+  async subirFotoFinalAlServidor(
+    resultado: ResultadoInspeccion,
+    imageData: string
+  ) {
+    const loading = await this.loadingController.create({
+      message: 'Subiendo foto...',
+    });
+    await loading.present();
+
+    try {
+      const response = await this.apiService.post(
+        `/resultados/${resultado.id}/foto-final`,
+        { foto: imageData }
+      );
+
+      if (response && response.success) {
+        // Actualizar el resultado con la ruta del servidor
+        resultado.registro_fotografico_final =
+          response.data?.registro_fotografico_final;
+        resultado.foto_final_estado = 'pendiente';
+
+        // Sincronizar la inspección a IndexedDB
+        if (this.inspeccionOriginal?.id) {
+          await this.syncService.syncInspeccionFromServer(
+            this.inspeccionOriginal.id
+          );
+        }
+
+        await this.showToast(
+          'Foto subida. Esperando validación del inspector.',
+          'success'
+        );
+      } else {
+        await this.showToast('Error al subir la foto', 'danger');
+      }
+    } catch (error: any) {
+      console.error('Error al subir foto:', error);
+      await this.showToast(error.message || 'Error al subir la foto', 'danger');
+    } finally {
+      await loading.dismiss();
     }
   }
 
@@ -851,22 +959,14 @@ export class InspeccionFormPage implements OnInit {
     await modal.present();
     const { data } = await modal.onWillDismiss();
 
-    if (
-      data &&
-      data.inspectoresSeleccionados &&
-      data.inspectoresSeleccionados.length > 0
-    ) {
+    if (data && data.inspectores && data.inspectores.length > 0) {
       // Actualizar el responsable
-      const nuevoResponsable = data.inspectoresSeleccionados[0];
+      const nuevoResponsable = data.inspectores[0];
       this.resultados[resultadoIndex].responsable = nuevoResponsable;
       this.resultados[resultadoIndex].responsable_id = nuevoResponsable.id;
       // Forzar detección de cambios reasignando el array
       this.resultados = [...this.resultados];
-    } else if (
-      data &&
-      data.inspectoresSeleccionados &&
-      data.inspectoresSeleccionados.length === 0
-    ) {
+    } else if (data && data.inspectores && data.inspectores.length === 0) {
       // Si deseleccionó todo, limpiar el responsable
       this.resultados[resultadoIndex].responsable = undefined;
       this.resultados[resultadoIndex].responsable_id = undefined;
@@ -892,8 +992,8 @@ export class InspeccionFormPage implements OnInit {
     await modal.present();
     const { data } = await modal.onWillDismiss();
 
-    if (data && data.inspectoresSeleccionados) {
-      this.resultados[resultadoIndex].visores = data.inspectoresSeleccionados;
+    if (data && data.inspectores) {
+      this.resultados[resultadoIndex].visores = data.inspectores;
       // Forzar detección de cambios
       this.resultados = [...this.resultados];
     }
@@ -958,9 +1058,9 @@ export class InspeccionFormPage implements OnInit {
     await modal.present();
     const { data } = await modal.onWillDismiss();
 
-    if (data && data.inspectoresSeleccionados) {
+    if (data && data.inspectores) {
       this.resultados[resultadoIndex].responsablesLevantamiento =
-        data.inspectoresSeleccionados;
+        data.inspectores;
       // Forzar detección de cambios
       this.resultados = [...this.resultados];
     }
@@ -1032,13 +1132,49 @@ export class InspeccionFormPage implements OnInit {
       await alert.dismiss();
 
       if (response.success) {
-        // Actualizar el estado local
+        // Actualizar el estado local en memoria
+        const currentUser = this.authService.currentUserValue;
+
         if (tipo === 'inicial') {
           resultado.foto_inicial_estado =
             accion === 'aprobar' ? 'aprobada' : 'rechazada';
+          if (accion === 'aprobar' && currentUser) {
+            resultado.foto_inicial_aprobada_at = new Date().toISOString();
+            resultado.foto_inicial_aprobador_id = currentUser.personal_id;
+          }
         } else {
           resultado.foto_final_estado =
             accion === 'aprobar' ? 'aprobada' : 'rechazada';
+          if (accion === 'aprobar' && currentUser) {
+            resultado.foto_final_aprobada_at = new Date().toISOString();
+            resultado.foto_final_aprobador_id = currentUser.personal_id;
+          }
+        }
+
+        // Sincronizar la inspección completa desde el servidor a IndexedDB
+        // Esto asegura que tengamos los datos del aprobador y demás info actualizada
+        try {
+          if (this.inspeccionOriginal?.id) {
+            await this.syncService.syncInspeccionFromServer(
+              this.inspeccionOriginal.id
+            );
+            console.log(
+              'Inspección sincronizada desde servidor:',
+              this.inspeccionOriginal.id
+            );
+          }
+        } catch (syncError) {
+          console.error('Error al sincronizar desde servidor:', syncError);
+          // Si falla la sincronización completa, al menos guardamos el resultado local
+          try {
+            await this.databaseService.updateResultado(resultado);
+            console.log(
+              'Resultado actualizado localmente en IndexedDB:',
+              resultado.id
+            );
+          } catch (dbError) {
+            console.error('Error al actualizar IndexedDB:', dbError);
+          }
         }
 
         await this.showToast(response.message, 'success');
@@ -1102,5 +1238,22 @@ export class InspeccionFormPage implements OnInit {
       color,
     });
     await toast.present();
+  }
+
+  /**
+   * Construir URL completa para imágenes almacenadas en el backend
+   */
+  getImageUrl(path: string): string {
+    if (!path) return '';
+    // Si ya es una URL completa
+    if (path.startsWith('http')) return path;
+    // Si es una imagen base64, devolverla tal cual
+    if (path.startsWith('data:image/')) return path;
+    // Si parece ser base64 sin prefijo (string largo sin extensión de archivo)
+    if (path.length > 1000 && !path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      return `data:image/jpeg;base64,${path}`;
+    }
+    // Si es una ruta de archivo, construir la URL del backend
+    return `${environment.apiUrl.replace('/api/v1', '')}/storage/${path}`;
   }
 }

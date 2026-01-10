@@ -352,7 +352,7 @@
 
           <ion-item *ngIf="resultado.registro_fotografico_inicial">
             <ion-thumbnail slot="start">
-              <img [src]="resultado.registro_fotografico_inicial" alt="Foto inicial" (click)="verFoto(resultado.registro_fotografico_inicial)" style="cursor: pointer;" />
+              <img [src]="getImageUrl(resultado.registro_fotografico_inicial)" alt="Foto inicial" (click)="verFoto(getImageUrl(resultado.registro_fotografico_inicial))" style="cursor: pointer;" />
             </ion-thumbnail>
             <ion-label>
               <h3>Foto capturada</h3>
@@ -367,20 +367,13 @@
                   <small>{{ resultado.foto_inicial_comentario }}</small>
                 </ion-text>
               </p>
+              <!-- Mostrar quien aprobó la foto inicial -->
+              <p *ngIf="resultado.fotoInicialAprobador">
+                <ion-text color="medium">
+                  <small>Por: {{ resultado.fotoInicialAprobador.nombres }} {{ resultado.fotoInicialAprobador.apellido_paterno }}</small>
+                </ion-text>
+              </p>
             </ion-label>
-            <!-- Botones de aprobación (solo para inspectores) -->
-            <ion-button *ngIf="esInspector && resultado.registro_fotografico_inicial && resultado.foto_inicial_estado !== 'aprobada'" 
-                        fill="clear" 
-                        color="success" 
-                        (click)="aprobarFoto(resultado, 'inicial', 'aprobar')">
-              <ion-icon slot="icon-only" name="checkmark-circle-outline"></ion-icon>
-            </ion-button>
-            <ion-button *ngIf="esInspector && resultado.registro_fotografico_inicial && resultado.foto_inicial_estado !== 'rechazada'" 
-                        fill="clear" 
-                        color="danger" 
-                        (click)="aprobarFoto(resultado, 'inicial', 'rechazar')">
-              <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
-            </ion-button>
           </ion-item>
 
           <ion-item>
@@ -417,7 +410,7 @@
             <ion-label position="stacked">
               {{ resultado.estado === 'Pendiente' ? 'Fecha Límite (calculada)' : 'Fecha de Ejecución' }}
             </ion-label>
-            <ion-datetime-button datetime="fecha-cierre-{{ i }}" [disabled]="resultado.estado === 'Pendiente'"></ion-datetime-button>
+            <ion-datetime-button datetime="fecha-cierre-{{ i }}" [disabled]="resultado.estado === 'Pendiente' || resultado.estado ==='Ejecutado'"></ion-datetime-button>
             <ion-modal [keepContentsMounted]="true">
               <ng-template>
                 <ion-datetime
@@ -437,7 +430,7 @@
           </ion-item>
 
           <ion-item *ngIf="resultado.estado === 'Ejecutado' || puedeSubirFotoFinal(resultado)">
-            <ion-label>Foto Final</ion-label>
+            <ion-label>Foto Final / Levantamiento</ion-label>
             <ion-button fill="outline" (click)="tomarFoto(resultado, 'final')" [disabled]="!puedeSubirFotoFinal(resultado)">
               <ion-icon slot="start" name="camera-outline"></ion-icon>
               {{ resultado.registro_fotografico_final ? 'Cambiar' : 'Tomar' }}
@@ -446,35 +439,52 @@
 
           <ion-item *ngIf="resultado.registro_fotografico_final">
             <ion-thumbnail slot="start">
-              <img [src]="resultado.registro_fotografico_final" alt="Foto final" (click)="verFoto(resultado.registro_fotografico_final)" style="cursor: pointer;" />
+              <img [src]="getImageUrl(resultado.registro_fotografico_final)" alt="Foto final" (click)="verFoto(getImageUrl(resultado.registro_fotografico_final))" style="cursor: pointer;" />
             </ion-thumbnail>
             <ion-label>
-              <h3>Foto de cierre</h3>
+              <h3>Foto de levantamiento</h3>
               <p *ngIf="resultado.foto_final_estado">
                 <ion-chip [color]="getEstadoFotoColor(resultado.foto_final_estado)" size="small">
                   <ion-icon [name]="getEstadoFotoIcon(resultado.foto_final_estado)"></ion-icon>
                   <ion-label>{{ getEstadoFotoText(resultado.foto_final_estado) }}</ion-label>
                 </ion-chip>
               </p>
-              <p *ngIf="resultado.foto_final_comentario" class="ion-text-wrap">
-                <ion-text color="medium">
-                  <small>{{ resultado.foto_final_comentario }}</small>
+              <!-- Mostrar quien aprobó la foto final -->
+              <p *ngIf="resultado.foto_final_estado === 'aprobada' && resultado.fotoFinalAprobador">
+                <ion-text color="success">
+                  <small>Por: {{ resultado.fotoFinalAprobador.nombres }} {{ resultado.fotoFinalAprobador.apellido_paterno }}</small>
+                </ion-text>
+              </p>
+              <!-- Comentario de rechazo -->
+              <p *ngIf="resultado.foto_final_estado === 'rechazada' && resultado.foto_final_comentario" class="ion-text-wrap">
+                <ion-text color="danger">
+                  <small><ion-icon name="close-circle-outline"></ion-icon> {{ resultado.foto_final_comentario }}</small>
                 </ion-text>
               </p>
             </ion-label>
             <!-- Botones de aprobación (solo para inspectores) -->
-            <ion-button *ngIf="esInspector && resultado.registro_fotografico_final && resultado.foto_final_estado !== 'aprobada'" 
+            <ion-button *ngIf="esInspector && resultado.registro_fotografico_final && resultado.foto_final_estado === 'pendiente'" 
                         fill="clear" 
                         color="success" 
                         (click)="aprobarFoto(resultado, 'final', 'aprobar')">
               <ion-icon slot="icon-only" name="checkmark-circle-outline"></ion-icon>
             </ion-button>
-            <ion-button *ngIf="esInspector && resultado.registro_fotografico_final && resultado.foto_final_estado !== 'rechazada'" 
+            <ion-button *ngIf="esInspector && resultado.registro_fotografico_final && resultado.foto_final_estado === 'pendiente'" 
                         fill="clear" 
                         color="danger" 
                         (click)="aprobarFoto(resultado, 'final', 'rechazar')">
               <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
             </ion-button>
+          </ion-item>
+          
+          <!-- Mensaje cuando está en revisión -->
+          <ion-item *ngIf="resultado.registro_fotografico_final && resultado.foto_final_estado === 'pendiente' && !esInspector" lines="none">
+            <ion-icon name="time" slot="start" color="warning"></ion-icon>
+            <ion-label class="ion-text-wrap">
+              <ion-text color="warning">
+                <small>Foto enviada. Esperando validación del inspector.</small>
+              </ion-text>
+            </ion-label>
           </ion-item>
         </ion-card-content>
       </ion-card>

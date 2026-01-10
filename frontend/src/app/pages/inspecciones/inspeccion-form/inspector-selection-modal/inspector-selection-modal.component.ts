@@ -2,12 +2,29 @@ import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  IonicModule,
   ModalController,
   AlertController,
   LoadingController,
   ToastController,
-} from '@ionic/angular';
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonSearchbar,
+  IonChip,
+  IonLabel,
+  IonContent,
+  IonList,
+  IonItem,
+  IonCheckbox,
+  IonText,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonFooter,
+  IonNote,
+} from '@ionic/angular/standalone';
 import { Personal } from '../../../../models/catalogo.model';
 import {
   PersonalService,
@@ -15,13 +32,43 @@ import {
   AsegurarAccesoResponse,
 } from '../../../../services/personal.service';
 import { NetworkService } from '../../../../services/network.service';
+import { addIcons } from 'ionicons';
+import {
+  closeOutline,
+  mailOutline,
+  mail,
+  warningOutline,
+  cloudOfflineOutline,
+  checkmarkCircleOutline,
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-inspector-selection-modal',
   templateUrl: './inspector-selection-modal.component.html',
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonSearchbar,
+    IonChip,
+    IonLabel,
+    IonContent,
+    IonList,
+    IonItem,
+    IonCheckbox,
+    IonText,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
+    IonFooter,
+    IonNote,
+  ],
 })
 export class InspectorSelectionModalComponent implements OnInit {
   personalList: Personal[] = [];
@@ -43,7 +90,17 @@ export class InspectorSelectionModalComponent implements OnInit {
     private toastController: ToastController,
     private personalService: PersonalService,
     private networkService: NetworkService
-  ) {}
+  ) {
+    // Registrar iconos usados en el template
+    addIcons({
+      'close-outline': closeOutline,
+      'mail-outline': mailOutline,
+      mail: mail,
+      'warning-outline': warningOutline,
+      'cloud-offline-outline': cloudOfflineOutline,
+      'checkmark-circle-outline': checkmarkCircleOutline,
+    });
+  }
 
   ngOnInit() {
     // Verificar conectividad

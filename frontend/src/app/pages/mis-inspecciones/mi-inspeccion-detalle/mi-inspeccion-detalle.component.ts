@@ -1,4 +1,9 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  CUSTOM_ELEMENTS_SCHEMA,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import {
@@ -37,6 +42,7 @@ import {
 import { AuthService } from '../../../services/auth.service';
 import { InspeccionService } from '../../../services/inspeccion.service';
 import { ApiService } from '../../../services/api.service';
+import { SyncService } from '../../../services/sync.service';
 import {
   Inspeccion,
   ResultadoInspeccion,
@@ -119,7 +125,9 @@ export class MiInspeccionDetalleComponent implements OnInit {
     private alertController: AlertController,
     private loadingController: LoadingController,
     private actionSheetController: ActionSheetController,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private cdr: ChangeDetectorRef,
+    private syncService: SyncService
   ) {
     addIcons({
       arrowBackOutline,
@@ -167,9 +175,16 @@ export class MiInspeccionDetalleComponent implements OnInit {
   verificarRolInspector() {
     if (!this.inspeccion || !this.currentUser) return;
 
+    // console.log('Verificando rol de inspector para la inspección...');
+    // console.log('Inspectores de la inspección:', this.inspeccion.inspectores);
+    // console.log(
+    //   'Personal ID del usuario actual:',
+    //   this.currentUser.personal_id
+    // );
+
     const personalId = this.currentUser.personal_id;
     this.esInspector =
-      this.inspeccion.inspectores?.some((i) => i.personal_id === personalId) ||
+      this.inspeccion.inspectores?.some((i: any) => i.id === personalId) ||
       false;
   }
 
@@ -181,22 +196,36 @@ export class MiInspeccionDetalleComponent implements OnInit {
 
     const personalId = this.currentUser.personal_id;
 
-    console.log('Procesando resultados para personal ID:', personalId);
-    console.log('Resultados originales:', this.inspeccion.resultados);
+    // console.log('Procesando resultados para personal ID:', personalId);
+    // console.log('Resultados originales:', this.inspeccion.resultados);
 
     this.resultados = this.inspeccion.resultados.map((resultado) => {
       // Determinar el rol del usuario en este resultado
       // Puede subir foto si es responsable_id O está en responsablesLevantamiento
       const esResponsableDirecto = resultado.responsable_id === personalId;
-      const esResponsableLevantamientoPivot =
-        resultado.responsablesLevantamiento?.some(
-          (r) => r.personal_id === personalId
-        ) ?? false;
+
+      // El backend puede retornar con snake_case o camelCase
+      const responsablesLev =
+        (resultado as any).responsables_levantamiento ||
+        resultado.responsablesLevantamiento ||
+        [];
+      const esResponsableLevantamientoPivot = responsablesLev.some(
+        (r: any) =>
+          r.id === personalId ||
+          r.personal_id === personalId ||
+          r.pivot?.personal_id === personalId
+      );
       const esResponsableLevantamiento =
         esResponsableDirecto || esResponsableLevantamientoPivot;
 
-      const esVisor =
-        resultado.visores?.some((v) => v.personal_id === personalId) ?? false;
+      // El backend puede retornar con snake_case o camelCase
+      const visoresList = (resultado as any).visores || [];
+      const esVisor = visoresList.some(
+        (v: any) =>
+          v.id === personalId ||
+          v.personal_id === personalId ||
+          v.pivot?.personal_id === personalId
+      );
 
       let miRol: ResultadoConRol['miRol'] = null;
       if (this.esInspector) {
@@ -215,42 +244,42 @@ export class MiInspeccionDetalleComponent implements OnInit {
         !resultado.registro_fotografico_final ||
         resultado.foto_final_estado === 'rechazada';
 
-      console.log('Resultado ID:', resultado.id);
-      console.log(
-        'Es responsable directo (responsable_id):',
-        esResponsableDirecto
-      );
-      console.log(
-        'Es responsable levantamiento (pivot):',
-        esResponsableLevantamientoPivot
-      );
-      console.log(
-        'Es responsable de levantamiento (combinado):',
-        esResponsableLevantamiento
-      );
-      console.log('Estado del resultado:', resultado.estado);
-      console.log(
-        'Registro fotográfico final:',
-        resultado.registro_fotografico_final
-      );
-      console.log('Estado de la foto final:', resultado.foto_final_estado);
-      console.log('No hay foto o fue rechazada:', noHayFotoOFueRechazada);
+    //   console.log('Resultado ID:', resultado.id);
+    //   console.log(
+    //     'Es responsable directo (responsable_id):',
+    //     esResponsableDirecto
+    //   );
+    //   console.log(
+    //     'Es responsable levantamiento (pivot):',
+    //     esResponsableLevantamientoPivot
+    //   );
+    //   console.log(
+    //     'Es responsable de levantamiento (combinado):',
+    //     esResponsableLevantamiento
+    //   );
+    //   console.log('Estado del resultado:', resultado.estado);
+    //   console.log(
+    //     'Registro fotográfico final:',
+    //     resultado.registro_fotografico_final
+    //   );
+    //   console.log('Estado de la foto final:', resultado.foto_final_estado);
+    //   console.log('No hay foto o fue rechazada:', noHayFotoOFueRechazada);
 
       const puedeSubirFoto: boolean =
         esResponsableLevantamiento &&
         resultado.estado === 'Pendiente' &&
         noHayFotoOFueRechazada;
 
-      console.log('Puede subir foto:', puedeSubirFoto);
+    //   console.log('Puede subir foto:', puedeSubirFoto);
 
-      console.log('Mi rol en este resultado:', miRol);
-      console.log('Es inspector:', this.esInspector);
-      console.log(
-        'Puede validar:',
-        this.esInspector &&
-          !!resultado.registro_fotografico_final &&
-          resultado.foto_final_estado === 'pendiente'
-      );
+    //   console.log('Mi rol en este resultado:', miRol);
+    //   console.log('Es inspector:', this.esInspector);
+    //   console.log(
+    //     'Puede validar:',
+    //     this.esInspector &&
+    //       !!resultado.registro_fotografico_final &&
+    //       resultado.foto_final_estado === 'pendiente'
+    //   );
 
       // Determinar si puede validar (inspector y HAY foto Y está pendiente de revisión)
       const puedeValidar: boolean =
@@ -409,15 +438,23 @@ export class MiInspeccionDetalleComponent implements OnInit {
         resultado.foto_final_estado = 'pendiente';
         resultado.puedeSubirFoto = false;
 
+        // Sincronizar la inspección a IndexedDB para que otros componentes vean los cambios
+        if (this.inspeccion?.id) {
+          await this.syncService.syncInspeccionFromServer(this.inspeccion.id);
+        }
+
+        // Recargar la inspección ANTES de mostrar la alerta
+        if (this.inspeccion?.id) {
+          await this.cargarInspeccion(this.inspeccion.id);
+        }
+
+        // Forzar detección de cambios
+        this.cdr.detectChanges();
+
         await this.mostrarAlerta(
           'Éxito',
           'La foto ha sido subida y está pendiente de revisión por el inspector.'
         );
-
-        // Recargar la inspección
-        if (this.inspeccion?.id) {
-          await this.cargarInspeccion(this.inspeccion.id);
-        }
       }
     } catch (error: any) {
       console.error('Error al subir foto:', error);
@@ -434,7 +471,7 @@ export class MiInspeccionDetalleComponent implements OnInit {
     const alert = await this.alertController.create({
       header: aprobado ? 'Aprobar Levantamiento' : 'Rechazar Levantamiento',
       message: aprobado
-        ? '¿Confirma que el levantamiento del hallazgo es correcto?'
+        ? '¿Confirma que el levantamiento del resultado es correcto?'
         : 'Por favor, indique el motivo del rechazo:',
       inputs: aprobado
         ? []
@@ -489,12 +526,20 @@ export class MiInspeccionDetalleComponent implements OnInit {
           ? 'El levantamiento ha sido aprobado. El resultado pasa a estado Ejecutado.'
           : 'El levantamiento ha sido rechazado. El responsable deberá subir una nueva foto.';
 
-        await this.mostrarAlerta('Éxito', mensaje);
+        // Sincronizar la inspección a IndexedDB para que otros componentes vean los cambios
+        if (this.inspeccion?.id) {
+          await this.syncService.syncInspeccionFromServer(this.inspeccion.id);
+        }
 
         // Recargar la inspección
         if (this.inspeccion?.id) {
           await this.cargarInspeccion(this.inspeccion.id);
         }
+
+        // Forzar detección de cambios
+        this.cdr.detectChanges();
+
+        await this.mostrarAlerta('Éxito', mensaje);
       }
     } catch (error: any) {
       console.error('Error al validar:', error);
@@ -532,7 +577,15 @@ export class MiInspeccionDetalleComponent implements OnInit {
 
   getImageUrl(path: string): string {
     if (!path) return '';
+    // Si ya es una URL completa
     if (path.startsWith('http')) return path;
+    // Si es una imagen base64, devolverla tal cual
+    if (path.startsWith('data:image/')) return path;
+    // Si parece ser base64 sin prefijo (string largo sin extensión de archivo)
+    if (path.length > 1000 && !path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      return `data:image/jpeg;base64,${path}`;
+    }
+    // Si es una ruta de archivo, construir la URL del backend
     return `${environment.apiUrl.replace('/api/v1', '')}/storage/${path}`;
   }
 

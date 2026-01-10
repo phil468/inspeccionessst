@@ -31,8 +31,9 @@ class FotoApprovalController extends Controller
         $user = $request->user();
 
         // Verificar que el usuario sea responsable de levantamiento del resultado
+        // Nota: responsablesLevantamiento retorna objetos Personal con 'id', no 'personal_id'
         $esResponsableLevantamiento = $resultado->responsablesLevantamiento
-            ->contains('personal_id', $user->personal_id);
+            ->contains('id', $user->personal_id);
 
         if (!$esResponsableLevantamiento && !$user->hasRole('Administrador')) {
             return response()->json([
@@ -209,6 +210,8 @@ class FotoApprovalController extends Controller
         // Si se aprueba la foto final, cambiar el estado del resultado a "Ejecutado"
         if ($request->accion === 'aprobar') {
             $updateData['estado'] = 'Ejecutado';
+            //actualizamos fecha de cierre
+            $updateData['fecha_cierre'] = now();
         }
 
         $resultado->update($updateData);

@@ -8,6 +8,7 @@ use App\Models\Inspeccion;
 use App\Models\InspeccionArea;
 use App\Models\InspeccionInspector;
 use App\Models\ResultadoInspeccion;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -520,6 +521,8 @@ class SyncController extends Controller
                     'resultados.visores:id,nombres,apellido_paterno,apellido_materno',
                     'resultados.responsablesLevantamiento:id,nombres,apellido_paterno,apellido_materno',
                     'resultados.responsable:id,nombres,apellido_paterno,apellido_materno',
+                    'resultados.fotoFinalAprobador:id,nombres,apellido_paterno,apellido_materno',
+                    'resultados.fotoInicialAprobador:id,nombres,apellido_paterno,apellido_materno',
                     'responsableRegistro.personal:id,nombres,apellido_paterno,apellido_materno',
                 ])
                 ->orderBy('fecha_hora_inspeccion', 'desc');
@@ -591,6 +594,20 @@ class SyncController extends Controller
                 // Buscar por local_id para evitar duplicados
                 $resultado = ResultadoInspeccion::where('local_id', $resultadoData['local_id'])->first();
 
+                // Procesar foto inicial: si es base64, guardarla en filesystem
+                $fotoInicial = ImageHelper::processImage(
+                    $resultadoData['registro_fotografico_inicial'] ?? null,
+                    'inspecciones/fotos_iniciales',
+                    'inicial_' . ($resultadoData['local_id'] ?? 'img')
+                );
+
+                // Procesar foto final: si es base64, guardarla en filesystem
+                $fotoFinal = ImageHelper::processImage(
+                    $resultadoData['registro_fotografico_final'] ?? null,
+                    'inspecciones/fotos_finales',
+                    'final_' . ($resultadoData['local_id'] ?? 'img')
+                );
+
                 $datosResultado = [
                     'inspeccion_id' => $inspeccion->id,
                     'descripcion' => $resultadoData['descripcion'],
@@ -598,8 +615,8 @@ class SyncController extends Controller
                     'estado' => $resultadoData['estado'] ?? 'Pendiente',
                     'accion_tomar' => $resultadoData['accion_tomar'] ?? null,
                     'fecha_cierre' => $resultadoData['fecha_cierre'] ?? null,
-                    'registro_fotografico_inicial' => $resultadoData['registro_fotografico_inicial'] ?? null,
-                    'registro_fotografico_final' => $resultadoData['registro_fotografico_final'] ?? null,
+                    'registro_fotografico_inicial' => $fotoInicial,
+                    'registro_fotografico_final' => $fotoFinal,
                     'responsable_id' => $resultadoData['responsable_id'] ?? null,
                     'synced' => true,
                     'synced_at' => now(),

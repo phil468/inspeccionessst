@@ -88,38 +88,60 @@ export class DatabaseService extends Dexie {
       nivelesJerarquicos: '++id, name, estado',
     });
 
-    // Versión 2: Usar local_id como clave primaria en tablas de relaciones
-    // Esto permite usar bulkPut para "sync" (upsert) sin duplicados
-    this.version(2).stores({
-      registros: '++id, local_id, user_id, synced, fecha_registro, created_at',
-      inspecciones:
-        '++id, local_id, user_id, empresa_id, area_id, synced, fecha_inspeccion, created_at',
-      // Tablas de relaciones con local_id como clave primaria (sin ++)
-      inspeccion_areas: 'local_id, inspeccion_id, area_id',
-      inspeccion_inspectores: 'local_id, inspeccion_id, personal_id',
-      inspeccion_responsables_area:
-        'local_id, inspeccion_id, area_id, personal_id',
-      resultados_inspeccion:
-        'local_id, inspeccion_id, responsable_id, synced, estado, nivel_riesgo',
-      resultado_responsables: 'local_id, resultado_id, personal_id',
-      resultado_visores: 'local_id, resultado_id, personal_id',
-      resultado_responsables_levantamiento:
-        'local_id, resultado_id, personal_id',
-      responsable_registro: 'local_id, inspeccion_id, personal_id',
-      // Catálogos mantienen ++id
-      campanias: '++id, nombre, activo',
-      fundos: '++id, nombre, activo',
-      empresas: '++id, name, activo',
-      areas: '++id, empresa_id, name, activo',
-      personal:
-        '++id, dni, name, empresa_id, area_id, cargo_id, cesado, seleccionado, inspector',
-      cargos: '++id, empresa_id, name, activo, tipo_de_puesto_id, reporta_a',
-      tipos_trabajador: '++id, empresa_id, name, estado',
-      tipos_personal: '++id, empresa_id, name, estado',
-      planillas: '++id, empresa_id, name, estado',
-      tiposDePuesto: '++id, name, estado, nivel_jerarquico_id',
-      nivelesJerarquicos: '++id, name, estado',
+    // Manejar error de upgrade - si hay error al abrir, eliminar y recrear la BD
+    this.on('blocked', () => {
+      console.warn('Database upgrade blocked, please close other tabs');
     });
+  }
+
+  /**
+   * Elimina y recrea la base de datos
+   * Útil cuando hay errores de migración de esquema
+   */
+  static async resetDatabase(): Promise<void> {
+    const dbName = environment.storage.dbName;
+    console.warn('🔄 Reseteando base de datos:', dbName);
+
+    try {
+      // Eliminar la base de datos
+      await Dexie.delete(dbName);
+      console.log('✅ Base de datos eliminada correctamente');
+
+      // Recargar la página para recrear la BD con el nuevo esquema
+      window.location.reload();
+    } catch (error) {
+      console.error('❌ Error al eliminar la base de datos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica si la BD está accesible, si no, la resetea
+   */
+  async ensureOpen(): Promise<boolean> {
+    try {
+      if (!this.isOpen()) {
+        await this.open();
+      }
+      return true;
+    } catch (error: any) {
+      console.error('Error al abrir la base de datos:', error);
+
+      // Si es un error de upgrade, resetear la BD
+      if (
+        error.name === 'UpgradeError' ||
+        error.name === 'DatabaseClosedError' ||
+        (error.message && error.message.includes('primary key'))
+      ) {
+        console.warn(
+          '⚠️ Error de migración detectado, reseteando base de datos...'
+        );
+        await DatabaseService.resetDatabase();
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   /**
@@ -271,6 +293,16 @@ export class DatabaseService extends Dexie {
     resultados: ResultadoInspeccion[]
   ): Promise<void> {
     await this.resultados_inspeccion.bulkPut(resultados);
+  }
+
+  async updateResultado(resultado: ResultadoInspeccion): Promise<void> {
+    if (resultado.id) {
+      await this.resultados_inspeccion.put(resultado);
+    }
+  }
+
+  async getResultadoById(id: number): Promise<ResultadoInspeccion | undefined> {
+    return await this.resultados_inspeccion.get(id);
   }
 
   async getResultadosByInspeccion(

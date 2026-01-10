@@ -605,15 +605,48 @@ export class SyncService {
     const todosResultados: any[] = [];
 
     for (const inspeccion of inspecciones) {
-      const inspeccionId = inspeccion.id;
+      // IMPORTANTE: Buscar la inspección en IndexedDB por local_id para obtener su ID de IndexedDB
+      // Esto es necesario porque el inspeccion.id que viene del servidor es diferente al ID autoincremental de IndexedDB
+      const inspeccionEnIndexedDB = await this.databaseService.inspecciones
+        .where('local_id')
+        .equals(inspeccion.local_id)
+        .first();
+
+      if (!inspeccionEnIndexedDB || !inspeccionEnIndexedDB.id) {
+        console.warn(
+          `⚠️ Inspección con local_id ${inspeccion.local_id} no encontrada en IndexedDB, saltando relaciones`
+        );
+        continue;
+      }
+
+      // Usar el ID de IndexedDB (autoincremental), NO el ID del servidor
+      const inspeccionIdIndexedDB = inspeccionEnIndexedDB.id;
+      const inspeccionServerId = inspeccion.id;
+
+      // Primero, limpiar relaciones existentes para evitar duplicados
+      // Esto es especialmente importante al re-sincronizar
+      await this.databaseService.inspeccion_areas
+        .where('inspeccion_id')
+        .equals(inspeccionIdIndexedDB)
+        .delete();
+
+      await this.databaseService.inspeccion_inspectores
+        .where('inspeccion_id')
+        .equals(inspeccionIdIndexedDB)
+        .delete();
+
+      await this.databaseService.resultados_inspeccion
+        .where('inspeccion_id')
+        .equals(inspeccionIdIndexedDB)
+        .delete();
 
       // Guardar áreas de la inspección
       // local_id = "inspeccion_id-area_id" garantiza unicidad de la relación
       if (inspeccion.areas && Array.isArray(inspeccion.areas)) {
         for (const area of inspeccion.areas) {
           todasAreas.push({
-            local_id: `insp-${inspeccionId}-area-${area.id}`,
-            inspeccion_id: inspeccionId,
+            local_id: `insp-${inspeccionServerId}-area-${area.id}`,
+            inspeccion_id: inspeccionIdIndexedDB, // ← Usar ID de IndexedDB
             area_id: area.id,
             synced: true,
           });
@@ -625,8 +658,8 @@ export class SyncService {
       if (inspeccion.inspectores && Array.isArray(inspeccion.inspectores)) {
         for (const inspector of inspeccion.inspectores) {
           todosInspectores.push({
-            local_id: `insp-${inspeccionId}-inspector-${inspector.id}`,
-            inspeccion_id: inspeccionId,
+            local_id: `insp-${inspeccionServerId}-inspector-${inspector.id}`,
+            inspeccion_id: inspeccionIdIndexedDB, // ← Usar ID de IndexedDB
             personal_id: inspector.id,
             synced: true,
           });
@@ -640,10 +673,40 @@ export class SyncService {
           // Asegurar que tenga un local_id único
           const resultadoLocalId =
             resultado.local_id || `resultado-${resultado.id}`;
+
+          // Normalizar snake_case a camelCase para compatibilidad
+          const responsablesLev =
+            resultado.responsables_levantamiento ||
+            resultado.responsablesLevantamiento ||
+            [];
+          const visoresList = resultado.visores || [];
+          const fotoFinalAprobador =
+            resultado.foto_final_aprobador ||
+            resultado.fotoFinalAprobador ||
+            null;
+
+          // Normalizar fechas (quitar microsegundos extras)
+          const normalizarFecha = (fecha: string | null): string | null => {
+            if (!fecha) return null;
+            return fecha.replace(/(\.[0-9]{3})[0-9]*Z$/, '$1Z');
+          };
+
           todosResultados.push({
             ...resultado,
             local_id: resultadoLocalId,
-            inspeccion_id: inspeccionId,
+            inspeccion_id: inspeccionIdIndexedDB,
+            // Normalizar campos a camelCase
+            responsablesLevantamiento: responsablesLev,
+            visores: visoresList,
+            fotoFinalAprobador: fotoFinalAprobador,
+            // Normalizar fechas
+            fecha_cierre: normalizarFecha(resultado.fecha_cierre),
+            foto_final_aprobada_at: normalizarFecha(
+              resultado.foto_final_aprobada_at
+            ),
+            foto_inicial_aprobada_at: normalizarFecha(
+              resultado.foto_inicial_aprobada_at
+            ),
             synced: true,
           });
         }
@@ -707,6 +770,124 @@ export class SyncService {
     } catch (error) {
       console.error('Error descargando registros:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Sincronizar una inspección específica desde el servidor a IndexedDB
+   * Útil después de hacer cambios en el servidor (subir fotos, validar, etc.)
+   */
+  async syncInspeccionFromServer(inspeccionServerId: number): Promise<void> {
+    try {
+      console.log(
+        `🔄 Sincronizando inspección #${inspeccionServerId} desde el servidor...`
+      );
+
+      // Obtener la inspección del servidor
+      const response: any = await this.apiService.get(
+        `/inspecciones/${inspeccionServerId}`
+      );
+
+      if (!response || !response.success || !response.data) {
+        console.warn(
+          `⚠️ No se pudo obtener la inspección #${inspeccionServerId} del servidor`
+        );
+        return;
+      }
+
+      const inspeccionServidor = response.data;
+
+      // Buscar la inspección en IndexedDB por local_id
+      const inspeccionLocal = await this.databaseService.inspecciones
+        .where('local_id')
+        .equals(inspeccionServidor.local_id)
+        .first();
+
+      if (!inspeccionLocal || !inspeccionLocal.id) {
+        console.warn(
+          `⚠️ Inspección con local_id ${inspeccionServidor.local_id} no encontrada en IndexedDB`
+        );
+        return;
+      }
+
+      const inspeccionIdIndexedDB = inspeccionLocal.id;
+
+      // Actualizar la inspección principal
+      await this.databaseService.inspecciones.update(inspeccionIdIndexedDB, {
+        ...inspeccionServidor,
+        id: inspeccionIdIndexedDB, // Preservar el ID de IndexedDB
+        synced: true,
+        synced_at: new Date().toISOString(),
+      });
+
+      // Actualizar los resultados
+      if (
+        inspeccionServidor.resultados &&
+        Array.isArray(inspeccionServidor.resultados)
+      ) {
+        // Limpiar resultados existentes
+        await this.databaseService.resultados_inspeccion
+          .where('inspeccion_id')
+          .equals(inspeccionIdIndexedDB)
+          .delete();
+
+        // Normalizar fechas (quitar microsegundos extras)
+        const normalizarFecha = (fecha: string | null): string | null => {
+          if (!fecha) return null;
+          return fecha.replace(/(\.[0-9]{3})[0-9]*Z$/, '$1Z');
+        };
+
+        // Guardar los nuevos resultados con datos normalizados
+        const resultadosParaGuardar = inspeccionServidor.resultados.map(
+          (resultado: any) => {
+            // Normalizar snake_case a camelCase
+            const responsablesLev =
+              resultado.responsables_levantamiento ||
+              resultado.responsablesLevantamiento ||
+              [];
+            const visoresList = resultado.visores || [];
+            const fotoFinalAprobador =
+              resultado.foto_final_aprobador ||
+              resultado.fotoFinalAprobador ||
+              null;
+
+            return {
+              ...resultado,
+              local_id: resultado.local_id || `resultado-${resultado.id}`,
+              inspeccion_id: inspeccionIdIndexedDB,
+              // Normalizar campos a camelCase
+              responsablesLevantamiento: responsablesLev,
+              visores: visoresList,
+              fotoFinalAprobador: fotoFinalAprobador,
+              // Normalizar fechas
+              fecha_cierre: normalizarFecha(resultado.fecha_cierre),
+              foto_final_aprobada_at: normalizarFecha(
+                resultado.foto_final_aprobada_at
+              ),
+              foto_inicial_aprobada_at: normalizarFecha(
+                resultado.foto_inicial_aprobada_at
+              ),
+              synced: true,
+            };
+          }
+        );
+
+        if (resultadosParaGuardar.length > 0) {
+          await this.databaseService.saveResultadosInspeccion(
+            resultadosParaGuardar
+          );
+        }
+      }
+
+      console.log(
+        `✅ Inspección #${inspeccionServerId} sincronizada a IndexedDB`
+      );
+    } catch (error) {
+      console.error(
+        `Error sincronizando inspección #${inspeccionServerId}:`,
+        error
+      );
+      // No lanzamos el error para que no interrumpa el flujo principal
     }
   }
 

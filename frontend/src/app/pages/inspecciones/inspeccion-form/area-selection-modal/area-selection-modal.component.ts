@@ -1,15 +1,54 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController } from '@ionic/angular';
+import {
+  ModalController,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonSearchbar,
+  IonChip,
+  IonLabel,
+  IonContent,
+  IonList,
+  IonItem,
+  IonCheckbox,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonFooter,
+} from '@ionic/angular/standalone';
 import { Area } from '../../../../models/catalogo.model';
+import { addIcons } from 'ionicons';
+import { closeOutline, checkmarkCircleOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-area-selection-modal',
   templateUrl: './area-selection-modal.component.html',
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonSearchbar,
+    IonChip,
+    IonLabel,
+    IonContent,
+    IonList,
+    IonItem,
+    IonCheckbox,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
+    IonFooter,
+  ],
 })
 export class AreaSelectionModalComponent implements OnInit {
   areas: Area[] = [];
@@ -20,7 +59,12 @@ export class AreaSelectionModalComponent implements OnInit {
   areasMostradas: Area[] = [];
   itemsPorPagina = 20;
 
-  constructor(private modalController: ModalController) {}
+  constructor(private modalController: ModalController) {
+    addIcons({
+      'close-outline': closeOutline,
+      'checkmark-circle-outline': checkmarkCircleOutline,
+    });
+  }
 
   ngOnInit() {
     this.areasFiltradas = [...this.areas];

@@ -4,6 +4,7 @@ import { IonicModule, AlertController } from '@ionic/angular';
 import { SyncService } from './services/sync.service';
 import { AuthService } from './services/auth.service';
 import { PushNotificationService } from './services/push-notification.service';
+import { DatabaseService } from './services/database.service';
 
 @Component({
   selector: 'app-root',
@@ -17,10 +18,20 @@ export class AppComponent implements OnInit {
     private syncService: SyncService,
     private authService: AuthService,
     private pushNotificationService: PushNotificationService,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private databaseService: DatabaseService
   ) {}
 
-  ngOnInit() {
+  async ngOnInit() {
+    // Verificar que la base de datos esté accesible
+    try {
+      await this.databaseService.ensureOpen();
+    } catch (error) {
+      console.error('Error crítico con la base de datos:', error);
+      // La página se recargará automáticamente si hay error de migración
+      return;
+    }
+
     // Iniciar auto-sync cuando la app carga
     this.initializeAutoSync();
 

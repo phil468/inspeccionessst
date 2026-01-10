@@ -87,8 +87,8 @@
           <ion-col size="6">
             <div class="foto-container">
               <ion-label><strong>Foto Inicial</strong></ion-label>
-              <div class="foto-preview" *ngIf="resultado.registro_fotografico_inicial" (click)="verFoto(resultado.registro_fotografico_inicial, 'Foto Inicial')">
-                <img [src]="(resultado.registro_fotografico_inicial)" alt="Foto inicial">
+              <div class="foto-preview" *ngIf="resultado.registro_fotografico_inicial" (click)="verFoto(getImageUrl(resultado.registro_fotografico_inicial), 'Foto Inicial')">
+                <img [src]="getImageUrl(resultado.registro_fotografico_inicial)" alt="Foto inicial">
               </div>
               <div class="foto-placeholder" *ngIf="!resultado.registro_fotografico_inicial">
                 <ion-icon name="image-outline"></ion-icon>
@@ -103,8 +103,8 @@
               <ion-label><strong>Foto Levantamiento</strong></ion-label>
               
               <!-- Si hay foto -->
-              <div class="foto-preview" *ngIf="resultado.registro_fotografico_final" (click)="verFoto(resultado.registro_fotografico_final, 'Foto Levantamiento')">
-                <img [src]="(resultado.registro_fotografico_final)" alt="Foto final">
+              <div class="foto-preview" *ngIf="resultado.registro_fotografico_final" (click)="verFoto(getImageUrl(resultado.registro_fotografico_final), 'Foto Levantamiento')">
+                <img [src]="getImageUrl(resultado.registro_fotografico_final)" alt="Foto final">
               </div>
 
               <!-- Si no hay foto -->
@@ -117,6 +117,17 @@
               <ion-badge *ngIf="resultado.registro_fotografico_final" [color]="getFotoEstadoColor(resultado.foto_final_estado)" class="foto-estado-badge">
                 {{ getFotoEstadoTexto(resultado.foto_final_estado) }}
               </ion-badge>
+
+              <!-- Información de aprobación -->
+              <div class="aprobacion-info" *ngIf="resultado.foto_final_estado === 'aprobada' && resultado.fotoFinalAprobador">
+                <ion-text color="success">
+                  <small>
+                    <ion-icon name="checkmark-circle-outline"></ion-icon>
+                    Aprobada por {{ resultado.fotoFinalAprobador.nombres }} {{ resultado.fotoFinalAprobador.apellido_paterno }}
+                    <span *ngIf="resultado.foto_final_aprobada_at"> el {{ resultado.foto_final_aprobada_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </small>
+                </ion-text>
+              </div>
 
               <!-- Comentario de rechazo -->
               <div class="rechazo-comentario" *ngIf="resultado.foto_final_estado === 'rechazada' && resultado.foto_final_comentario">

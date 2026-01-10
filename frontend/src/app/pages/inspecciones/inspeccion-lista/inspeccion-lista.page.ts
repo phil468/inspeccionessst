@@ -77,13 +77,14 @@ export class InspeccionListaPage implements OnInit {
   inspecciones: Inspeccion[] = [];
   inspeccionesFiltradas: Inspeccion[] = [];
   searchTerm = '';
-  isOnline = false;
+  isOnline = true; // Inicializar como true, se actualizará inmediatamente con el valor real
   syncStatus = {
     total: 0,
     sincronizados: 0,
     pendientes: 0,
   };
   private syncSubscription?: Subscription;
+  private networkSubscription?: Subscription;
 
   constructor(
     private router: Router,
@@ -96,20 +97,20 @@ export class InspeccionListaPage implements OnInit {
     private alertController: AlertController
   ) {
     addIcons({
-      addOutline,
-      syncOutline,
-      searchOutline,
-      cloudDoneOutline,
-      cloudUploadOutline,
-      cloudDownloadOutline,
-      createOutline,
-      calendarOutline,
-      businessOutline,
-      notificationsOutline,
-      trashOutline,
-      statsChartOutline,
-      wifiOutline,
-      cloudOfflineOutline,
+      'add-outline': addOutline,
+      'sync-outline': syncOutline,
+      'search-outline': searchOutline,
+      'cloud-done-outline': cloudDoneOutline,
+      'cloud-upload-outline': cloudUploadOutline,
+      'cloud-download-outline': cloudDownloadOutline,
+      'create-outline': createOutline,
+      'calendar-outline': calendarOutline,
+      'business-outline': businessOutline,
+      'notifications-outline': notificationsOutline,
+      'trash-outline': trashOutline,
+      'stats-chart-outline': statsChartOutline,
+      'wifi-outline': wifiOutline,
+      'cloud-offline-outline': cloudOfflineOutline,
     });
   }
 
@@ -159,6 +160,9 @@ export class InspeccionListaPage implements OnInit {
     if (this.syncSubscription) {
       this.syncSubscription.unsubscribe();
     }
+    if (this.networkSubscription) {
+      this.networkSubscription.unsubscribe();
+    }
   }
 
   async loadInspecciones() {
@@ -206,10 +210,15 @@ export class InspeccionListaPage implements OnInit {
   }
 
   async checkConnectivity() {
-    this.isOnline = await this.networkService.getCurrentStatus();
-    this.networkService.isOnline$.subscribe((status: boolean) => {
-      this.isOnline = status;
-    });
+    // Obtener valor inicial inmediatamente
+    this.isOnline = this.networkService.isOnline;
+
+    // Suscribirse a cambios futuros
+    this.networkSubscription = this.networkService.isOnline$.subscribe(
+      (status: boolean) => {
+        this.isOnline = status;
+      }
+    );
   }
 
   filterInspecciones() {

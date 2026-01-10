@@ -22,6 +22,7 @@ import {
   arrowBackOutline,
   syncOutline,
   wifiOutline,
+  cloudOfflineOutline,
   statsChartOutline,
   cloudDoneOutline,
   cloudUploadOutline,
@@ -44,13 +45,14 @@ export class RegistroListaPage implements OnInit, OnDestroy {
   registrosFiltrados: any[] = [];
   registrosAgrupados: any[] = [];
   searchTerm = '';
-  isOnline = false;
+  isOnline = true; // Inicializar como true, se actualizará con el valor real
   syncStatus = {
     total: 0,
     sincronizados: 0,
     pendientes: 0,
   };
   private syncSubscription?: Subscription;
+  private networkSubscription?: Subscription;
 
   constructor(
     private router: Router,
@@ -62,16 +64,17 @@ export class RegistroListaPage implements OnInit, OnDestroy {
     private loadingController: LoadingController
   ) {
     addIcons({
-      arrowBackOutline,
-      syncOutline,
-      wifiOutline,
-      statsChartOutline,
-      cloudDoneOutline,
-      cloudUploadOutline,
-      documentTextOutline,
-      addOutline,
-      add,
-      createOutline,
+      'arrow-back-outline': arrowBackOutline,
+      'sync-outline': syncOutline,
+      'wifi-outline': wifiOutline,
+      'cloud-offline-outline': cloudOfflineOutline,
+      'stats-chart-outline': statsChartOutline,
+      'cloud-done-outline': cloudDoneOutline,
+      'cloud-upload-outline': cloudUploadOutline,
+      'document-text-outline': documentTextOutline,
+      'add-outline': addOutline,
+      add: add,
+      'create-outline': createOutline,
     });
   }
 
@@ -128,11 +131,16 @@ export class RegistroListaPage implements OnInit, OnDestroy {
   }
 
   checkConnectivity() {
+    // Obtener valor inicial inmediatamente
+    this.isOnline = this.networkService.isOnline;
+
     // Suscribirse a cambios de red
-    this.networkService.isOnline$.subscribe((status) => {
-      this.isOnline = status;
-      console.log('Estado de red en RegistroLista:', status);
-    });
+    this.networkSubscription = this.networkService.isOnline$.subscribe(
+      (status) => {
+        this.isOnline = status;
+        console.log('Estado de red en RegistroLista:', status);
+      }
+    );
   }
 
   agruparPorFecha() {
@@ -289,6 +297,9 @@ export class RegistroListaPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.syncSubscription) {
       this.syncSubscription.unsubscribe();
+    }
+    if (this.networkSubscription) {
+      this.networkSubscription.unsubscribe();
     }
   }
 }

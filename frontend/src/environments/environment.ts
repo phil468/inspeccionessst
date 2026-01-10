@@ -22,7 +22,7 @@ export const environment = {
   // Configuración de storage
   storage: {
     dbName: 'inspeccionessst_db',
-    dbVersion: 2,
+    dbVersion: 1,
   },
 };
 
