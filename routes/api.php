@@ -187,7 +187,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::prefix('usuarios')->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::get('/{id}', [UserController::class, 'show']);
-        Route::middleware('permission:usuarios.manage')->group(function () {
+        Route::middleware('permission:users.manage')->group(function () {
             Route::post('/', [UserController::class, 'store']);
             Route::put('/{id}', [UserController::class, 'update']);
             Route::delete('/{id}', [UserController::class, 'destroy']);
