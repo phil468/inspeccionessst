@@ -508,8 +508,8 @@ class SyncController extends Controller
         }
 
         try {
-            $query = Inspeccion::porUsuario($user->id)
-                ->with([
+            $query = Inspeccion:://porUsuario($user->id)
+                with([
                     'user:id,name,email',
                     'empresa:id,name,razon_social,ruc',
                     'area:id,name,empresa_id',
