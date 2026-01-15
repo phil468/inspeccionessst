@@ -1,14 +1,24 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { FormsModule } from '@angular/forms';
+import {
+  IonicModule,
+  LoadingController,
+  ToastController,
+} from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
+import { SyncService } from '../../services/sync.service';
 import { addIcons } from 'ionicons';
 import {
   leafOutline,
   logoMicrosoft,
   informationCircleOutline,
   shieldCheckmarkSharp,
+  mailOutline,
+  lockClosedOutline,
+  eyeOutline,
+  eyeOffOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -17,19 +27,34 @@ import {
   styleUrls: ['./login.page.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, FormsModule],
 })
 export class LoginPage implements OnInit {
   loading = false;
+  showPassword = false;
+
+  // Credenciales
+  email = '';
+  password = '';
 
   currentYear = new Date().getFullYear();
 
-  constructor(private authService: AuthService, private router: Router) {
+  constructor(
+    private authService: AuthService,
+    private syncService: SyncService,
+    private router: Router,
+    private loadingController: LoadingController,
+    private toastController: ToastController
+  ) {
     addIcons({
       leafOutline,
       logoMicrosoft,
       informationCircleOutline,
       shieldCheckmarkSharp,
+      mailOutline,
+      lockClosedOutline,
+      eyeOutline,
+      eyeOffOutline,
     });
   }
 
@@ -38,6 +63,42 @@ export class LoginPage implements OnInit {
     const isAuthenticated = this.authService.isAuthenticated;
     if (isAuthenticated) {
       this.router.navigate(['/home'], { replaceUrl: true });
+    }
+  }
+
+  async loginWithCredentials() {
+    if (!this.email || !this.password) {
+      this.showToast('Por favor complete todos los campos', 'warning');
+      return;
+    }
+
+    const loading = await this.loadingController.create({
+      message: 'Iniciando sesión...',
+      spinner: 'crescent',
+    });
+    await loading.present();
+
+    try {
+      // Login con email/password
+      await this.authService.loginWithCredentials(this.email, this.password);
+
+      // Descargar datos iniciales
+      loading.message = 'Descargando datos iniciales...';
+      await this.syncService.downloadCatalogos();
+
+      loading.message = 'Descargando inspecciones...';
+      await this.syncService.downloadInspecciones();
+
+      loading.message = 'Descargando registros...';
+      await this.syncService.downloadRegistros();
+
+      await loading.dismiss();
+      this.showToast('Bienvenido', 'success');
+      this.router.navigate(['/home'], { replaceUrl: true });
+    } catch (error: any) {
+      await loading.dismiss();
+      console.error('Error en login:', error);
+      this.showToast(error.message || 'Error al iniciar sesión', 'danger');
     }
   }
 
@@ -53,10 +114,26 @@ export class LoginPage implements OnInit {
         window.location.href = response.redirect_url;
       } else {
         console.error('Error al obtener URL de login');
+        this.showToast('Error al conectar con Microsoft', 'danger');
       }
     } catch (error) {
       console.error('Error en login:', error);
+      this.showToast('Error al iniciar sesión', 'danger');
       this.loading = false;
     }
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
+
+  async showToast(message: string, color: string = 'dark') {
+    const toast = await this.toastController.create({
+      message,
+      duration: 3000,
+      position: 'top',
+      color,
+    });
+    await toast.present();
   }
 }

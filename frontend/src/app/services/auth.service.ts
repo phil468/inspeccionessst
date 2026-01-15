@@ -59,6 +59,29 @@ export class AuthService {
   }
 
   /**
+   * Login con email y password
+   */
+  async loginWithCredentials(
+    email: string,
+    password: string
+  ): Promise<AuthResponse> {
+    try {
+      const response = await this.apiService.post('/auth/login', {
+        email,
+        password,
+      });
+
+      if (response.success && response.data) {
+        this.saveSession(response);
+      }
+
+      return response;
+    } catch (error: any) {
+      throw new Error(error.message || 'Error al iniciar sesión');
+    }
+  }
+
+  /**
    * Login con Microsoft OAuth
    */
   loginWithMicrosoft(): void {

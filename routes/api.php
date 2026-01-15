@@ -29,6 +29,9 @@ use App\Http\Controllers\Api\CargoController;
 
 // Rutas públicas (sin autenticación)
 Route::prefix('v1')->group(function () {
+    // Autenticación tradicional
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    
     // Autenticación Microsoft OAuth
     Route::get('/auth/microsoft', [AuthController::class, 'redirectToMicrosoft']);
     Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback']);

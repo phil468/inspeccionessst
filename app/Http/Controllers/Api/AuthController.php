@@ -11,6 +11,59 @@ use Laravel\Socialite\Facades\Socialite;
 class AuthController extends Controller
 {
     /**
+     * Login con email y password
+     */
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        try {
+            // Intentar autenticar
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales incorrectas',
+                ], 401);
+            }
+
+            $user = User::where('email', $request->email)->first();
+
+            // Verificar que el usuario esté activo
+            if (!$user->activo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario inactivo. Contacte al administrador.',
+                ], 403);
+            }
+
+            // Crear token de acceso
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            // Cargar relaciones
+            $user->load('roles.permissions', 'personal');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => $user,
+                    'token' => $token,
+                ],
+                'message' => 'Login exitoso',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error durante el login',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Redirigir al usuario a Microsoft OAuth
      */
     public function redirectToMicrosoft()

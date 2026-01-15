@@ -40,7 +40,7 @@
 
   h2 {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 30px;
     color: var(--ion-color-dark);
   }
 
@@ -51,13 +51,86 @@
     margin-bottom: 30px;
   }
 
-  .microsoft-button {
-    --background: #0078d4;
-    --background-hover: #106ebe;
-    --background-activated: #005a9e;
+  // Formulario de login
+  form {
+    margin-bottom: 20px;
+
+    ion-item {
+      --background: white;
+      --border-radius: 8px;
+      --padding-start: 12px;
+      --inner-padding-end: 12px;
+      margin-bottom: 15px;
+      border: 1px solid var(--ion-color-light-shade);
+
+      &:last-of-type {
+        margin-bottom: 20px;
+      }
+
+      ion-icon {
+        color: var(--ion-color-medium);
+        margin-right: 10px;
+      }
+
+      ion-input {
+        --padding-start: 0;
+      }
+    }
+  }
+
+  .login-button {
+    --background: var(--ion-color-primary);
     height: 48px;
     font-weight: 600;
     margin-bottom: 20px;
+  }
+
+  // Divisor
+  .divider {
+    position: relative;
+    text-align: center;
+    margin: 25px 0;
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 45%;
+      height: 1px;
+      background: var(--ion-color-light-shade);
+    }
+
+    &::before {
+      left: 0;
+    }
+
+    &::after {
+      right: 0;
+    }
+
+    span {
+      background: var(--ion-color-light);
+      padding: 0 10px;
+      color: var(--ion-color-medium);
+      font-size: 14px;
+    }
+  }
+
+  .microsoft-button {
+    --background: transparent;
+    --background-hover: #f3f4f6;
+    --background-activated: #e5e7eb;
+    --border-color: #0078d4;
+    --border-width: 2px;
+    --color: #0078d4;
+    height: 48px;
+    font-weight: 600;
+    margin-bottom: 20px;
+
+    ion-icon {
+      font-size: 24px;
+    }
   }
 
   .info-text {

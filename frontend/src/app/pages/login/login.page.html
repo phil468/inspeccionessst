@@ -8,21 +8,72 @@
 
     <div class="login-card">
       <h2>Iniciar Sesión</h2>
-      <p class="subtitle">Usa tu cuenta corporativa de Microsoft</p>
 
+      <!-- Formulario de email + password -->
+      <form (ngSubmit)="loginWithCredentials()">
+        <ion-item lines="full">
+          <ion-icon name="mail-outline" slot="start"></ion-icon>
+          <ion-input
+            type="email"
+            placeholder="Correo electrónico"
+            [(ngModel)]="email"
+            name="email"
+            required
+            [disabled]="loading">
+          </ion-input>
+        </ion-item>
+
+        <ion-item lines="full">
+          <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+          <ion-input
+            [type]="showPassword ? 'text' : 'password'"
+            placeholder="Contraseña"
+            [(ngModel)]="password"
+            name="password"
+            required
+            [disabled]="loading">
+          </ion-input>
+          <ion-button 
+            slot="end" 
+            fill="clear" 
+            (click)="togglePasswordVisibility()"
+            type="button">
+            <ion-icon 
+              slot="icon-only" 
+              [name]="showPassword ? 'eye-off-outline' : 'eye-outline'">
+            </ion-icon>
+          </ion-button>
+        </ion-item>
+
+        <ion-button 
+          expand="block" 
+          type="submit"
+          [disabled]="loading || !email || !password"
+          class="login-button">
+          <span *ngIf="!loading">Iniciar Sesión</span>
+          <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+        </ion-button>
+      </form>
+
+      <!-- Divisor -->
+      <div class="divider">
+        <span>O</span>
+      </div>
+
+      <!-- Botón de Microsoft -->
       <ion-button 
         expand="block" 
         (click)="loginWithMicrosoft()"
         [disabled]="loading"
-        class="microsoft-button">
+        class="microsoft-button"
+        fill="outline">
         <ion-icon slot="start" name="logo-microsoft"></ion-icon>
-        <span *ngIf="!loading">Iniciar sesión con Microsoft</span>
-        <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+        <span>Iniciar con Microsoft</span>
       </ion-button>
 
       <div class="info-text">
         <ion-icon name="information-circle-outline"></ion-icon>
-        <p>Serás redirigido a Microsoft para autenticarte de forma segura</p>
+        <p>Usa tu cuenta corporativa o credenciales proporcionadas</p>
       </div>
     </div>
 
