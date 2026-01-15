@@ -123,6 +123,19 @@ class Inspeccion extends Model
         return $query->where('user_id', $userId);
     }
 
+    public function scopePorUsuarioOInspector($query, $userId, $personalId = null)
+    {
+        return $query->where(function ($q) use ($userId, $personalId) {
+            $q->where('user_id', $userId);
+            
+            if ($personalId) {
+                $q->orWhereHas('inspectores', function ($subQ) use ($personalId) {
+                    $subQ->where('personal.id', $personalId);
+                });
+            }
+        });
+    }
+
     public function scopePorEmpresa($query, $empresaId)
     {
         return $query->where('empresa_id', $empresaId);

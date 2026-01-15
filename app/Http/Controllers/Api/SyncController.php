@@ -186,7 +186,7 @@ class SyncController extends Controller
                 // Personal activo (no cesado) - para selects de inspectores/responsables
                 'personal' => \App\Models\Personal::select([
                         'id', 'dni', 'nombres', 'apellido_paterno', 'apellido_materno',
-                        'empresa_id', 'area_id', 'cargo_id', 'inspector', 'cesado', 'correo_empresa'
+                        'empresa_id', 'area_id', 'cargo_id', 'inspector', 'cesado', 'correo_empresa','name'
                     ])
                     ->where('cesado', false)
                     ->orderBy('nombres')
@@ -508,8 +508,17 @@ class SyncController extends Controller
         }
 
         try {
-            $query = Inspeccion:://porUsuario($user->id)
-                with([
+            // Verificar si el usuario tiene rol de administrador o supervisor
+            $esAdminOSupervisor = $user->hasRole('administrador') || $user->hasRole('supervisor');
+            
+            // Si es admin o supervisor, obtener todas las inspecciones, sino filtrar por usuario/inspector
+            if ($esAdminOSupervisor) {
+                $query = Inspeccion::query();
+            } else {
+                $query = Inspeccion::porUsuarioOInspector($user->id, $user->personal_id);
+            }
+            
+            $query->with([
                     'user:id,name,email',
                     'empresa:id,name,razon_social,ruc',
                     'area:id,name,empresa_id',
@@ -524,7 +533,7 @@ class SyncController extends Controller
                     'resultados.fotoFinalAprobador:id,nombres,apellido_paterno,apellido_materno',
                     'resultados.fotoInicialAprobador:id,nombres,apellido_paterno,apellido_materno',
                     'responsableRegistro.personal:id,nombres,apellido_paterno,apellido_materno',
-                ])
+                ])                
                 ->orderBy('fecha_hora_inspeccion', 'desc');
 
             // Si se proporciona última sincronización, solo enviar las más recientes
