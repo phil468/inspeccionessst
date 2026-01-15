@@ -126,10 +126,27 @@ class Inspeccion extends Model
     public function scopePorUsuarioOInspector($query, $userId, $personalId = null)
     {
         return $query->where(function ($q) use ($userId, $personalId) {
+            // 1. Inspecciones creadas por el usuario
             $q->where('user_id', $userId);
             
             if ($personalId) {
+                // 2. Inspecciones donde es inspector
                 $q->orWhereHas('inspectores', function ($subQ) use ($personalId) {
+                    $subQ->where('personal.id', $personalId);
+                });
+                
+                // 3. Inspecciones donde es responsable de algún resultado
+                $q->orWhereHas('resultados', function ($subQ) use ($personalId) {
+                    $subQ->where('responsable_id', $personalId);
+                });
+                
+                // 4. Inspecciones donde es visor de algún resultado
+                $q->orWhereHas('resultados.visores', function ($subQ) use ($personalId) {
+                    $subQ->where('personal.id', $personalId);
+                });
+                
+                // 5. Inspecciones donde es responsable de levantamiento de algún resultado
+                $q->orWhereHas('resultados.responsablesLevantamiento', function ($subQ) use ($personalId) {
                     $subQ->where('personal.id', $personalId);
                 });
             }
