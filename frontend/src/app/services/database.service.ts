@@ -134,7 +134,7 @@ export class DatabaseService extends Dexie {
         (error.message && error.message.includes('primary key'))
       ) {
         console.warn(
-          '⚠️ Error de migración detectado, reseteando base de datos...'
+          '⚠️ Error de migración detectado, reseteando base de datos...',
         );
         await DatabaseService.resetDatabase();
         return false;
@@ -172,7 +172,30 @@ export class DatabaseService extends Dexie {
   }
 
   async getInspecciones(): Promise<Inspeccion[]> {
-    return await this.inspecciones.toArray();
+    const items = await this.inspecciones.toArray();
+
+    // Ordenar por preferencia: fecha_hora_inspeccion, created_at, updated_at (descendente)
+    const parseTime = (s?: string) => {
+      if (!s) return 0;
+      const t = Date.parse(s);
+      return isNaN(t) ? 0 : t;
+    };
+
+    items.sort((a: any, b: any) => {
+      const timeA =
+        parseTime(a.fecha_hora_inspeccion) ||
+        parseTime(a.created_at) ||
+        parseTime(a.updated_at) ||
+        0;
+      const timeB =
+        parseTime(b.fecha_hora_inspeccion) ||
+        parseTime(b.created_at) ||
+        parseTime(b.updated_at) ||
+        0;
+      return timeB - timeA;
+    });
+
+    return items;
   }
 
   async saveRegistro(registro: Registro): Promise<number> {
@@ -232,7 +255,7 @@ export class DatabaseService extends Dexie {
         await this.tipos_trabajador.clear();
         await this.tipos_personal.clear();
         await this.planillas.clear();
-      }
+      },
     );
   }
 
@@ -266,7 +289,7 @@ export class DatabaseService extends Dexie {
   }
 
   async getInspeccionAreasByInspeccion(
-    inspeccionId: number
+    inspeccionId: number,
   ): Promise<InspeccionArea[]> {
     return await this.inspeccion_areas
       .where('inspeccion_id')
@@ -275,13 +298,13 @@ export class DatabaseService extends Dexie {
   }
 
   async saveInspeccionInspectores(
-    inspectores: InspeccionInspector[]
+    inspectores: InspeccionInspector[],
   ): Promise<void> {
     await this.inspeccion_inspectores.bulkPut(inspectores);
   }
 
   async getInspeccionInspectoresByInspeccion(
-    inspeccionId: number
+    inspeccionId: number,
   ): Promise<InspeccionInspector[]> {
     return await this.inspeccion_inspectores
       .where('inspeccion_id')
@@ -290,7 +313,7 @@ export class DatabaseService extends Dexie {
   }
 
   async saveResultadosInspeccion(
-    resultados: ResultadoInspeccion[]
+    resultados: ResultadoInspeccion[],
   ): Promise<void> {
     await this.resultados_inspeccion.bulkPut(resultados);
   }
@@ -306,7 +329,7 @@ export class DatabaseService extends Dexie {
   }
 
   async getResultadosByInspeccion(
-    inspeccionId: number
+    inspeccionId: number,
   ): Promise<ResultadoInspeccion[]> {
     return await this.resultados_inspeccion
       .where('inspeccion_id')
@@ -322,7 +345,7 @@ export class DatabaseService extends Dexie {
 
   // ========== MÉTODOS PARA BUSCAR RELACIONES POR LOCAL_ID ==========
   async getInspeccionAreasByLocalId(
-    inspeccionLocalId: string
+    inspeccionLocalId: string,
   ): Promise<InspeccionArea[]> {
     // Buscar primero la inspección por local_id para obtener su ID de IndexedDB
     const inspeccion = await this.inspecciones
@@ -341,7 +364,7 @@ export class DatabaseService extends Dexie {
   }
 
   async getInspeccionInspectoresByLocalId(
-    inspeccionLocalId: string
+    inspeccionLocalId: string,
   ): Promise<InspeccionInspector[]> {
     const inspeccion = await this.inspecciones
       .where('local_id')
@@ -359,7 +382,7 @@ export class DatabaseService extends Dexie {
   }
 
   async getResultadosByLocalId(
-    inspeccionLocalId: string
+    inspeccionLocalId: string,
   ): Promise<ResultadoInspeccion[]> {
     const inspeccion = await this.inspecciones
       .where('local_id')

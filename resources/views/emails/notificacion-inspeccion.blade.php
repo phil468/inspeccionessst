@@ -31,7 +31,7 @@
         }
 
         .header-felicitaciones {
-            background-color: #667eea;
+            background-color: #28a745;
         }
 
         .header-pendientes {

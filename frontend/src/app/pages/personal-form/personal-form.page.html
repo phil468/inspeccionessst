@@ -97,7 +97,6 @@
         <ion-select
           formControlName="empresa_id"
           placeholder="Seleccione empresa"
-          [disabled]="isViewMode"
         >
           <ion-select-option *ngFor="let empresa of empresas" [value]="empresa.id">
             {{ empresa.name }}
@@ -110,7 +109,6 @@
         <ion-select
           formControlName="area_id"
           placeholder="Seleccione área"
-          [disabled]="isViewMode"
         >
           <ion-select-option *ngFor="let area of areas" [value]="area.id">
             {{ area.name }}
@@ -123,7 +121,6 @@
         <ion-select
           formControlName="cargo_id"
           placeholder="Seleccione cargo"
-          [disabled]="isViewMode"
         >
           <ion-select-option *ngFor="let cargo of cargos" [value]="cargo.id">
             {{ cargo.name }}
@@ -136,7 +133,6 @@
         <ion-select
           formControlName="tipo_de_trabajador_id"
           placeholder="Seleccione tipo"
-          [disabled]="isViewMode"
         >
           <ion-select-option *ngFor="let tipo of tiposDeTrabajador" [value]="tipo.id">
             {{ tipo.name }}
@@ -149,7 +145,6 @@
         <ion-select
           formControlName="tipo_de_personal_id"
           placeholder="Seleccione tipo"
-          [disabled]="isViewMode"
         >
           <ion-select-option *ngFor="let tipo of tiposDePersonal" [value]="tipo.id">
             {{ tipo.name }}
@@ -162,7 +157,6 @@
         <ion-select
           formControlName="planilla_id"
           placeholder="Seleccione planilla"
-          [disabled]="isViewMode"
         >
           <ion-select-option *ngFor="let planilla of planillas" [value]="planilla.id">
             {{ planilla.name }}
@@ -176,7 +170,6 @@
           expand="block"
           fill="outline"
           (click)="openSupervisorModal()"
-          [disabled]="isViewMode"
         >
           <ion-icon name="person-outline" slot="start"></ion-icon>
           {{ getSupervisorNombre() }}
@@ -190,7 +183,7 @@
           <h2>Es Inspector</h2>
           <p>Puede realizar y aprobar inspecciones</p>
         </ion-label>
-        <ion-toggle formControlName="inspector" [disabled]="isViewMode"></ion-toggle>
+        <ion-toggle formControlName="inspector"></ion-toggle>
       </ion-item>
 
       <!-- Información de Contacto -->

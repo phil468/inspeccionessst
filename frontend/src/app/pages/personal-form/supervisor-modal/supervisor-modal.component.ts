@@ -34,15 +34,33 @@ export class SupervisorModalComponent implements OnInit {
   }
 
   filterPersonal() {
-    const term = this.searchTerm.toLowerCase().trim();
+    const term = (this.searchTerm || '').toLowerCase().trim();
+
+    // Normalizar texto: quitar acentos y caracteres especiales
+    const normalize = (s: string | undefined | null) =>
+      (s || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .replace(/[^a-z0-9\s]/gi, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
 
     if (!term) {
       this.personalFiltrado = [...this.personalList];
     } else {
-      this.personalFiltrado = this.personalList.filter(
-        (p) =>
-          p.name.toLowerCase().includes(term) || (p.dni && p.dni.includes(term))
-      );
+      const tokens = normalize(term)
+        .split(' ')
+        .filter((t) => t.length > 0);
+
+      this.personalFiltrado = this.personalList.filter((p) => {
+        const searchable = [p.name, p.dni, (p as any).correo_empresa]
+          .map((x) => normalize(x))
+          .join(' ');
+
+        return tokens.every((t) => searchable.includes(t));
+      });
     }
 
     // Resetear la lista mostrada
@@ -54,7 +72,7 @@ export class SupervisorModalComponent implements OnInit {
     const currentLength = this.personalMostrado.length;
     const nextItems = this.personalFiltrado.slice(
       currentLength,
-      currentLength + this.pageSize
+      currentLength + this.pageSize,
     );
     this.personalMostrado = [...this.personalMostrado, ...nextItems];
   }

@@ -214,6 +214,7 @@ export class MisInspeccionesComponent implements OnInit {
   }
 
   goBack() {
-    this.navController.back();
+    // this.navController.back();
+    this.router.navigate(['/home']);
   }
 }

@@ -89,7 +89,7 @@ export class InspectorSelectionModalComponent implements OnInit {
     private loadingController: LoadingController,
     private toastController: ToastController,
     private personalService: PersonalService,
-    private networkService: NetworkService
+    private networkService: NetworkService,
   ) {
     // Registrar iconos usados en el template
     addIcons({
@@ -118,18 +118,42 @@ export class InspectorSelectionModalComponent implements OnInit {
   }
 
   filterPersonal() {
-    const term = this.searchTerm.toLowerCase().trim();
+    const term = (this.searchTerm || '').toLowerCase().trim();
+
+    // Normalizar texto: quitar acentos y signos, pasar a minúsculas
+    const normalize = (s: string | undefined | null) =>
+      (s || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .replace(/[^a-z0-9\s]/gi, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
 
     if (!term) {
       this.personalFiltrado = [...this.personalList];
     } else {
-      this.personalFiltrado = this.personalList.filter(
-        (p) =>
-          p.nombres.toLowerCase().includes(term) ||
-          p.apellido_paterno?.toLowerCase().includes(term) ||
-          p.apellido_materno?.toLowerCase().includes(term) ||
-          p.dni?.toLowerCase().includes(term)
-      );
+      // Tokenizar término de búsqueda (AND search)
+      const tokens = normalize(term)
+        .split(' ')
+        .filter((t) => t.length > 0);
+
+      this.personalFiltrado = this.personalList.filter((p) => {
+        // Construir campo searchable con nombre, apellidos, dni y correo
+        const searchable = [
+          p.nombres,
+          p.apellido_paterno,
+          p.apellido_materno,
+          p.dni,
+          p.correo_empresa,
+        ]
+          .map((x) => normalize(x))
+          .join(' ');
+
+        // Todos los tokens deben existir en el campo searchable (orden independiente)
+        return tokens.every((t) => searchable.includes(t));
+      });
     }
 
     // Ordenar para mostrar seleccionados primero
@@ -179,7 +203,7 @@ export class InspectorSelectionModalComponent implements OnInit {
     if (!personal.id) return;
 
     const index = this.inspectoresSeleccionados.findIndex(
-      (p) => p.id === personal.id
+      (p) => p.id === personal.id,
     );
 
     if (index > -1) {
@@ -233,7 +257,7 @@ export class InspectorSelectionModalComponent implements OnInit {
 
         try {
           const validacion = await this.personalService.validarParaNotificacion(
-            personal.id
+            personal.id,
           );
 
           if (!validacion.data.tiene_correo || !validacion.data.tiene_usuario) {
@@ -262,7 +286,7 @@ export class InspectorSelectionModalComponent implements OnInit {
       console.error('Error en validación:', error);
       await this.showToast(
         'Error al validar acceso, se continuará sin validación',
-        'warning'
+        'warning',
       );
       this.modalController.dismiss({
         inspectores: this.inspectoresSeleccionados,
@@ -301,7 +325,7 @@ export class InspectorSelectionModalComponent implements OnInit {
             handler: () => {
               // Quitar de la lista de seleccionados
               const index = this.inspectoresSeleccionados.findIndex(
-                (p) => p.id === personal.id
+                (p) => p.id === personal.id,
               );
               if (index > -1) {
                 this.inspectoresSeleccionados.splice(index, 1);
@@ -318,7 +342,7 @@ export class InspectorSelectionModalComponent implements OnInit {
 
               const resultado = await this.asegurarAccesoPersonal(
                 personal,
-                data.correo
+                data.correo,
               );
               if (!resultado) {
                 return false; // No cerrar si hay error
@@ -346,7 +370,7 @@ export class InspectorSelectionModalComponent implements OnInit {
 
   async asegurarAccesoPersonal(
     personal: Personal,
-    correo: string
+    correo: string,
   ): Promise<boolean> {
     const loading = await this.loadingController.create({
       message: 'Configurando acceso...',
@@ -357,7 +381,7 @@ export class InspectorSelectionModalComponent implements OnInit {
       const response = await this.personalService.asegurarAccesoSistema(
         personal.id!,
         correo,
-        false
+        false,
       );
 
       await loading.dismiss();
@@ -370,7 +394,7 @@ export class InspectorSelectionModalComponent implements OnInit {
       } else {
         await this.showToast(
           response.message || 'Error al configurar acceso',
-          'danger'
+          'danger',
         );
         return false;
       }
@@ -386,7 +410,7 @@ export class InspectorSelectionModalComponent implements OnInit {
       console.error('Error asegurando acceso:', error);
       await this.showToast(
         'Error al configurar acceso: ' + (error.message || 'Error desconocido'),
-        'danger'
+        'danger',
       );
       return false;
     }
@@ -395,7 +419,7 @@ export class InspectorSelectionModalComponent implements OnInit {
   async manejarConflictoCorreo(
     personal: Personal,
     correo: string,
-    conflicto: any
+    conflicto: any,
   ): Promise<boolean> {
     const nombreNuevo = this.getNombreCompleto(personal);
     const nombreActual =
@@ -431,7 +455,7 @@ export class InspectorSelectionModalComponent implements OnInit {
                     if (data.correo && this.validarFormatoCorreo(data.correo)) {
                       return await this.asegurarAccesoPersonal(
                         personal,
-                        data.correo
+                        data.correo,
                       );
                     }
                     await this.showToast('Correo inválido', 'warning');
@@ -456,7 +480,7 @@ export class InspectorSelectionModalComponent implements OnInit {
               const response = await this.personalService.asegurarAccesoSistema(
                 personal.id!,
                 correo,
-                true // Forzar reasignación
+                true, // Forzar reasignación
               );
 
               await loading.dismiss();
@@ -465,13 +489,13 @@ export class InspectorSelectionModalComponent implements OnInit {
                 personal.correo_empresa = correo;
                 await this.showToast(
                   'Usuario reasignado exitosamente',
-                  'success'
+                  'success',
                 );
                 return true;
               } else {
                 await this.showToast(
                   response.message || 'Error al reasignar',
-                  'danger'
+                  'danger',
                 );
                 return false;
               }

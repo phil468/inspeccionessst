@@ -46,6 +46,8 @@ import {
   wifiOutline,
   cloudOfflineOutline,
   documentTextOutline,
+  cloudDone,
+  cloudUpload,
 } from 'ionicons/icons';
 
 @Component({
@@ -94,7 +96,7 @@ export class InspeccionListaPage implements OnInit {
     private inspeccionService: InspeccionService,
     private toastController: ToastController,
     private loadingController: LoadingController,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       'add-outline': addOutline,
@@ -111,6 +113,8 @@ export class InspeccionListaPage implements OnInit {
       'stats-chart-outline': statsChartOutline,
       'wifi-outline': wifiOutline,
       'cloud-offline-outline': cloudOfflineOutline,
+      'cloud-done': cloudDone,
+      'cloud-upload': cloudUpload,
     });
   }
 
@@ -132,7 +136,7 @@ export class InspeccionListaPage implements OnInit {
           await this.loadInspecciones();
           await this.loadSyncStatus();
         }
-      }
+      },
     );
   }
 
@@ -175,7 +179,7 @@ export class InspeccionListaPage implements OnInit {
 
       this.inspecciones = this.inspecciones.map((inspeccion) => {
         const empresa = empresas.find(
-          (e: any) => e.id === inspeccion.empresa_id
+          (e: any) => e.id === inspeccion.empresa_id,
         );
         const area = areas.find((a: any) => a.id === inspeccion.area_id);
 
@@ -186,12 +190,7 @@ export class InspeccionListaPage implements OnInit {
         };
       });
 
-      // Ordenar por más reciente
-      this.inspecciones.sort((a, b) => {
-        const dateA = new Date(a.created_at || '').getTime();
-        const dateB = new Date(b.created_at || '').getTime();
-        return dateB - dateA;
-      });
+      // El orden ya lo aplica DatabaseService.getInspecciones().
 
       this.inspeccionesFiltradas = [...this.inspecciones];
     } catch (error) {
@@ -217,7 +216,7 @@ export class InspeccionListaPage implements OnInit {
     this.networkSubscription = this.networkService.isOnline$.subscribe(
       (status: boolean) => {
         this.isOnline = status;
-      }
+      },
     );
   }
 
@@ -234,7 +233,7 @@ export class InspeccionListaPage implements OnInit {
         inspeccion.area?.name.toLowerCase().includes(term) ||
         inspeccion.zona_inspeccionada?.toLowerCase().includes(term) ||
         inspeccion.numero_registro?.toLowerCase().includes(term) ||
-        inspeccion.tipo_inspeccion.toLowerCase().includes(term)
+        inspeccion.tipo_inspeccion.toLowerCase().includes(term),
     );
   }
 
@@ -304,11 +303,23 @@ export class InspeccionListaPage implements OnInit {
     }
   }
 
-  getEstadoChip(inspeccion: Inspeccion): { color: string; text: string } {
+  getEstadoChip(inspeccion: Inspeccion): {
+    color: string;
+    text: string;
+    icon?: string;
+  } {
     if (inspeccion.synced) {
-      return { color: 'success', text: 'Sincronizado' };
+      return {
+        color: 'success',
+        text: 'Sincronizado',
+        icon: 'cloud-done-outline',
+      };
     }
-    return { color: 'warning', text: 'Pendiente' };
+    return {
+      color: 'warning',
+      text: 'Pendiente',
+      icon: 'cloud-upload-outline',
+    };
   }
 
   formatDate(date?: string): string {
@@ -337,7 +348,7 @@ export class InspeccionListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para enviar notificaciones',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -345,7 +356,7 @@ export class InspeccionListaPage implements OnInit {
     if (!inspeccion.synced) {
       await this.showToast(
         'La inspección debe estar sincronizada antes de enviar notificaciones',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -383,7 +394,7 @@ export class InspeccionListaPage implements OnInit {
 
     try {
       const response: any = await this.inspeccionService.enviarNotificaciones(
-        inspeccion.id!
+        inspeccion.id!,
       );
 
       await loading.dismiss();
@@ -391,7 +402,7 @@ export class InspeccionListaPage implements OnInit {
       if (response.success) {
         await this.showToast(
           response.message || 'Notificaciones enviadas con éxito',
-          'success'
+          'success',
         );
       } else {
         await this.showToast('Error al enviar notificaciones', 'danger');
@@ -442,7 +453,7 @@ export class InspeccionListaPage implements OnInit {
   private async showToast(
     message: string,
     color: string = 'dark',
-    duration: number = 3000
+    duration: number = 3000,
   ) {
     const toast = await this.toastController.create({
       message,

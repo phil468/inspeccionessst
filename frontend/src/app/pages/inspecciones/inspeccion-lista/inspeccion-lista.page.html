@@ -49,7 +49,7 @@
   <!-- Lista de inspecciones -->
   <ion-list *ngIf="inspeccionesFiltradas.length > 0">
     <ion-item *ngFor="let inspeccion of inspeccionesFiltradas" [button]="true" (click)="editarInspeccion(inspeccion)">
-      <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
+      <!-- <ion-icon name="business-outline" size="small" slot="start" color="primary"></ion-icon> -->
       
       <ion-label>
         <h2>{{ inspeccion.numero_registro || 'No Definido' }}</h2>
@@ -63,16 +63,18 @@
       </ion-label>
 
       <div slot="end" class="item-end">
-        <ion-badge [color]="getEstadoChip(inspeccion).color">
-          {{ getEstadoChip(inspeccion).text }}
-        </ion-badge>
-        <ion-button fill="clear" size="" (click)="enviarNotificaciones(inspeccion); $event.stopPropagation()">
+            <!-- <ion-badge [color]="getEstadoChip(inspeccion).color"> -->
+              <ion-icon size="default" *ngIf="getEstadoChip(inspeccion).icon" [name]="getEstadoChip(inspeccion).icon" [color]="getEstadoChip(inspeccion).color"></ion-icon>
+          <!-- {{ getEstadoChip(inspeccion).text }} -->
+
+        <!-- </ion-badge> -->
+        <ion-button fill="clear" size="default" (click)="enviarNotificaciones(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="notifications-outline" color="primary"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="" (click)="editarInspeccion(inspeccion); $event.stopPropagation()">
+        <ion-button fill="clear" size="default" (click)="editarInspeccion(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="create-outline" color="medium"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="" (click)="eliminarInspeccion(inspeccion); $event.stopPropagation()">
+        <ion-button fill="clear" size="default" (click)="eliminarInspeccion(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="trash-outline" color="danger"></ion-icon>
         </ion-button>
       </div>

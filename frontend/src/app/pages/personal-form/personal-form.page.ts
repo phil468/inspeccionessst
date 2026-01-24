@@ -120,7 +120,7 @@ export class PersonalFormPage implements OnInit {
     private alertController: AlertController,
     private toastController: ToastController,
     private loadingController: LoadingController,
-    private modalController: ModalController
+    private modalController: ModalController,
   ) {
     addIcons({
       save,
@@ -220,7 +220,7 @@ export class PersonalFormPage implements OnInit {
       this.personalList = personal.sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'es', {
           sensitivity: 'base',
-        })
+        }),
       );
     } catch (error) {
       console.error('Error cargando catálogos:', error);
@@ -239,7 +239,7 @@ export class PersonalFormPage implements OnInit {
 
       // Intentar cargar desde IndexedDB primero
       const personalLocal = await this.storageService.getPersonalById(
-        this.personalId
+        this.personalId,
       );
 
       console.log('Personal desde IndexedDB:', personalLocal);
@@ -257,7 +257,7 @@ export class PersonalFormPage implements OnInit {
         console.log('No encontrado en IndexedDB, intentando API...');
         try {
           const response = await this.apiService.getPersonalById(
-            this.personalId
+            this.personalId,
           );
 
           if (response.data) {
@@ -273,7 +273,7 @@ export class PersonalFormPage implements OnInit {
           console.error('Error cargando desde API:', apiError);
           this.showToast(
             'No se pudo cargar el personal. Verifica tu conexión.',
-            'danger'
+            'danger',
           );
         }
       }
@@ -295,7 +295,7 @@ export class PersonalFormPage implements OnInit {
 
     // Convertir fechas al formato yyyy-MM-dd si es necesario
     const formatDate = (
-      dateString: string | null | undefined
+      dateString: string | null | undefined,
     ): string | null => {
       if (!dateString) return null;
       // Si ya está en formato yyyy-MM-dd, devolverlo tal cual
@@ -338,6 +338,7 @@ export class PersonalFormPage implements OnInit {
       cesado: this.personal.cesado,
       seleccionado: this.personal.seleccionado,
       importado: this.personal.importado,
+      inspector: !!this.personal.inspector,
     });
 
     console.log('Formulario después de patchValue:', this.personalForm.value);
@@ -394,7 +395,7 @@ export class PersonalFormPage implements OnInit {
       });
       this.showToast(
         `Supervisor seleccionado: ${data.selected.name}`,
-        'success'
+        'success',
       );
     }
   }
@@ -496,7 +497,7 @@ export class PersonalFormPage implements OnInit {
     if (this.personalForm.invalid) {
       this.showToast(
         'Por favor complete todos los campos requeridos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -544,7 +545,7 @@ export class PersonalFormPage implements OnInit {
         // Actualizar personal existente
         response = await this.apiService.updatePersonal(
           this.personalId,
-          personalData
+          personalData,
         );
         this.showToast('Personal actualizado correctamente', 'success');
       } else {

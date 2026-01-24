@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\NotificationService;
 
 class FotoApprovalController extends Controller
 {
@@ -98,6 +99,13 @@ class FotoApprovalController extends Controller
                 'message' => 'Error al guardar la imagen: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -216,12 +224,51 @@ class FotoApprovalController extends Controller
 
         $resultado->update($updateData);
 
+        // Después de actualizar, enviar notificaciones al/los personal(es) responsables de este resultado
+        try {
+            $inspeccion = $resultado->inspeccion()->with([
+                'empresa',
+                'area',
+                'resultados.responsable',
+                'resultados.visores',
+                'resultados.responsablesLevantamiento',
+            ])->first();
+
+            $personalIds = [];
+            if ($resultado->responsable_id) {
+                $personalIds[] = $resultado->responsable_id;
+            }
+            if ($resultado->responsablesLevantamiento) {
+                foreach ($resultado->responsablesLevantamiento as $r) {
+                    // objetos Personal vienen con 'id'
+                    $personalIds[] = $r->id ?? null;
+                }
+            }
+
+            if ($resultado->visores) {
+                foreach ($resultado->visores as $v) {
+                    // objetos Personal vienen con 'id'
+                    $personalIds[] = $v->id ?? null;
+                }
+            }
+
+            $personalIds = array_values(array_filter(array_unique($personalIds)));
+
+            if (!empty($personalIds) && $inspeccion) {
+                $notiResult = $this->notificationService->enviarNotificacionesInspeccionParaPersonal($inspeccion, $personalIds);
+            }
+        } catch (\Exception $e) {
+            // No bloquear la respuesta si falla la notificación
+            \Log::error('Error al enviar notificaciones después de validar foto final: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => $request->accion === 'aprobar' 
                 ? 'Foto final aprobada correctamente. El resultado ha sido marcado como Ejecutado.' 
                 : 'Foto final rechazada. El responsable debe subir una nueva foto.',
             'data' => $resultado->fresh(['fotoFinalAprobador']),
+            'notificacion' => $notiResult ?? null,
         ]);
     }
 

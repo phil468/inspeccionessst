@@ -27,6 +27,7 @@
             <!-- Columna izquierda: Info de la inspección -->
             <ion-col size="7" size-md="8">
               <div class="inspeccion-info">
+                <h1 class="inspeccion-id">{{ inspeccion.numero_registro }}</h1>
                 <p class="empresa-name">{{ inspeccion.empresa?.name || 'Sin empresa' }}</p>
                 <h2 class="area-name">{{ inspeccion.area?.name || 'Sin área' }}</h2>
                 <p class="fecha">{{ inspeccion.fecha_hora_inspeccion | date:'dd/MM/yyyy' }}</p>
