@@ -335,7 +335,7 @@ class SyncController extends Controller
             'inspecciones.*.resultados.*.local_id' => 'required|string|uuid',
             'inspecciones.*.resultados.*.descripcion' => 'required|string',
             'inspecciones.*.resultados.*.nivel_riesgo' => 'required|in:Alto,Medio,Bajo',
-            'inspecciones.*.resultados.*.estado' => 'nullable|in:Pendiente,En Proceso,Ejecutado,Cerrado',
+            'inspecciones.*.resultados.*.estado' => 'nullable|in:Pendiente,En Proceso,Ejecutado,Cerrado,Cumplimiento,Buena Práctica',
         ]);
 
         if ($validator->fails()) {
