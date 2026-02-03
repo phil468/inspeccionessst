@@ -9,6 +9,27 @@
     <div class="login-card">
       <h2>Iniciar Sesión</h2>
 
+      <!-- Botón de Microsoft -->
+      <ion-button 
+        expand="block" 
+        (click)="loginWithMicrosoft()"
+        [disabled]="loading"
+        class="microsoft-button"
+        fill="outline">
+        <ion-icon slot="start" name="logo-microsoft"></ion-icon>
+        <span>Iniciar con Microsoft</span>
+      </ion-button>
+
+      <div class="info-text">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <p>Usa tu cuenta corporativa o credenciales proporcionadas</p>
+      </div>
+
+      <!-- Divisor -->
+      <div class="divider">
+        <span>O</span>
+      </div>
+
       <!-- Formulario de email + password -->
       <form (ngSubmit)="loginWithCredentials()">
         <ion-item lines="full">
@@ -55,26 +76,6 @@
         </ion-button>
       </form>
 
-      <!-- Divisor -->
-      <div class="divider">
-        <span>O</span>
-      </div>
-
-      <!-- Botón de Microsoft -->
-      <ion-button 
-        expand="block" 
-        (click)="loginWithMicrosoft()"
-        [disabled]="loading"
-        class="microsoft-button"
-        fill="outline">
-        <ion-icon slot="start" name="logo-microsoft"></ion-icon>
-        <span>Iniciar con Microsoft</span>
-      </ion-button>
-
-      <div class="info-text">
-        <ion-icon name="information-circle-outline"></ion-icon>
-        <p>Usa tu cuenta corporativa o credenciales proporcionadas</p>
-      </div>
     </div>
 
     <div class="footer">

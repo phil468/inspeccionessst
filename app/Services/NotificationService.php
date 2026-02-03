@@ -47,7 +47,7 @@ class NotificationService
                 // omitimos el envío hasta que estén todos resueltos. Registramos log de omisión.
                 $tienePendiente = collect($resultadosUnicos)->contains(function ($r) {
                     $estadoFoto = $r->foto_final_estado ?? null;
-                    return $estadoFoto === null || strtolower($estadoFoto) === 'pendiente';
+                    strtolower($estadoFoto) === 'pendiente';
                 });
 
                 if ($tienePendiente) {
@@ -175,7 +175,7 @@ class NotificationService
                 // omitimos el envío hasta que estén todos resueltos.
                 $tienePendiente = collect($resultadosUnicos)->contains(function ($r) {
                     $estadoFoto = $r->foto_final_estado ?? null;
-                    return $estadoFoto === null || strtolower($estadoFoto) === 'pendiente';
+                    strtolower($estadoFoto) === 'pendiente';
                 });
 
                 if ($tienePendiente) {
