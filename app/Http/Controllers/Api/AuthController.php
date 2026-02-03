@@ -7,6 +7,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -96,25 +100,86 @@ class AuthController extends Controller
             // Obtener usuario de Microsoft
             $microsoftUser = Socialite::driver('microsoft')->stateless()->user();
 
-            // Buscar o crear usuario
-            $user = User::updateOrCreate(
-                ['microsoft_id' => $microsoftUser->getId()],
-                [
-                    'name' => $microsoftUser->getName(),
-                    'email' => $microsoftUser->getEmail(),
-                    'avatar' => $microsoftUser->getAvatar(),
-                    'activo' => true,
-                    'password' => bcrypt(bin2hex(random_bytes(16))),
-                ]
-            );
+            $email = $microsoftUser->getEmail();
+            $microsoftId = $microsoftUser->getId();
 
-            // Si es un usuario nuevo, asignar rol por defecto
-            if ($user->wasRecentlyCreated) {
-                $user->assignRole('Operador');
+            // Usar transacción para evitar race conditions
+            try {
+                $user = DB::transaction(function () use ($microsoftId, $email, $microsoftUser) {
+                    // 1) Intentar encontrar por microsoft_id
+                    $user = User::where('microsoft_id', $microsoftId)->first();
+
+                    // 2) Si no existe, intentar por email y bloquear la fila
+                    if (!$user && $email) {
+                        $user = User::where('email', $email)->lockForUpdate()->first();
+                    }
+
+                    // 3) Si existe, actualizar campos relevantes
+                    if ($user) {
+                        $user->microsoft_id = $microsoftId;
+                        $user->name = $microsoftUser->getName() ?? $user->name;
+                        $user->avatar = $microsoftUser->getAvatar() ?? $user->avatar;
+                        $user->activo = $user->activo ?? true;
+                        $user->save();
+                        return $user;
+                    }
+
+                    // 4) No existe: crear nuevo usuario y asignar rol dentro de la transacción
+                    $user = User::create([
+                        'microsoft_id' => $microsoftId,
+                        'name' => $microsoftUser->getName(),
+                        'email' => $email,
+                        'avatar' => $microsoftUser->getAvatar(),
+                        'activo' => true,
+                        'password' => bcrypt(Str::random(40)),
+                    ]);
+
+                    // Asignar rol por defecto si no tiene roles
+                    if (method_exists($user, 'assignRole')) {
+                        try {
+                            $user->assignRole('Operador');
+                        } catch (\Exception $err) {
+                            // No bloquear la transacción por error en roles
+                            Log::warning('No se pudo asignar rol dentro de la transacción: ' . $err->getMessage());
+                        }
+                    }
+
+                    return $user;
+                });
+            } catch (QueryException $qe) {
+                // Manejo defensivo en caso de duplicate key por race
+                if (isset($qe->errorInfo[1]) && $qe->errorInfo[1] == 1062 && $email) {
+                    Log::warning('Duplicate entry al crear usuario OAuth, intentando recuperar por email: ' . $email);
+                    $user = User::where('email', $email)->first();
+                    if ($user && !$user->microsoft_id) {
+                        $user->microsoft_id = $microsoftId;
+                        $user->save();
+                    }
+                } else {
+                    throw $qe;
+                }
+            }
+
+            // Si el usuario no tiene roles, asignar 'Operador'
+            if (isset($user)) {
+                try {
+                    $hasRoles = $user->roles()->exists();
+                } catch (\Exception $err) {
+                    // En caso de que la relación no exista o falle, consideramos que no tiene roles
+                    $hasRoles = false;
+                }
+
+                if (!$hasRoles) {
+                    try {
+                        $user->assignRole('Operador');
+                    } catch (\Exception $err) {
+                        Log::warning('No se pudo asignar rol al usuario después de transacción: ' . $err->getMessage());
+                    }
+                }
             }
 
             // Verificar que el usuario esté activo
-            if (!$user->activo) {
+            if (!$user || !$user->activo) {
                 $frontendUrl = env('FRONTEND_URL', 'http://localhost:8102');
                 return redirect($frontendUrl . '/login?error=usuario_inactivo');
             }
@@ -134,6 +199,7 @@ class AuthController extends Controller
             return redirect($frontendUrl . '/auth/callback?session=' . $sessionKey);
 
         } catch (\Exception $e) {
+            Log::error('Error en callback Microsoft: ' . $e->getMessage());
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:8102');
             return redirect($frontendUrl . '/login?error=' . urlencode($e->getMessage()));
         }
