@@ -290,7 +290,7 @@ class InspeccionController extends Controller
                 ], 404);
             }
 
-            $templatePath = public_path('storage/inspecciones/template/template_inspeccion.xlsx');
+            $templatePath = public_path('template_inspeccion.xlsx');
 
             if (!File::exists($templatePath)) {
                 return response()->json([
