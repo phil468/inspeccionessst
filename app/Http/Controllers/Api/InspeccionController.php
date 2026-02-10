@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Inspeccion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class InspeccionController extends Controller
 {
@@ -79,6 +82,7 @@ class InspeccionController extends Controller
             'empresa_id' => 'required|exists:empresas,id',
             'area_id' => 'required|exists:areas,id',
             'tipo_inspeccion' => 'required|in:Planeada,No Planeada,Otro',
+            'fundo_id' => 'nullable|exists:fundos,id',
             'tipo_inspeccion_otro' => 'nullable|string|max:250',
             'vigencia_desde' => 'nullable|date',
             'vigencia_hasta' => 'nullable|date|after_or_equal:vigencia_desde',
@@ -202,6 +206,7 @@ class InspeccionController extends Controller
 
         $validator = Validator::make($request->all(), [
             'empresa_id' => 'sometimes|required|exists:empresas,id',
+            'fundo_id' => 'nullable|exists:fundos,id',
             'area_id' => 'sometimes|required|exists:areas,id',
             'tipo_inspeccion' => 'sometimes|required|in:Planeada,No Planeada,Otro',
             'tipo_inspeccion_otro' => 'nullable|string|max:250',
@@ -268,5 +273,66 @@ class InspeccionController extends Controller
             'success' => true,
             'message' => 'Inspección eliminada exitosamente',
         ]);
+    }
+
+    /**
+     * Descargar plantilla Excel para una inspección (rellenada si es posible)
+     */
+    public function downloadTemplate(Request $request, string $id)
+    {
+        try {
+            $inspeccion = Inspeccion::with(['empresa', 'area', 'resultados'])->find($id);
+
+            if (!$inspeccion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Inspección no encontrada',
+                ], 404);
+            }
+
+            $templatePath = public_path('storage/inspecciones/template/template_inspeccion.xlsx');
+
+            if (!File::exists($templatePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Plantilla no encontrada en el servidor',
+                ], 404);
+            }
+
+            $filename = 'inspeccion_' . ($inspeccion->numero_registro ?? $inspeccion->id) . '.xlsx';
+
+            // Si PhpSpreadsheet está disponible, intentamos abrir y rellenar algunos campos básicos
+            if (class_exists('PhpOffice\\PhpSpreadsheet\\IOFactory') || class_exists('\\PhpOffice\\PhpSpreadsheet\\IOFactory')) {
+                try {
+                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($templatePath);
+
+                    // Ejemplo: rellenar celdas A1..A4 con información básica
+                    $sheet = $spreadsheet->getActiveSheet();
+                    $sheet->setCellValue('A1', 'Número de registro: ' . ($inspeccion->numero_registro ?? ''));
+                    $sheet->setCellValue('A2', 'Empresa: ' . (optional($inspeccion->empresa)->name ?? ''));
+                    $sheet->setCellValue('A3', 'Área: ' . (optional($inspeccion->area)->name ?? ''));
+                    $sheet->setCellValue('A4', 'Fecha creación: ' . $inspeccion->created_at);
+
+                    // Guardar en un archivo temporal
+                    $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . Str::random(12) . '.xlsx';
+                    $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+                    $writer->save($tempFile);
+
+                    return response()->download($tempFile, $filename)->deleteFileAfterSend(true);
+                } catch (\Throwable $e) {
+                    // Si falla la generación con PhpSpreadsheet, cae al fallback
+                    \Log::warning('Error generando plantilla con PhpSpreadsheet: ' . $e->getMessage());
+                }
+            }
+
+            // Fallback: devolver la plantilla original sin modificar
+            return response()->download($templatePath, $filename);
+        } catch (\Throwable $e) {
+            \Log::error('Error en downloadTemplate: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar/descargar la plantilla',
+            ], 500);
+        }
     }
 }

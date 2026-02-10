@@ -155,6 +155,9 @@ export interface Inspeccion {
   objetivo?: string;
   descripcion_causa?: string;
   conclusiones_recomendaciones?: string;
+  // Sede (fundo)
+  fundo_id?: number | null;
+  fundo?: any;
 
   // Control de sincronización
   synced: boolean;
@@ -176,8 +179,10 @@ export interface Inspeccion {
 }
 
 // Formato simplificado para sincronización con el servidor
-export interface InspeccionSync
-  extends Omit<Inspeccion, 'areas' | 'inspectores' | 'resultados'> {
+export interface InspeccionSync extends Omit<
+  Inspeccion,
+  'areas' | 'inspectores' | 'resultados'
+> {
   areas?: { area_id: number }[];
   inspectores?: { personal_id: number }[];
   resultados?: ResultadoInspeccion[];

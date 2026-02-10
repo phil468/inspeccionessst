@@ -137,7 +137,7 @@ class AuthController extends Controller
                     // Asignar rol por defecto si no tiene roles
                     if (method_exists($user, 'assignRole')) {
                         try {
-                            $user->assignRole('Operador');
+                            $user->assignRole('Personal');
                         } catch (\Exception $err) {
                             // No bloquear la transacción por error en roles
                             Log::warning('No se pudo asignar rol dentro de la transacción: ' . $err->getMessage());
@@ -160,7 +160,7 @@ class AuthController extends Controller
                 }
             }
 
-            // Si el usuario no tiene roles, asignar 'Operador'
+            // Si el usuario no tiene roles, asignar rol 'Personal'
             if (isset($user)) {
                 try {
                     $hasRoles = $user->roles()->exists();
@@ -171,7 +171,7 @@ class AuthController extends Controller
 
                 if (!$hasRoles) {
                     try {
-                        $user->assignRole('Operador');
+                        $user->assignRole('Personal');
                     } catch (\Exception $err) {
                         Log::warning('No se pudo asignar rol al usuario después de transacción: ' . $err->getMessage());
                     }

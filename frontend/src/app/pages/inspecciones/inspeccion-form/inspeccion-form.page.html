@@ -33,6 +33,20 @@
         </ion-select>
       </ion-item>
 
+      <ion-item>
+        <ion-select
+          label="Sede"
+          labelPlacement="stacked"
+          formControlName="fundo_id"
+          placeholder="Seleccione una sede"
+          interface="action-sheet"
+        >
+          <ion-select-option *ngFor="let sede of sedes" [value]="sede.id">
+            {{ sede.nombre }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
       <ion-list-header>
         <ion-label>Tipo de Inspección</ion-label>
       </ion-list-header>
@@ -285,7 +299,7 @@
           <ion-item button (click)="seleccionarResponsable(i)">
             <ion-icon name="person-outline" slot="start" [color]="resultado.responsable ? 'success' : 'medium'"></ion-icon>
             <ion-label>
-              <h3>Responsable del Levantamiento</h3>
+              <h3>Responsable</h3>
               <p *ngIf="resultado.responsable">
                 <ion-text color="success">{{ getNombrePersonal(resultado.responsable) }}</ion-text>
               </p>
@@ -344,7 +358,9 @@
 
           <ion-item>
             <ion-label>Foto Inicial</ion-label>
-            <ion-button fill="outline" (click)="tomarFoto(resultado, 'inicial')">
+            <ion-button fill="outline"
+            (click)="openPhotoSourceModal(resultado, 'inicial')" 
+            >
               <ion-icon slot="start" name="camera-outline"></ion-icon>
               {{ resultado.registro_fotografico_inicial ? 'Cambiar' : 'Tomar' }}
             </ion-button>
@@ -429,9 +445,9 @@
             </ion-note>
           </ion-item>
 
-          <ion-item *ngIf="resultado.estado === 'Ejecutado' || puedeSubirFotoFinal(resultado)">
+            <ion-item *ngIf="resultado.estado === 'Ejecutado' || puedeSubirFotoFinal(resultado)">
             <ion-label>Foto Final / Levantamiento</ion-label>
-            <ion-button fill="outline" (click)="tomarFoto(resultado, 'final')" [disabled]="!puedeSubirFotoFinal(resultado)">
+            <ion-button fill="outline" (click)="openPhotoSourceModal(resultado, 'final')" [disabled]="!puedeSubirFotoFinal(resultado)">
               <ion-icon slot="start" name="camera-outline"></ion-icon>
               {{ resultado.registro_fotografico_final ? 'Cambiar' : 'Tomar' }}
             </ion-button>

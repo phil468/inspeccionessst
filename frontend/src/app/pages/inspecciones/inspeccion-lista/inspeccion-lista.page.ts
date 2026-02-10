@@ -30,6 +30,7 @@ import { InspeccionService } from '../../../services/inspeccion.service';
 import { FormsModule } from '@angular/forms';
 import { Inspeccion } from '../../../models/inspeccion.model';
 import { addIcons } from 'ionicons';
+import { environment } from '../../../../environments/environment';
 import {
   addOutline,
   syncOutline,
@@ -116,6 +117,52 @@ export class InspeccionListaPage implements OnInit {
       'cloud-done': cloudDone,
       'cloud-upload': cloudUpload,
     });
+  }
+
+  async descargarPlantilla(inspeccion: Inspeccion) {
+    // Construir URL pública hacia el archivo de plantilla en el backend
+    const base = (window as any).envAPI_BASE || '';
+    // Fallback usando environment
+    let templateUrl = '';
+    try {
+      // environment.apiUrl suele terminar en '/public/api/v1' o similar
+      // Reemplazamos '/api/v1' por '/storage/inspecciones/template/template_inspeccion.xlsx'
+      // para apuntar al archivo público en el backend
+      const env = environment;
+      if (env && env.apiUrl) {
+        // Construir endpoint que devuelve la plantilla (backend): {apiUrl}/inspecciones/{id}/template
+        templateUrl =
+          env.apiUrl +
+          '/inspecciones/' +
+          (inspeccion.id || inspeccion.local_id) +
+          '/template';
+      } else {
+        templateUrl = '/storage/inspecciones/template/template_inspeccion.xlsx';
+      }
+    } catch (e) {
+      console.warn('No se pudo resolver environment, usando ruta relativa');
+      templateUrl = '/storage/inspecciones/template/template_inspeccion.xlsx';
+    }
+
+    try {
+      const response = await fetch(templateUrl, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Error al descargar plantilla');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inspeccion_${inspeccion.numero_registro || inspeccion.id || 'template'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error al descargar plantilla:', err);
+      await this.showToast('No se pudo descargar la plantilla', 'danger');
+    }
   }
 
   async ngOnInit() {

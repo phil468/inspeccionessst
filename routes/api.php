@@ -125,6 +125,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [InspeccionController::class, 'show']);
         Route::put('/{id}', [InspeccionController::class, 'update']);
         Route::delete('/{id}', [InspeccionController::class, 'destroy']);
+        Route::get('/{id}/template', [InspeccionController::class, 'downloadTemplate']);
         
         // Notificaciones
         Route::post('/{id}/notificar', [\App\Http\Controllers\Api\NotificationController::class, 'enviarNotificacionesInspeccion']);

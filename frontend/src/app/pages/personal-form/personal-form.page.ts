@@ -169,6 +169,19 @@ export class PersonalFormPage implements OnInit {
       importado: [false],
       inspector: [false], // Campo para indicar si es inspector
     });
+
+    // Si marca como inspector, hacer obligatorio el email
+    this.personalForm
+      .get('inspector')
+      ?.valueChanges.subscribe((isInspector) => {
+        const emailControl = this.personalForm.get('email');
+        if (isInspector) {
+          emailControl?.setValidators([Validators.required, Validators.email]);
+        } else {
+          emailControl?.setValidators([Validators.email]);
+        }
+        emailControl?.updateValueAndValidity();
+      });
   }
 
   /**
@@ -557,6 +570,38 @@ export class PersonalFormPage implements OnInit {
       // Actualizar en storage local
       if (response && response.data) {
         await this.storageService.savePersonal([response.data]);
+      }
+
+      // Mostrar información sobre acción de usuario (si el backend creó o ajustó usuario)
+      if (response && response.usuario_accion) {
+        let infoMsg = '';
+        switch (response.usuario_accion) {
+          case 'usuario_creado':
+            infoMsg =
+              'Se creó un usuario de sistema para este personal y se le asignó el rol Operador.';
+            break;
+          case 'rol_actualizado_a_operador':
+            infoMsg = 'El usuario existente cambió su rol a Operador.';
+            break;
+          case 'rol_asignado_operador':
+            infoMsg = 'Se asignó el rol Operador al usuario existente.';
+            break;
+          case 'sin_cambios_por_rol_superior':
+            infoMsg =
+              'El usuario tiene rol administrador/supervisor: no se realizaron cambios en su rol.';
+            break;
+          default:
+            infoMsg = '';
+        }
+
+        if (infoMsg) {
+          const alert = await this.alertController.create({
+            header: 'Información',
+            message: infoMsg,
+            buttons: ['Aceptar'],
+          });
+          await alert.present();
+        }
       }
 
       // Regresar a la lista

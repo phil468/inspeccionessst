@@ -12,6 +12,7 @@ import {
   ToastController,
   LoadingController,
   ModalController,
+  ActionSheetController,
   IonHeader,
   IonToolbar,
   IonTitle,
@@ -129,6 +130,7 @@ export class InspeccionFormPage implements OnInit {
   empresas: Empresa[] = [];
   areas: Area[] = [];
   areasFiltradas: Area[] = [];
+  sedes: any[] = [];
   personalList: Personal[] = [];
 
   isOnline = false;
@@ -162,7 +164,8 @@ export class InspeccionFormPage implements OnInit {
     private inspeccionService: InspeccionService,
     private toastController: ToastController,
     private loadingController: LoadingController,
-    private modalController: ModalController
+    private actionSheetController: ActionSheetController,
+    private modalController: ModalController,
   ) {
     addIcons({
       'save-outline': saveOutline,
@@ -202,12 +205,25 @@ export class InspeccionFormPage implements OnInit {
     }
   }
 
+  // Devuelve un ISO string usando el offset UTC-5 por defecto
+  private getDefaultDateForUtcOffset(offsetHours: number = -5): string {
+    const now = new Date();
+    // UTC time in ms
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    // desired time in ms
+    const desired = new Date(utc + offsetHours * 3600000);
+    return desired.toISOString();
+  }
+
   initForm() {
-    // Inicializar con fecha actual solo si NO estamos en modo edición
-    const now = this.isEditMode ? undefined : new Date().toISOString();
+    // Inicializar con fecha actual en UTC-5 solo si NO estamos en modo edición
+    const now = this.isEditMode
+      ? undefined
+      : this.getDefaultDateForUtcOffset(-5);
 
     this.inspeccionForm = this.fb.group({
       empresa_id: ['', Validators.required],
+      fundo_id: [''],
       tipo_inspeccion: ['Planeada', Validators.required],
       tipo_inspeccion_otro: [''],
       vigencia_desde: [now],
@@ -228,7 +244,7 @@ export class InspeccionFormPage implements OnInit {
         this.filterAreas(empresaId);
         // Limpiar áreas seleccionadas si cambia la empresa
         this.areasSeleccionadas = this.areasSeleccionadas.filter(
-          (area) => area.empresa_id === empresaId
+          (area) => area.empresa_id === empresaId,
         );
       });
 
@@ -247,6 +263,37 @@ export class InspeccionFormPage implements OnInit {
       });
   }
 
+  /**
+   * Mostrar action sheet para seleccionar origen de la foto (Cámara o Galería)
+   */
+  async openPhotoSourceModal(
+    resultado: ResultadoInspeccion,
+    tipo: 'inicial' | 'final',
+  ) {
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Seleccionar origen',
+      buttons: [
+        {
+          text: 'Cámara',
+          icon: 'camera',
+          handler: () => this.tomarFoto(resultado, tipo, 'camera'),
+        },
+        {
+          text: 'Galería',
+          icon: 'images',
+          handler: () => this.tomarFoto(resultado, tipo, 'gallery'),
+        },
+        {
+          text: 'Cancelar',
+          icon: 'close',
+          role: 'cancel',
+        },
+      ],
+    });
+
+    await actionSheet.present();
+  }
+
   async loadCatalogos() {
     const loading = await this.loadingController.create({
       message: 'Cargando datos...',
@@ -256,6 +303,7 @@ export class InspeccionFormPage implements OnInit {
     try {
       this.empresas = await this.databaseService.getEmpresas();
       this.areas = await this.databaseService.getAreas();
+      this.sedes = await this.databaseService.getFundos();
       this.personalList = await this.databaseService.personal.toArray();
 
       // Si está online y no hay datos, descargar del servidor
@@ -263,6 +311,7 @@ export class InspeccionFormPage implements OnInit {
         await this.syncService.downloadCatalogos();
         this.empresas = await this.databaseService.getEmpresas();
         this.areas = await this.databaseService.getAreas();
+        this.sedes = await this.databaseService.getFundos();
         this.personalList = await this.databaseService.personal.toArray();
       }
     } catch (error) {
@@ -282,7 +331,7 @@ export class InspeccionFormPage implements OnInit {
   filterAreas(empresaId: number) {
     if (empresaId) {
       this.areasFiltradas = this.areas.filter(
-        (area) => area.empresa_id === empresaId
+        (area) => area.empresa_id === empresaId,
       );
     } else {
       this.areasFiltradas = [];
@@ -298,7 +347,7 @@ export class InspeccionFormPage implements OnInit {
     try {
       const inspecciones = await this.databaseService.getInspecciones();
       const inspeccion = inspecciones.find(
-        (i: Inspeccion) => i.id?.toString() === id || i.local_id === id
+        (i: Inspeccion) => i.id?.toString() === id || i.local_id === id,
       );
 
       if (!inspeccion) {
@@ -315,7 +364,7 @@ export class InspeccionFormPage implements OnInit {
       // Normalizar fechas al formato ISO 8601 sin microsegundos
       // ion-datetime solo acepta hasta 3 decimales (milisegundos)
       const normalizarFecha = (
-        fecha: string | undefined
+        fecha: string | undefined,
       ): string | undefined => {
         if (!fecha) return undefined;
         try {
@@ -333,6 +382,7 @@ export class InspeccionFormPage implements OnInit {
       setTimeout(() => {
         this.inspeccionForm.patchValue({
           empresa_id: inspeccion.empresa_id,
+          fundo_id: inspeccion.fundo_id,
           tipo_inspeccion: inspeccion.tipo_inspeccion,
           tipo_inspeccion_otro: inspeccion.tipo_inspeccion_otro,
           vigencia_desde: normalizarFecha(inspeccion.vigencia_desde),
@@ -340,7 +390,7 @@ export class InspeccionFormPage implements OnInit {
           zona_inspeccionada: inspeccion.zona_inspeccionada,
           numero_registro: inspeccion.numero_registro,
           fecha_hora_inspeccion: normalizarFecha(
-            inspeccion.fecha_hora_inspeccion
+            inspeccion.fecha_hora_inspeccion,
           ),
           comentario: inspeccion.comentario,
           objetivo: inspeccion.objetivo,
@@ -357,7 +407,7 @@ export class InspeccionFormPage implements OnInit {
         // Cargar áreas seleccionadas
         const inspeccionAreas =
           await this.databaseService.getInspeccionAreasByInspeccion(
-            inspeccion.id
+            inspeccion.id,
           );
         this.areasSeleccionadas = [];
         for (const ia of inspeccionAreas) {
@@ -370,12 +420,12 @@ export class InspeccionFormPage implements OnInit {
         // Cargar inspectores seleccionados
         const inspeccionInspectores =
           await this.databaseService.getInspeccionInspectoresByInspeccion(
-            inspeccion.id
+            inspeccion.id,
           );
         this.inspectoresSeleccionados = [];
         for (const ii of inspeccionInspectores) {
           const personal = this.personalList.find(
-            (p) => p.id === ii.personal_id
+            (p) => p.id === ii.personal_id,
           );
           if (personal) {
             this.inspectoresSeleccionados.push(personal);
@@ -419,7 +469,7 @@ export class InspeccionFormPage implements OnInit {
           if (resultado.fecha_cierre) {
             resultado.fecha_cierre = resultado.fecha_cierre.replace(
               /(\.[0-9]{3})[0-9]*Z$/,
-              '$1Z'
+              '$1Z',
             );
           }
 
@@ -439,7 +489,7 @@ export class InspeccionFormPage implements OnInit {
     if (this.inspeccionForm.invalid) {
       await this.showToast(
         'Por favor completa todos los campos requeridos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -477,6 +527,7 @@ export class InspeccionFormPage implements OnInit {
         domicilio: empresa?.domicilio,
         actividad_economica: empresa?.actividad_economica,
         // Datos de inspección
+        fundo_id: formData.fundo_id || null,
         zona_inspeccionada: formData.zona_inspeccionada,
         numero_registro: formData.numero_registro,
         fecha_hora_inspeccion: formData.fecha_hora_inspeccion,
@@ -522,7 +573,7 @@ export class InspeccionFormPage implements OnInit {
         } catch (error) {
           console.warn(
             '⚠️ No se pudo sincronizar automáticamente, se sincronizará más tarde',
-            error
+            error,
           );
         }
       }
@@ -545,7 +596,7 @@ export class InspeccionFormPage implements OnInit {
 
     if (!inspeccion || !inspeccion.id) {
       console.error(
-        'No se pudo encontrar la inspección para guardar relaciones'
+        'No se pudo encontrar la inspección para guardar relaciones',
       );
       return;
     }
@@ -577,7 +628,7 @@ export class InspeccionFormPage implements OnInit {
         inspeccion_id: inspeccionIndexedDBId,
         area_id: area.id,
         synced: false,
-      })
+      }),
     );
     if (inspeccionAreas.length > 0) {
       await this.databaseService.saveInspeccionAreas(inspeccionAreas);
@@ -730,14 +781,19 @@ export class InspeccionFormPage implements OnInit {
     this.resultados.splice(index, 1);
   }
 
-  async tomarFoto(resultado: ResultadoInspeccion, tipo: 'inicial' | 'final') {
+  async tomarFoto(
+    resultado: ResultadoInspeccion,
+    tipo: 'inicial' | 'final',
+    source: 'camera' | 'gallery' = 'camera',
+  ) {
     try {
       // Solicitar permisos y capturar foto
       const image = await Camera.getPhoto({
         quality: 80,
         allowEditing: false,
         resultType: CameraResultType.DataUrl, // Base64 para offline-first
-        source: CameraSource.Camera,
+        source:
+          source === 'gallery' ? CameraSource.Photos : CameraSource.Camera,
         saveToGallery: false,
       });
 
@@ -780,7 +836,7 @@ export class InspeccionFormPage implements OnInit {
 
   async subirFotoFinalAlServidor(
     resultado: ResultadoInspeccion,
-    imageData: string
+    imageData: string,
   ) {
     const loading = await this.loadingController.create({
       message: 'Subiendo foto...',
@@ -790,7 +846,7 @@ export class InspeccionFormPage implements OnInit {
     try {
       const response = await this.apiService.post(
         `/resultados/${resultado.id}/foto-final`,
-        { foto: imageData }
+        { foto: imageData },
       );
 
       if (response && response.success) {
@@ -802,13 +858,13 @@ export class InspeccionFormPage implements OnInit {
         // Sincronizar la inspección a IndexedDB
         if (this.inspeccionOriginal?.id) {
           await this.syncService.syncInspeccionFromServer(
-            this.inspeccionOriginal.id
+            this.inspeccionOriginal.id,
           );
         }
 
         await this.showToast(
           'Foto subida. Esperando validación del inspector.',
-          'success'
+          'success',
         );
       } else {
         await this.showToast('Error al subir la foto', 'danger');
@@ -873,7 +929,7 @@ export class InspeccionFormPage implements OnInit {
     // Solo calcular automáticamente si está en Pendiente
     if (resultado.estado === 'Pendiente') {
       const fechaInspeccion = this.inspeccionForm.get(
-        'fecha_hora_inspeccion'
+        'fecha_hora_inspeccion',
       )?.value;
       const fechaBase = fechaInspeccion
         ? new Date(fechaInspeccion)
@@ -905,7 +961,7 @@ export class InspeccionFormPage implements OnInit {
       resultado.estado === 'Ejecutado'
     ) {
       const fechaInspeccion = this.inspeccionForm.get(
-        'fecha_hora_inspeccion'
+        'fecha_hora_inspeccion',
       )?.value;
       resultado.fecha_cierre = fechaInspeccion
         ? fechaInspeccion
@@ -1018,7 +1074,7 @@ export class InspeccionFormPage implements OnInit {
 
   // Obtener lista de nombres de responsables de levantamiento para un resultado
   getResponsablesLevantamientoNombresLista(
-    resultado: ResultadoInspeccion
+    resultado: ResultadoInspeccion,
   ): string {
     if (
       !resultado.responsablesLevantamiento ||
@@ -1072,7 +1128,7 @@ export class InspeccionFormPage implements OnInit {
     if (!currentUser) return false;
 
     return this.inspectoresSeleccionados.some(
-      (inspector) => inspector.id === currentUser.personal_id
+      (inspector) => inspector.id === currentUser.personal_id,
     );
   }
 
@@ -1083,7 +1139,7 @@ export class InspeccionFormPage implements OnInit {
 
     const esResponsableLevantamiento =
       resultado.responsablesLevantamiento?.some(
-        (resp) => resp.id === currentUser.personal_id
+        (resp) => resp.id === currentUser.personal_id,
       );
 
     return this.esInspector || esResponsableLevantamiento || false;
@@ -1092,12 +1148,12 @@ export class InspeccionFormPage implements OnInit {
   async aprobarFoto(
     resultado: ResultadoInspeccion,
     tipo: 'inicial' | 'final',
-    accion: 'aprobar' | 'rechazar'
+    accion: 'aprobar' | 'rechazar',
   ) {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para aprobar fotos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -1120,12 +1176,12 @@ export class InspeccionFormPage implements OnInit {
       if (tipo === 'inicial') {
         response = await this.apiService.post(
           `/resultados/${resultado.id}/foto-inicial/aprobar`,
-          { accion, comentario: '' }
+          { accion, comentario: '' },
         );
       } else {
         response = await this.apiService.post(
           `/resultados/${resultado.id}/foto-final/aprobar`,
-          { accion, comentario: '' }
+          { accion, comentario: '' },
         );
       }
 
@@ -1156,11 +1212,11 @@ export class InspeccionFormPage implements OnInit {
         try {
           if (this.inspeccionOriginal?.id) {
             await this.syncService.syncInspeccionFromServer(
-              this.inspeccionOriginal.id
+              this.inspeccionOriginal.id,
             );
             console.log(
               'Inspección sincronizada desde servidor:',
-              this.inspeccionOriginal.id
+              this.inspeccionOriginal.id,
             );
           }
         } catch (syncError) {
@@ -1170,7 +1226,7 @@ export class InspeccionFormPage implements OnInit {
             await this.databaseService.updateResultado(resultado);
             console.log(
               'Resultado actualizado localmente en IndexedDB:',
-              resultado.id
+              resultado.id,
             );
           } catch (dbError) {
             console.error('Error al actualizar IndexedDB:', dbError);

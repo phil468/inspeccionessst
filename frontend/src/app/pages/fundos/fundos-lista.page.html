@@ -5,7 +5,7 @@
         <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>Fundos</ion-title>
+    <ion-title>Sedes</ion-title>
     <ion-buttons slot="end" *ngIf="hasPermission('fundos.create')">
       <ion-button (click)="nuevoFundo()">
         <ion-icon slot="icon-only" name="add"></ion-icon>
@@ -13,10 +13,10 @@
     </ion-buttons>
   </ion-toolbar>
   <ion-toolbar color="primary">
-    <ion-searchbar
+      <ion-searchbar
       [(ngModel)]="searchTerm"
       (ionInput)="filterFundos($event)"
-      placeholder="Buscar fundo"
+      placeholder="Buscar sede"
       animated>
     </ion-searchbar>
   </ion-toolbar>
@@ -52,12 +52,12 @@
 
   <div class="empty-state" *ngIf="!loading && fundosFiltrados.length === 0">
     <ion-icon name="search-outline" size="large"></ion-icon>
-    <h2>No hay fundos</h2>
+        <h2>No hay sedes</h2>
     <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
-    <p *ngIf="!searchTerm">Aún no hay fundos registrados</p>
+    <p *ngIf="!searchTerm">Aún no hay sedes registradas</p>
     <ion-button (click)="nuevoFundo()" *ngIf="hasPermission('fundos.create') && !searchTerm">
       <ion-icon slot="start" name="add"></ion-icon>
-      Nuevo Fundo
+      Nueva Sede
     </ion-button>
   </div>
 

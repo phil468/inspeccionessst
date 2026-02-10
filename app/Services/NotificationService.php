@@ -335,7 +335,7 @@ class NotificationService
                 $todosCerrados = false;
             }
             
-            if (!in_array($resultado->estado, ['Cerrado', 'Ejecutado'])) {
+            if (!in_array($resultado->estado, ['Cerrado', 'Ejecutado','Cumplimiento','Buena Práctica'])) {
                 $todosCerrados = false;
             }
         }

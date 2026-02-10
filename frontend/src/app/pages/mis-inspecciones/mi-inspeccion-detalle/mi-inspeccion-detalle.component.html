@@ -24,13 +24,14 @@
     <!-- Información de la Inspección -->
     <ion-card>
       <ion-card-header>
-        <ion-card-subtitle>{{ inspeccion.tipo_inspeccion }}</ion-card-subtitle>
-        <ion-card-title>{{ inspeccion.empresa?.name }}</ion-card-title>
+        <ion-card-subtitle>{{ inspeccion.tipo_inspeccion }} | Empresa: {{ inspeccion.empresa?.name }}</ion-card-subtitle>
+        <ion-card-title>Registro: {{ inspeccion.numero_registro || 'N/A' }}</ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <ion-item lines="none">
           <ion-label>
             <p><strong>Área:</strong> {{ inspeccion.area?.name || 'N/A' }}</p>
+            <!-- <p><strong>Número de registro:</strong> {{ inspeccion.numero_registro || 'N/A' }}</p> -->
             <p><strong>Fecha:</strong> {{ inspeccion.fecha_hora_inspeccion | date:'dd/MM/yyyy HH:mm' }}</p>
           </ion-label>
         </ion-item>

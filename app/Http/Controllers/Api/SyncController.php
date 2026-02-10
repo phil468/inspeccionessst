@@ -321,6 +321,7 @@ class SyncController extends Controller
             'inspecciones.*.numero_registro' => 'required|string',
             'inspecciones.*.fecha_hora_inspeccion' => 'required|date',
             'inspecciones.*.comentario' => 'nullable|string',
+            'inspecciones.*.fundo_id' => 'nullable|exists:fundos,id',
             'inspecciones.*.objetivo' => 'nullable|string',
             'inspecciones.*.descripcion_causa' => 'nullable|string',
             'inspecciones.*.conclusiones_recomendaciones' => 'nullable|string',
@@ -389,6 +390,7 @@ class SyncController extends Controller
 
                     // Si llegamos aquí, el cliente es más reciente o igual, procedemos a actualizar
                     $datosActualizacion = [
+                        'fundo_id' => $inspeccionData['fundo_id'] ?? null,
                         'empresa_id' => $inspeccionData['empresa_id'] ?? null,
                         'area_id' => $inspeccionData['area_id'] ?? null,
                         'tipo_inspeccion' => $inspeccionData['tipo_inspeccion'],
@@ -427,6 +429,7 @@ class SyncController extends Controller
 
                 // Crear nueva inspección
                 $nuevaInspeccion = Inspeccion::create([
+                    'fundo_id' => $inspeccionData['fundo_id'] ?? null,
                     'local_id' => $localId,
                     'user_id' => $user->id,
                     'empresa_id' => $inspeccionData['empresa_id'] ?? null,

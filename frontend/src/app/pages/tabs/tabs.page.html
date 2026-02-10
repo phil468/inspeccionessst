@@ -18,15 +18,15 @@
       <ion-icon name="home-outline"></ion-icon>
       <span>Inicio</span>
     </div>
-    <div class="menu-item" (click)="navigateTo('/registro-lista')">
+    <!-- <div class="menu-item" (click)="navigateTo('/registro-lista')">
       <ion-icon name="list-outline"></ion-icon>
       <span>Registros</span>
-    </div>
-    <div class="menu-item" (click)="navigateTo('/inspecciones')">
+    </div> -->
+    <div class="menu-item" *ngIf="hasPermission('inspecciones.view')"(click)="navigateTo('/inspecciones')">
       <ion-icon name="document-text-outline"></ion-icon>
       <span>Inspecciones</span>
     </div>
-    <div class="menu-item" (click)="navigateTo('/mis-inspecciones')">
+    <div class="menu-item" *ngIf="hasPermission('mis-inspecciones.view')"(click)="navigateTo('/mis-inspecciones')">
       <ion-icon name="clipboard-outline"></ion-icon>
       <span>Mis Inspecciones</span>
     </div>
@@ -38,7 +38,7 @@
     </div>
     <div class="menu-item sub" *ngIf="hasPermission('fundos.view')" (click)="navigateTo('/fundos')">
       <ion-icon name="business-outline"></ion-icon>
-      <span>Fundos</span>
+      <span>Sedes</span>
     </div>
     <div class="menu-item sub" *ngIf="hasPermission('empresas.view')" (click)="navigateTo('/empresas')">
       <ion-icon name="briefcase-outline"></ion-icon>
@@ -80,14 +80,21 @@
       <ion-label>Inicio</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button (click)="navigateTo('/inspecciones/form')">
+    <ion-tab-button *ngIf="hasPermission('inspecciones.create')" (click)="navigateTo('/inspecciones/form')">
       <ion-icon name="add-circle-outline"></ion-icon>
       <ion-label>Nueva</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button (click)="navigateTo('/inspecciones')">
+    <ion-tab-button *ngIf="hasPermission('inspecciones.view')" (click)="navigateTo('/inspecciones')">
       <ion-icon name="list-outline"></ion-icon>
       <ion-label>Inspecciones</ion-label>
+    </ion-tab-button>
+
+    <!-- un boton para ir a mis-inspecciones solo si el usuario tiene permiso -->
+
+    <ion-tab-button *ngIf="hasPermission('mis-inspecciones.view')" (click)="navigateTo('/mis-inspecciones')">
+      <ion-icon name="clipboard-outline"></ion-icon>
+      <ion-label>Mis Inspecciones</ion-label>
     </ion-tab-button>
 
     <ion-tab-button (click)="toggleMenu()">

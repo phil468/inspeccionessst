@@ -18,6 +18,7 @@ class Inspeccion extends Model
         'user_id',
         'empresa_id',
         'area_id',
+        'fundo_id',
         'tipo_inspeccion',
         'tipo_inspeccion_otro',
         'vigencia_desde',
@@ -41,6 +42,7 @@ class Inspeccion extends Model
         'user_id' => 'integer',
         'empresa_id' => 'integer',
         'area_id' => 'integer',
+        'fundo_id' => 'integer',
         'vigencia_desde' => 'datetime',
         'vigencia_hasta' => 'datetime',
         'fecha_hora_inspeccion' => 'datetime',
@@ -69,6 +71,11 @@ class Inspeccion extends Model
     public function empresa()
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function fundo()
+    {
+        return $this->belongsTo(\App\Models\Fundo::class);
     }
 
     public function area()
@@ -176,6 +183,7 @@ class Inspeccion extends Model
         return $query->with([
             'user:id,name,email',
             'empresa:id,name,razon_social,ruc',
+            'fundo:id,nombre',
             'area:id,name,empresa_id',
             'areas:id,name',
             'inspectores:id,nombres,apellido_paterno,apellido_materno,cargo_id',

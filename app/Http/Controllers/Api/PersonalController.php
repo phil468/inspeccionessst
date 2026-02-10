@@ -123,7 +123,7 @@ class PersonalController extends Controller
             'empresa_id' => 'nullable|exists:empresas,id',
             'area_id' => 'nullable|exists:areas,id',
             'cargo_id' => 'nullable|exists:cargos,id',
-            'correo_empresa' => 'nullable|email|max:250',
+            'correo_empresa' => 'required_if:inspector,true|nullable|email|max:250',
         ]);
 
         if ($validator->fails()) {
@@ -145,9 +145,63 @@ class PersonalController extends Controller
 
         $personal = Personal::create($data);
 
+        // Si es inspector, asegurar que tenga usuario y rol adecuado
+        $usuarioAccion = null;
+        try {
+            if (!empty($personal->inspector)) {
+                $correo = $personal->correo_empresa;
+                if ($correo) {
+                    $userModel = \App\Models\User::where('email', $correo)->first();
+
+                    if (!$userModel) {
+                        // Crear usuario con rol Operador
+                        $password = \Illuminate\Support\Str::random(12);
+                        $userModel = \App\Models\User::create([
+                            'name' => $personal->name,
+                            'email' => $correo,
+                            'password' => bcrypt($password),
+                            'activo' => true,
+                            'personal_id' => $personal->id,
+                        ]);
+                        $userModel->assignRole('Operador');
+                        $usuarioAccion = 'usuario_creado';
+                    } else {
+                        // Si tiene rol Administrador o Supervisor no hacemos cambios
+                        if ($userModel->hasRole('Administrador') || $userModel->hasRole('Supervisor')) {
+                            $usuarioAccion = 'sin_cambios_por_rol_superior';
+                        } else {
+                            // Si tiene rol Personal, cambiar a Operador
+                            if ($userModel->hasRole('Personal')) {
+                                $userModel->syncRoles(['Operador']);
+                                $usuarioAccion = 'rol_actualizado_a_operador';
+                            } else {
+                                // Si no tiene roles, asignar Operador
+                                if (!$userModel->roles()->exists()) {
+                                    $userModel->assignRole('Operador');
+                                    $usuarioAccion = 'rol_asignado_operador';
+                                } else {
+                                    $usuarioAccion = 'sin_cambios';
+                                }
+                            }
+                        }
+
+                        // Vincular user.personal_id si está vacío
+                        if (empty($userModel->personal_id)) {
+                            $userModel->personal_id = $personal->id;
+                            $userModel->save();
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // No bloquear la creación si falla la lógica de usuario
+            \Log::warning('Error al crear/actualizar usuario para personal: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Personal creado exitosamente',
+            'usuario_accion' => $usuarioAccion,
             'data' => $personal->load([
                 'empresa',
                 'area',
@@ -174,7 +228,7 @@ class PersonalController extends Controller
             'empresa_id' => 'nullable|exists:empresas,id',
             'area_id' => 'nullable|exists:areas,id',
             'cargo_id' => 'nullable|exists:cargos,id',
-            'correo_empresa' => 'nullable|email|max:250',
+            'correo_empresa' => 'required_if:inspector,true|nullable|email|max:250',
         ]);
 
         if ($validator->fails()) {
@@ -196,9 +250,57 @@ class PersonalController extends Controller
 
         $personal->update($data);
 
+        $usuarioAccion = null;
+        try {
+            if (!empty($personal->inspector)) {
+                $correo = $personal->correo_empresa;
+                if ($correo) {
+                    $userModel = \App\Models\User::where('email', $correo)->first();
+
+                    if (!$userModel) {
+                        // Crear usuario con rol Operador
+                        $password = \Illuminate\Support\Str::random(12);
+                        $userModel = \App\Models\User::create([
+                            'name' => $personal->name,
+                            'email' => $correo,
+                            'password' => bcrypt($password),
+                            'activo' => true,
+                            'personal_id' => $personal->id,
+                        ]);
+                        $userModel->assignRole('Operador');
+                        $usuarioAccion = 'usuario_creado';
+                    } else {
+                        if ($userModel->hasRole('Administrador') || $userModel->hasRole('Supervisor')) {
+                            $usuarioAccion = 'sin_cambios_por_rol_superior';
+                        } else {
+                            if ($userModel->hasRole('Personal')) {
+                                $userModel->syncRoles(['Operador']);
+                                $usuarioAccion = 'rol_actualizado_a_operador';
+                            } else {
+                                if (!$userModel->roles()->exists()) {
+                                    $userModel->assignRole('Operador');
+                                    $usuarioAccion = 'rol_asignado_operador';
+                                } else {
+                                    $usuarioAccion = 'sin_cambios';
+                                }
+                            }
+                        }
+
+                        if (empty($userModel->personal_id)) {
+                            $userModel->personal_id = $personal->id;
+                            $userModel->save();
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Error al crear/actualizar usuario para personal (update): ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Personal actualizado exitosamente',
+            'usuario_accion' => $usuarioAccion,
             'data' => $personal->load([
                 'empresa',
                 'area',
@@ -446,7 +548,7 @@ class PersonalController extends Controller
             ]);
         }
 
-        // 3. No tiene usuario, crear uno nuevo con rol Visor
+        // 3. No tiene usuario, crear uno nuevo con rol Personal
         $personal->update(['correo_empresa' => $correo]);
         
         $nuevoUsuario = \App\Models\User::create([
@@ -457,15 +559,15 @@ class PersonalController extends Controller
             'activo' => true,
         ]);
         
-        // Asignar rol Visor
-        $rolVisor = \App\Models\Role::where('name', 'Visor')->first();
-        if ($rolVisor) {
-            $nuevoUsuario->roles()->attach($rolVisor->id);
+        // Asignar rol Personal
+        $rolPersonal = \App\Models\Role::where('name', 'Personal')->first();
+        if ($rolPersonal) {
+            $nuevoUsuario->roles()->attach($rolPersonal->id);
         }
         
         return response()->json([
             'success' => true,
-            'message' => 'Usuario creado exitosamente con rol Visor',
+            'message' => 'Usuario creado exitosamente con rol Personal',
             'data' => [
                 'personal' => $personal->fresh(),
                 'usuario' => $nuevoUsuario->load('roles'),

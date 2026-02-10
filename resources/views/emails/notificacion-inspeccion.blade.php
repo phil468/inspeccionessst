@@ -259,7 +259,9 @@
             <!-- Información de la Inspección -->
             <div class="info-box">
                 <h3>📋 Detalles de la Inspección</h3>
+                <h4><strong>Número de Registro:</strong> {{ $inspeccion->numero_registro ?? 'N/A' }}</h4>
                 <p><strong>Empresa:</strong> {{ $inspeccion->empresa->name ?? 'N/A' }}</p>
+                <p><strong>Sede:</strong> {{ $inspeccion->fundo->nombre ?? ($inspeccion->fundo_nombre ?? 'N/A') }}</p>
                 <p><strong>Área:</strong> {{ $inspeccion->area->name ?? 'N/A' }}</p>
                 <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($inspeccion->fecha_inspeccion)->format('d/m/Y') }}
                 </p>
@@ -310,6 +312,41 @@
                         @if ($resultado->accion_tomar)
                             <p style="margin-top: 10px; font-size: 13px; color: #555;">
                                 <strong>Acción:</strong> {{ $resultado->accion_tomar }}
+                            </p>
+                        @endif
+
+                        {{-- agregar responsable de resultado --}}
+
+                        @if (isset($resultado->responsable))
+                            <p style="margin-top: 8px; font-size:13px; color:#444;">
+                                <strong>Responsable del Resultado:</strong>
+                                {{ $resultado->responsable->nombres ?? '' }}
+                                {{ $resultado->responsable->apellido_paterno ?? '' }}
+                            </p>
+                        @endif
+
+
+                        @if (isset($resultado->responsablesLevantamiento) && count($resultado->responsablesLevantamiento) > 0)
+                            <p style="margin-top: 8px; font-size:13px; color:#444;">
+                                <strong>Responsable(s) de Levantamiento:</strong>
+                                @foreach ($resultado->responsablesLevantamiento as $r)
+                                    {{ ($r->nombres ?? ($r->personal->nombres ?? '')) . ' ' . ($r->apellido_paterno ?? ($r->personal->apellido_paterno ?? '')) }}
+                                    @if (!$loop->last)
+                                        ,
+                                    @endif
+                                @endforeach
+                            </p>
+                        @endif
+
+                        @if (isset($resultado->foto_final_estado) && $resultado->foto_final_estado === 'rechazada')
+                            <p style="margin-top:8px; font-size:13px; color:#c33;">
+                                <strong>Registro fotográfico por corregir:</strong>
+                                <br>
+                                @if (!empty($resultado->foto_final_comentario))
+                                    <em>{{ $resultado->foto_final_comentario }}</em>
+                                @else
+                                    <em>Sin comentarios.</em>
+                                @endif
                             </p>
                         @endif
                     </div>
