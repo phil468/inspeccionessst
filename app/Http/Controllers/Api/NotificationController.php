@@ -24,6 +24,7 @@ class NotificationController extends Controller
         $inspeccion = Inspeccion::with([
             'empresa',
             'area',
+            'inspectores',
             'resultados.responsable',
             'resultados.visores',
             'resultados.responsablesLevantamiento',
@@ -35,12 +36,25 @@ class NotificationController extends Controller
         // ]);
         // dd($inspeccion);
 
-        // Verificar que el usuario tenga permisos
+        // Verificar que el usuario tenga permisos, puede enviar notificaciones el usario que lo creo o un administrador o algún inspector de la inspección
         $user = $request->user();
-        if ($inspeccion->user_id !== $user->id && !$user->hasRole('Administrador')) {
+
+
+        if (
+            $inspeccion->user_id !== $user->id 
+        && !$user->hasRole('Administrador')
+        && !in_array($user->personal_id, $inspeccion->inspectores->pluck('id')->toArray())
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permisos para enviar notificaciones de esta inspección',
+                'data' => [
+                    'user_id' => $user->id,
+                    'inspeccion_user_id' => $inspeccion->user_id,
+                    'has_role_admin' => $user->hasRole('Administrador'),
+                    'personal_id' => $user->personal_id,
+                    'inspectores_ids' => $inspeccion->inspectores->pluck('id')->toArray()
+                ]
             ], 403);
         }
 
