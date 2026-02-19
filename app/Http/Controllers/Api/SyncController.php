@@ -573,6 +573,7 @@ class SyncController extends Controller
                     'empresa:id,name,razon_social,ruc',
                     'area:id,name,empresa_id',
                     'areas:id,name',
+                    'fundo:id,nombre',
                     'inspectores:id,nombres,apellido_paterno,apellido_materno,dni',
                     'resultados' => function($q) {
                         $q->orderBy('nivel_riesgo', 'asc'); // Alto primero

@@ -1,4 +1,4 @@
-import { Empresa, Area, Personal } from './catalogo.model';
+import { Empresa, Area, Personal, Fundo } from './catalogo.model';
 
 export type TipoInspeccion = 'Planeada' | 'No Planeada' | 'Otro';
 export type NivelRiesgo = 'Alto' | 'Medio' | 'Bajo';
@@ -157,7 +157,7 @@ export interface Inspeccion {
   conclusiones_recomendaciones?: string;
   // Sede (fundo)
   fundo_id?: number | null;
-  fundo?: any;
+  // fundo?: any;
 
   // Control de sincronización
   synced: boolean;
@@ -169,6 +169,7 @@ export interface Inspeccion {
   empresa?: Empresa;
   area?: Area;
   areas?: InspeccionArea[]; // Múltiples áreas
+  fundo?: Fundo; // Sede
   inspectores?: InspeccionInspector[]; // Múltiples inspectores
   responsables_area?: InspeccionResponsableArea[];
   resultados?: ResultadoInspeccion[];
