@@ -35,9 +35,10 @@ class NotificacionInspeccion extends Mailable
      */
     public function envelope(): Envelope
     {
+        //agregar registro de inspeccion en el titulo
         $subject = $this->tipo === 'felicitaciones'
-            ? "✓ Inspección Completada - {$this->inspeccion->empresa->name}"
-            : "⚠ Resultados Pendientes - {$this->inspeccion->empresa->name}";
+            ? "{$this->inspeccion->numero_registro} ✓ Inspección Completada - {$this->inspeccion->empresa->name}"
+            : "{$this->inspeccion->numero_registro} ⚠ Resultados Pendientes - {$this->inspeccion->empresa->name}";
 
         return new Envelope(
             subject: $subject,

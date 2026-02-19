@@ -162,6 +162,8 @@ export interface Inspeccion {
   // Control de sincronización
   synced: boolean;
   synced_at?: string;
+  // Marca local para borrados pendientes de sincronización
+  deleted?: boolean;
 
   // Relaciones (para visualización)
   empresa?: Empresa;

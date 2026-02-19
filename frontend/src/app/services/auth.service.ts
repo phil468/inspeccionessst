@@ -17,7 +17,10 @@ export class AuthService {
   private tokenKey = 'auth_token';
   private userKey = 'auth_user';
 
-  constructor(private apiService: ApiService, private router: Router) {
+  constructor(
+    private apiService: ApiService,
+    private router: Router,
+  ) {
     const storedUser = localStorage.getItem(this.userKey);
     const user = storedUser ? JSON.parse(storedUser) : null;
 
@@ -25,7 +28,7 @@ export class AuthService {
     this.currentUser$ = this.currentUserSubject.asObservable();
 
     this.authStateSubject = new BehaviorSubject<boolean>(
-      !!user && !!this.getToken()
+      !!user && !!this.getToken(),
     );
     this.authState$ = this.authStateSubject.asObservable();
   }
@@ -54,8 +57,11 @@ export class AuthService {
   /**
    * Obtener URL de login con Microsoft
    */
-  async getMicrosoftLoginUrl(): Promise<any> {
-    return this.apiService.get('/auth/microsoft');
+  async getMicrosoftLoginUrl(returnUrl?: string): Promise<any> {
+    const endpoint = returnUrl
+      ? `/auth/microsoft?returnUrl=${encodeURIComponent(returnUrl)}`
+      : '/auth/microsoft';
+    return this.apiService.get(endpoint);
   }
 
   /**
@@ -63,7 +69,7 @@ export class AuthService {
    */
   async loginWithCredentials(
     email: string,
-    password: string
+    password: string,
   ): Promise<AuthResponse> {
     try {
       const response = await this.apiService.post('/auth/login', {
@@ -157,7 +163,7 @@ export class AuthService {
 
     // Verificar en todos los roles del usuario
     return user.roles.some((role) =>
-      role.permissions?.some((p) => p.name === permission)
+      role.permissions?.some((p) => p.name === permission),
     );
   }
 

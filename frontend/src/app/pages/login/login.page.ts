@@ -1,6 +1,6 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
   IonicModule,
@@ -43,8 +43,9 @@ export class LoginPage implements OnInit {
     private authService: AuthService,
     private syncService: SyncService,
     private router: Router,
+    private route: ActivatedRoute,
     private loadingController: LoadingController,
-    private toastController: ToastController
+    private toastController: ToastController,
   ) {
     addIcons({
       leafOutline,
@@ -62,7 +63,8 @@ export class LoginPage implements OnInit {
     // Si ya está autenticado, redirigir a home
     const isAuthenticated = this.authService.isAuthenticated;
     if (isAuthenticated) {
-      this.router.navigate(['/home'], { replaceUrl: true });
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+      this.router.navigateByUrl(returnUrl, { replaceUrl: true });
     }
   }
 
@@ -94,7 +96,11 @@ export class LoginPage implements OnInit {
 
       await loading.dismiss();
       this.showToast('Bienvenido', 'success');
-      this.router.navigate(['/home'], { replaceUrl: true });
+
+      // Redirigir a la URL solicitada si existe
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+      // navigateByUrl permite navegar a rutas con parámetros completos
+      this.router.navigateByUrl(returnUrl, { replaceUrl: true });
     } catch (error: any) {
       await loading.dismiss();
       console.error('Error en login:', error);
@@ -107,7 +113,8 @@ export class LoginPage implements OnInit {
       this.loading = true;
 
       // Obtener URL de Microsoft
-      const response = await this.authService.getMicrosoftLoginUrl();
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+      const response = await this.authService.getMicrosoftLoginUrl(returnUrl);
 
       if (response.success && response.redirect_url) {
         // Redirigir a Microsoft OAuth

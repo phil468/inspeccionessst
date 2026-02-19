@@ -63,7 +63,7 @@ export class StorageService {
    */
   async updateRegistro(
     id: number,
-    changes: Partial<Registro>
+    changes: Partial<Registro>,
   ): Promise<number> {
     return await this.db.registros.update(id, changes);
   }
@@ -73,7 +73,7 @@ export class StorageService {
    */
   async markRegistroAsSynced(
     localId: string,
-    serverId?: number
+    serverId?: number,
   ): Promise<number> {
     const registro = await this.getRegistroByLocalId(localId);
     if (!registro) {
@@ -157,7 +157,7 @@ export class StorageService {
    * Obtener una inspección por local_id
    */
   async getInspeccionByLocalId(
-    localId: string
+    localId: string,
   ): Promise<Inspeccion | undefined> {
     return await this.db.inspecciones
       .filter((i) => i.local_id === localId)
@@ -169,7 +169,7 @@ export class StorageService {
    */
   async updateInspeccion(
     id: number,
-    changes: Partial<Inspeccion>
+    changes: Partial<Inspeccion>,
   ): Promise<number> {
     return await this.db.inspecciones.update(id, changes);
   }
@@ -179,7 +179,7 @@ export class StorageService {
    */
   async markInspeccionAsSynced(
     localId: string,
-    serverId?: number
+    serverId?: number,
   ): Promise<number> {
     const inspeccion = await this.getInspeccionByLocalId(localId);
     if (!inspeccion) {
@@ -209,6 +209,61 @@ export class StorageService {
    */
   async deleteInspeccion(id: number): Promise<void> {
     await this.db.inspecciones.delete(id);
+  }
+
+  /**
+   * Marcar una inspección como eliminada (soft-delete local)
+   * Esto permite que el sync detecte la eliminación y la propague al servidor
+   */
+  async markInspeccionAsDeleted(localId: string): Promise<number> {
+    const inspeccion = await this.getInspeccionByLocalId(localId);
+    if (!inspeccion) {
+      throw new Error('Inspección no encontrada con local_id: ' + localId);
+    }
+
+    // Encontrar la clave primaria de IndexedDB
+    const dbKey = await this.db.inspecciones
+      .where('local_id')
+      .equals(localId)
+      .primaryKeys()
+      .then((keys) => keys[0]);
+
+    if (!dbKey) {
+      throw new Error('No se encontró la clave primaria para la inspección');
+    }
+
+    // Actualizar solo los flags relevantes
+    return await this.db.inspecciones.update(dbKey, {
+      deleted: true,
+      synced: false,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Desmarcar una inspección como eliminada (undo local delete)
+   */
+  async unmarkInspeccionAsDeleted(localId: string): Promise<number> {
+    const inspeccion = await this.getInspeccionByLocalId(localId);
+    if (!inspeccion) {
+      throw new Error('Inspección no encontrada con local_id: ' + localId);
+    }
+
+    const dbKey = await this.db.inspecciones
+      .where('local_id')
+      .equals(localId)
+      .primaryKeys()
+      .then((keys) => keys[0]);
+
+    if (!dbKey) {
+      throw new Error('No se encontró la clave primaria para la inspección');
+    }
+
+    return await this.db.inspecciones.update(dbKey, {
+      deleted: false,
+      // dejar synced como estaba (no cambiar), pero actualizar timestamp
+      updated_at: new Date().toISOString(),
+    });
   }
 
   /**
@@ -291,7 +346,7 @@ export class StorageService {
           await this.db.personal.bulkAdd(catalogos.personal);
           console.log(`📥 ${catalogos.personal.length} personal guardado`);
         }
-      }
+      },
     );
   }
 

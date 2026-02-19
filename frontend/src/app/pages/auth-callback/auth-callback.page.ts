@@ -24,7 +24,7 @@ export class AuthCallbackPage implements OnInit {
     private router: Router,
     private authService: AuthService,
     private syncService: SyncService,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {}
 
   async ngOnInit() {
@@ -81,7 +81,7 @@ export class AuthCallbackPage implements OnInit {
         console.error(
           '❌ Error en fetch:',
           fetchError.name,
-          fetchError.message
+          fetchError.message,
         );
         if (fetchError.name === 'AbortError') {
           throw new Error('Timeout: El servidor no respondió a tiempo');
@@ -92,7 +92,7 @@ export class AuthCallbackPage implements OnInit {
       console.log(
         '📡 Respuesta del servidor:',
         sessionResponse.status,
-        sessionResponse.statusText
+        sessionResponse.statusText,
       );
 
       if (!sessionResponse.ok) {
@@ -137,7 +137,7 @@ export class AuthCallbackPage implements OnInit {
 
       console.log(
         '✅ Sesión guardada. IsAuthenticated:',
-        this.authService.isAuthenticated
+        this.authService.isAuthenticated,
       );
 
       // Actualizar mensaje de loading
@@ -165,8 +165,13 @@ export class AuthCallbackPage implements OnInit {
 
       await loading.dismiss();
 
-      // Redirigir al home
-      this.router.navigate(['/home']);
+      // Redirigir a la URL solicitada si el backend la proporcionó
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+      if (returnUrl) {
+        this.router.navigateByUrl(returnUrl, { replaceUrl: true });
+      } else {
+        this.router.navigate(['/home']);
+      }
     } catch (error) {
       console.error('Error procesando callback:', error);
       await loading.dismiss();

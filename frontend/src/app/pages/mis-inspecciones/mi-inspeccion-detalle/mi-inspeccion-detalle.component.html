@@ -30,6 +30,9 @@
       <ion-card-content>
         <ion-item lines="none">
           <ion-label>
+            <!-- sede -->
+            <p><strong>Sede:</strong> {{ inspeccion.fundo?.name || 'N/A' }}</p>
+             <!-- área -->
             <p><strong>Área:</strong> {{ inspeccion.area?.name || 'N/A' }}</p>
             <!-- <p><strong>Número de registro:</strong> {{ inspeccion.numero_registro || 'N/A' }}</p> -->
             <p><strong>Fecha:</strong> {{ inspeccion.fecha_hora_inspeccion | date:'dd/MM/yyyy HH:mm' }}</p>
@@ -99,7 +102,8 @@
           </ion-col>
 
           <!-- Foto Final / Levantamiento -->
-          <ion-col size="6">
+           <!-- si es diferente de cumplimiento -->
+          <ion-col size="6" *ngIf="resultado.estado !== 'Cumplimiento'">
             <div class="foto-container">
               <ion-label><strong>Foto Levantamiento</strong></ion-label>
               

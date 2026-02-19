@@ -73,10 +73,47 @@ class AuthController extends Controller
     public function redirectToMicrosoft()
     {
         try {
-            $redirectUrl = Socialite::driver('microsoft')
-                ->stateless()
-                ->redirect()
-                ->getTargetUrl();
+            // Leer returnUrl opcional enviado por el frontend
+            $returnUrl = request()->query('returnUrl');
+
+            // Validar returnUrl para evitar open redirects: aceptar rutas relativas o URLs que pertenecen al FRONTEND_URL
+            if ($returnUrl) {
+                $allowed = false;
+                // Rutas relativas como /mis-inspecciones/123
+                if (strpos($returnUrl, '/') === 0) {
+                    $allowed = true;
+                } else {
+                    // Si es URL absoluta, comprobar host
+                    $frontend = rtrim(env('FRONTEND_URL', 'http://localhost:8102'), '/');
+                    $frontendHost = parse_url($frontend, PHP_URL_HOST);
+                    $returnHost = parse_url($returnUrl, PHP_URL_HOST);
+                    if ($frontendHost && $returnHost && $frontendHost === $returnHost) {
+                        $allowed = true;
+                    }
+                }
+
+                if (!$allowed) {
+                    // Ignorar returnUrl no segura
+                    $returnUrl = null;
+                }
+            }
+
+            // Generar un state único si se pasó returnUrl, y guardarlo en cache
+            $state = null;
+            if ($returnUrl) {
+                $state = 'rurl_' . bin2hex(random_bytes(12));
+                // Guardar el returnUrl asociado al state por 15 minutos
+                cache()->put('oauth_return_' . $state, $returnUrl, now()->addMinutes(15));
+            }
+
+            // Construir la URL de redirección a Microsoft, incluyendo nuestro state personalizado si existe
+            $driver = Socialite::driver('microsoft')->stateless();
+            if ($state) {
+                // Agregar el state personalizado al request de OAuth
+                $driver = $driver->with(['state' => $state]);
+            }
+
+            $redirectUrl = $driver->redirect()->getTargetUrl();
 
             return response()->json([
                 'success' => true,
@@ -99,6 +136,14 @@ class AuthController extends Controller
         try {
             // Obtener usuario de Microsoft
             $microsoftUser = Socialite::driver('microsoft')->stateless()->user();
+
+            // Intentar recuperar returnUrl desde el state si el frontend lo envió
+            $receivedState = $request->input('state');
+            $returnUrl = null;
+            if ($receivedState) {
+                $returnUrl = cache()->pull('oauth_return_' . $receivedState);
+                // pull() obtiene y elimina la entrada de cache
+            }
 
             $email = $microsoftUser->getEmail();
             $microsoftId = $microsoftUser->getId();
@@ -194,9 +239,14 @@ class AuthController extends Controller
                 'token' => $token,
             ], now()->addMinutes(5)); // Expira en 5 minutos
 
-            // Redirigir al frontend solo con la clave de sesión
+            // Redirigir al frontend solo con la clave de sesión y opcional returnUrl
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:8102');
-            return redirect($frontendUrl . '/auth/callback?session=' . $sessionKey);
+            $callbackUrl = $frontendUrl . '/auth/callback?session=' . $sessionKey;
+            if ($returnUrl) {
+                $callbackUrl .= '&returnUrl=' . urlencode($returnUrl);
+            }
+
+            return redirect($callbackUrl);
 
         } catch (\Exception $e) {
             Log::error('Error en callback Microsoft: ' . $e->getMessage());

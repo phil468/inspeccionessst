@@ -44,7 +44,7 @@ export class SyncService {
     private apiService: ApiService,
     private storageService: StorageService,
     private databaseService: DatabaseService,
-    private authService: AuthService
+    private authService: AuthService,
   ) {
     // Inicializar estado de red
     this.networkStatusSubject = new BehaviorSubject<NetworkStatus>({
@@ -158,10 +158,10 @@ export class SyncService {
           this.syncAll();
         } else {
           console.log(
-            `❌ No sincroniza - Online: ${this.isOnline}, Auth: ${this.authService.isAuthenticated}`
+            `❌ No sincroniza - Online: ${this.isOnline}, Auth: ${this.authService.isAuthenticated}`,
           );
         }
-      }
+      },
     );
 
     const intervalMinutes = this.autoSyncInterval / 60000;
@@ -231,7 +231,7 @@ export class SyncService {
         await this.storageService.countPendingInspecciones();
       const pendingCount = pendingRegistros + pendingInspecciones;
       console.log(
-        `✅ Sincronización completa - Registros pendientes: ${pendingRegistros}, Inspecciones pendientes: ${pendingInspecciones}`
+        `✅ Sincronización completa - Registros pendientes: ${pendingRegistros}, Inspecciones pendientes: ${pendingInspecciones}`,
       );
 
       this.updateSyncStatus({
@@ -292,7 +292,7 @@ export class SyncService {
         for (const exitoso of response.data.sincronizados) {
           await this.storageService.markRegistroAsSynced(
             exitoso.local_id,
-            exitoso.server_id!
+            exitoso.server_id!,
           );
         }
       }
@@ -305,7 +305,7 @@ export class SyncService {
           if ((error as any).conflict) {
             console.warn(
               `⚠️ Conflicto detectado en registro ${error.local_id}:`,
-              error.message
+              error.message,
             );
 
             const conflicto: SyncConflict = {
@@ -325,7 +325,7 @@ export class SyncService {
             } catch (downloadError) {
               console.error(
                 'Error descargando registro en conflicto:',
-                downloadError
+                downloadError,
               );
             }
           }
@@ -372,19 +372,48 @@ export class SyncService {
       return;
     }
 
+    // Procesar eliminaciones locales primero (soft-deleted)
+    const eliminaciones = pendingInspecciones.filter((p) => p.deleted === true);
+    if (eliminaciones.length > 0) {
+      for (const delItem of eliminaciones) {
+        try {
+          // Pedir al servidor eliminar la inspección identificada por local_id
+          await this.apiService.post('/sync/inspecciones/delete', {
+            local_id: delItem.local_id,
+          });
+
+          // Borrar físicamente la inspección de IndexedDB
+          const local = await this.databaseService.inspecciones
+            .where('local_id')
+            .equals(delItem.local_id)
+            .first();
+          if (local && local.id) {
+            await this.databaseService.inspecciones.delete(local.id);
+          }
+        } catch (err) {
+          console.warn(
+            'No se pudo procesar eliminación en servidor, se intentará más tarde',
+            delItem.local_id,
+            err,
+          );
+          // Mantener marcada para reintento en la próxima sincronización
+        }
+      }
+    }
+
     // Cargar relaciones para cada inspección pendiente
     const inspeccionesConRelaciones: InspeccionSync[] = await Promise.all(
       pendingInspecciones.map(async (inspeccion) => {
         // IMPORTANTE: Usar local_id para buscar relaciones en IndexedDB
         const areas = await this.databaseService.getInspeccionAreasByLocalId(
-          inspeccion.local_id
+          inspeccion.local_id,
         );
         const inspectores =
           await this.databaseService.getInspeccionInspectoresByLocalId(
-            inspeccion.local_id
+            inspeccion.local_id,
           );
         const resultados = await this.databaseService.getResultadosByLocalId(
-          inspeccion.local_id
+          inspeccion.local_id,
         );
 
         // Transformar resultados para incluir visores y responsablesLevantamiento en formato correcto
@@ -398,7 +427,7 @@ export class SyncService {
           responsablesLevantamiento: (r.responsablesLevantamiento || []).map(
             (rl: any) => ({
               personal_id: rl.personal_id ?? rl.id,
-            })
+            }),
           ),
         }));
 
@@ -411,7 +440,7 @@ export class SyncService {
           // Resultados con visores y responsables transformados
           resultados: resultadosTransformados,
         } as InspeccionSync;
-      })
+      }),
     );
 
     // LOG para depuración de relaciones
@@ -428,8 +457,8 @@ export class SyncService {
           })),
         })),
         null,
-        2
-      )
+        2,
+      ),
     );
 
     try {
@@ -449,7 +478,7 @@ export class SyncService {
         for (const exitoso of response.data.sincronizados) {
           await this.storageService.markInspeccionAsSynced(
             exitoso.local_id,
-            exitoso.server_id!
+            exitoso.server_id!,
           );
         }
       }
@@ -462,7 +491,7 @@ export class SyncService {
           if ((error as any).conflict) {
             console.warn(
               `⚠️ Conflicto detectado en inspección ${error.local_id}:`,
-              error.message
+              error.message,
             );
 
             const conflicto: SyncConflict = {
@@ -482,7 +511,7 @@ export class SyncService {
             } catch (downloadError) {
               console.error(
                 'Error descargando inspección en conflicto:',
-                downloadError
+                downloadError,
               );
             }
           }
@@ -508,7 +537,7 @@ export class SyncService {
       if (response && response.data) {
         const inspecciones = response.data;
         console.log(
-          `📥 Descargando ${inspecciones.length} inspecciones del servidor...`
+          `📥 Descargando ${inspecciones.length} inspecciones del servidor...`,
         );
 
         // LOG: Verificar que numero_registro viene del servidor
@@ -542,7 +571,7 @@ export class SyncService {
         // Eliminar duplicados de IndexedDB
         if (duplicados.length > 0) {
           console.warn(
-            `🗑️ Eliminando ${duplicados.length} inspecciones duplicadas...`
+            `🗑️ Eliminando ${duplicados.length} inspecciones duplicadas...`,
           );
           await this.databaseService.inspecciones.bulkDelete(duplicados);
         }
@@ -551,7 +580,7 @@ export class SyncService {
         const inspeccionesParaGuardar = inspecciones.map((i: any) => {
           // Buscar si ya existe localmente por local_id o id del servidor
           const existente = inspeccionesLocales.find(
-            (local: any) => local.local_id === i.local_id || local.id === i.id
+            (local: any) => local.local_id === i.local_id || local.id === i.id,
           );
 
           // Si existe localmente, PRESERVAR su clave primaria de IndexedDB
@@ -574,13 +603,13 @@ export class SyncService {
 
         console.log(
           '🔍 Datos a guardar en IndexedDB:',
-          inspeccionesParaGuardar
+          inspeccionesParaGuardar,
         );
 
         // Guardar en IndexedDB (bulkPut actualiza si existe)
         await this.storageService.saveInspecciones(inspeccionesParaGuardar);
         console.log(
-          `✅ ${inspecciones.length} inspecciones guardadas/actualizadas en IndexedDB`
+          `✅ ${inspecciones.length} inspecciones guardadas/actualizadas en IndexedDB`,
         );
 
         // Guardar las relaciones en sus tablas separadas
@@ -598,7 +627,7 @@ export class SyncService {
    * bulkPut hará upsert automáticamente: inserta si no existe, actualiza si existe
    */
   private async guardarRelacionesInspecciones(
-    inspecciones: any[]
+    inspecciones: any[],
   ): Promise<void> {
     const todasAreas: any[] = [];
     const todosInspectores: any[] = [];
@@ -614,7 +643,7 @@ export class SyncService {
 
       if (!inspeccionEnIndexedDB || !inspeccionEnIndexedDB.id) {
         console.warn(
-          `⚠️ Inspección con local_id ${inspeccion.local_id} no encontrada en IndexedDB, saltando relaciones`
+          `⚠️ Inspección con local_id ${inspeccion.local_id} no encontrada en IndexedDB, saltando relaciones`,
         );
         continue;
       }
@@ -702,10 +731,10 @@ export class SyncService {
             // Normalizar fechas
             fecha_cierre: normalizarFecha(resultado.fecha_cierre),
             foto_final_aprobada_at: normalizarFecha(
-              resultado.foto_final_aprobada_at
+              resultado.foto_final_aprobada_at,
             ),
             foto_inicial_aprobada_at: normalizarFecha(
-              resultado.foto_inicial_aprobada_at
+              resultado.foto_inicial_aprobada_at,
             ),
             synced: true,
           });
@@ -740,7 +769,7 @@ export class SyncService {
       if (response && response.data) {
         const registros = response.data;
         console.log(
-          `📥 Descargando ${registros.length} registros del servidor...`
+          `📥 Descargando ${registros.length} registros del servidor...`,
         );
 
         // Obtener registros locales para preservar claves primarias de IndexedDB
@@ -750,7 +779,7 @@ export class SyncService {
         const registrosParaGuardar = registros.map((r: any) => {
           // Buscar si ya existe localmente por local_id o id del servidor
           const existente = registrosLocales.find(
-            (local: any) => local.local_id === r.local_id || local.id === r.id
+            (local: any) => local.local_id === r.local_id || local.id === r.id,
           );
 
           // Si existe, preservar su clave primaria de IndexedDB
@@ -764,7 +793,7 @@ export class SyncService {
         // Guardar en IndexedDB (bulkPut actualiza si existe)
         await this.storageService.saveRegistros(registrosParaGuardar);
         console.log(
-          `✅ ${registros.length} registros guardados/actualizados en IndexedDB`
+          `✅ ${registros.length} registros guardados/actualizados en IndexedDB`,
         );
       }
     } catch (error) {
@@ -780,17 +809,17 @@ export class SyncService {
   async syncInspeccionFromServer(inspeccionServerId: number): Promise<void> {
     try {
       console.log(
-        `🔄 Sincronizando inspección #${inspeccionServerId} desde el servidor...`
+        `🔄 Sincronizando inspección #${inspeccionServerId} desde el servidor...`,
       );
 
       // Obtener la inspección del servidor
       const response: any = await this.apiService.get(
-        `/inspecciones/${inspeccionServerId}`
+        `/inspecciones/${inspeccionServerId}`,
       );
 
       if (!response || !response.success || !response.data) {
         console.warn(
-          `⚠️ No se pudo obtener la inspección #${inspeccionServerId} del servidor`
+          `⚠️ No se pudo obtener la inspección #${inspeccionServerId} del servidor`,
         );
         return;
       }
@@ -805,7 +834,7 @@ export class SyncService {
 
       if (!inspeccionLocal || !inspeccionLocal.id) {
         console.warn(
-          `⚠️ Inspección con local_id ${inspeccionServidor.local_id} no encontrada en IndexedDB`
+          `⚠️ Inspección con local_id ${inspeccionServidor.local_id} no encontrada en IndexedDB`,
         );
         return;
       }
@@ -862,30 +891,30 @@ export class SyncService {
               // Normalizar fechas
               fecha_cierre: normalizarFecha(resultado.fecha_cierre),
               foto_final_aprobada_at: normalizarFecha(
-                resultado.foto_final_aprobada_at
+                resultado.foto_final_aprobada_at,
               ),
               foto_inicial_aprobada_at: normalizarFecha(
-                resultado.foto_inicial_aprobada_at
+                resultado.foto_inicial_aprobada_at,
               ),
               synced: true,
             };
-          }
+          },
         );
 
         if (resultadosParaGuardar.length > 0) {
           await this.databaseService.saveResultadosInspeccion(
-            resultadosParaGuardar
+            resultadosParaGuardar,
           );
         }
       }
 
       console.log(
-        `✅ Inspección #${inspeccionServerId} sincronizada a IndexedDB`
+        `✅ Inspección #${inspeccionServerId} sincronizada a IndexedDB`,
       );
     } catch (error) {
       console.error(
         `Error sincronizando inspección #${inspeccionServerId}:`,
-        error
+        error,
       );
       // No lanzamos el error para que no interrumpa el flujo principal
     }
@@ -984,13 +1013,12 @@ export class SyncService {
    * Descargar y actualizar un registro que tuvo conflicto
    */
   private async downloadAndUpdateConflictedRegistro(
-    localId: string
+    localId: string,
   ): Promise<void> {
     try {
       // Obtener el registro local para tener el server_id
-      const registroLocal = await this.storageService.getRegistroByLocalId(
-        localId
-      );
+      const registroLocal =
+        await this.storageService.getRegistroByLocalId(localId);
 
       if (!registroLocal || !registroLocal.id) {
         console.error('No se pudo encontrar el registro local con conflicto');
@@ -1002,7 +1030,7 @@ export class SyncService {
       await this.downloadRegistros();
 
       console.log(
-        `✅ Registro ${localId} actualizado con la versión del servidor`
+        `✅ Registro ${localId} actualizado con la versión del servidor`,
       );
     } catch (error) {
       console.error('Error actualizando registro con conflicto:', error);
@@ -1014,13 +1042,12 @@ export class SyncService {
    * Descargar y actualizar una inspección que tuvo conflicto
    */
   private async downloadAndUpdateConflictedInspeccion(
-    localId: string
+    localId: string,
   ): Promise<void> {
     try {
       // Obtener la inspección local para tener el server_id
-      const inspeccionLocal = await this.storageService.getInspeccionByLocalId(
-        localId
-      );
+      const inspeccionLocal =
+        await this.storageService.getInspeccionByLocalId(localId);
 
       if (!inspeccionLocal || !inspeccionLocal.id) {
         console.error('No se pudo encontrar la inspección local con conflicto');
@@ -1032,7 +1059,7 @@ export class SyncService {
       await this.downloadInspecciones();
 
       console.log(
-        `✅ Inspección ${localId} actualizada con la versión del servidor`
+        `✅ Inspección ${localId} actualizada con la versión del servidor`,
       );
     } catch (error) {
       console.error('Error actualizando inspección con conflicto:', error);

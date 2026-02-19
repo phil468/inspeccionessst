@@ -1,6 +1,7 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { AuthService } from '../../../services/auth.service';
 import {
   ToastController,
   LoadingController,
@@ -27,6 +28,8 @@ import { DatabaseService } from '../../../services/database.service';
 import { SyncService } from '../../../services/sync.service';
 import { NetworkService } from '../../../services/network.service';
 import { InspeccionService } from '../../../services/inspeccion.service';
+import { ApiService } from '../../../services/api.service';
+import { StorageService } from '../../../services/storage.service';
 import { FormsModule } from '@angular/forms';
 import { Inspeccion } from '../../../models/inspeccion.model';
 import { addIcons } from 'ionicons';
@@ -49,6 +52,7 @@ import {
   documentTextOutline,
   cloudDone,
   cloudUpload,
+  arrowUndoOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -95,9 +99,12 @@ export class InspeccionListaPage implements OnInit {
     private syncService: SyncService,
     private networkService: NetworkService,
     private inspeccionService: InspeccionService,
+    private apiService: ApiService,
+    private storageService: StorageService,
     private toastController: ToastController,
     private loadingController: LoadingController,
     private alertController: AlertController,
+    private authService: AuthService,
   ) {
     addIcons({
       'add-outline': addOutline,
@@ -116,6 +123,7 @@ export class InspeccionListaPage implements OnInit {
       'cloud-offline-outline': cloudOfflineOutline,
       'cloud-done': cloudDone,
       'cloud-upload': cloudUpload,
+      'arrow-undo-outline': arrowUndoOutline,
     });
   }
 
@@ -214,6 +222,10 @@ export class InspeccionListaPage implements OnInit {
     if (this.networkSubscription) {
       this.networkSubscription.unsubscribe();
     }
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 
   async loadInspecciones() {
@@ -431,6 +443,18 @@ export class InspeccionListaPage implements OnInit {
     await alert.present();
   }
 
+  async undoDeleteInspeccion(inspeccion: Inspeccion) {
+    try {
+      await this.storageService.unmarkInspeccionAsDeleted(inspeccion.local_id);
+      await this.loadInspecciones();
+      await this.loadSyncStatus();
+      await this.showToast('Eliminación deshecha', 'success');
+    } catch (error) {
+      console.error('Error al deshacer eliminación:', error);
+      await this.showToast('No se pudo deshacer eliminación', 'danger');
+    }
+  }
+
   private async enviarNotificacionesConfirmado(inspeccion: Inspeccion) {
     console.log('Enviando notificaciones para inspección ID:', inspeccion.id);
 
@@ -485,12 +509,48 @@ export class InspeccionListaPage implements OnInit {
 
   private async eliminarInspeccionConfirmado(inspeccion: Inspeccion) {
     try {
-      if (inspeccion.id) {
-        await this.databaseService.inspecciones.delete(inspeccion.id);
-        await this.loadInspecciones();
-        await this.loadSyncStatus();
-        await this.showToast('Inspección eliminada', 'success');
+      // Si estamos online y la inspección ya fue sincronizada, intentar borrar en servidor
+      if (this.isOnline && inspeccion.synced) {
+        try {
+          // Usar endpoint de sync para eliminar por local_id (se agregó en backend)
+          await this.apiService.post('/sync/inspecciones/delete', {
+            local_id: inspeccion.local_id,
+          });
+
+          // Eliminar localmente (usar id de IndexedDB)
+          if (inspeccion.id) {
+            await this.databaseService.inspecciones.delete(inspeccion.id);
+          } else {
+            // Si no tenemos id de indexeddb, buscar por local_id
+            const local = await this.databaseService.inspecciones
+              .where('local_id')
+              .equals(inspeccion.local_id)
+              .first();
+            if (local && local.id) {
+              await this.databaseService.inspecciones.delete(local.id);
+            }
+          }
+          await this.loadInspecciones();
+          await this.loadSyncStatus();
+          await this.showToast('Inspección eliminada', 'success');
+          return;
+        } catch (apiErr) {
+          console.warn(
+            'No se pudo eliminar en servidor, marcando para eliminar',
+            apiErr,
+          );
+          // Caeremos al flujo de marcar como eliminada localmente
+        }
       }
+
+      // Si estamos offline o la eliminación en servidor falló, marcar como eliminada para sincronizar luego
+      await this.storageService.markInspeccionAsDeleted(inspeccion.local_id);
+      await this.loadInspecciones();
+      await this.loadSyncStatus();
+      await this.showToast(
+        'Inspección marcada para eliminación (pendiente de sincronización)',
+        'warning',
+      );
     } catch (error) {
       console.error('Error al eliminar inspección:', error);
       await this.showToast('Error al eliminar inspección', 'danger');

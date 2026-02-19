@@ -445,13 +445,13 @@
             </ion-note>
           </ion-item>
 
-            <ion-item *ngIf="resultado.estado === 'Ejecutado' || puedeSubirFotoFinal(resultado)">
+          <!-- <ion-item *ngIf="resultado.estado === 'Ejecutado' || puedeSubirFotoFinal(resultado)">
             <ion-label>Foto Final / Levantamiento</ion-label>
             <ion-button fill="outline" (click)="openPhotoSourceModal(resultado, 'final')" [disabled]="!puedeSubirFotoFinal(resultado)">
               <ion-icon slot="start" name="camera-outline"></ion-icon>
               {{ resultado.registro_fotografico_final ? 'Cambiar' : 'Tomar' }}
             </ion-button>
-          </ion-item>
+          </ion-item> -->
 
           <ion-item *ngIf="resultado.registro_fotografico_final">
             <ion-thumbnail slot="start">

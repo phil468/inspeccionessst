@@ -65,6 +65,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // Sincronización de inspecciones
         Route::post('/inspecciones', [SyncController::class, 'syncInspecciones']);
         Route::get('/inspecciones', [SyncController::class, 'downloadInspecciones']);
+        // Eliminar inspección por local_id (soporta sincronización de borrados desde cliente)
+        Route::post('/inspecciones/delete', [SyncController::class, 'deleteInspeccionByLocalId']);
     });
 
     // Upload de archivos

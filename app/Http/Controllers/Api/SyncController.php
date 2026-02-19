@@ -159,6 +159,53 @@ class SyncController extends Controller
     }
 
     /**
+     * Eliminar una inspección en el servidor por su local_id
+     * Este endpoint facilita que el cliente pueda pedir borrados usando local_id
+     */
+    public function deleteInspeccionByLocalId(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'local_id' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $localId = $request->input('local_id');
+
+            $inspeccion = Inspeccion::where('local_id', $localId)->first();
+
+            if (!$inspeccion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Inspección no encontrada en el servidor',
+                ], 404);
+            }
+
+            // Opcional: verificar permisos/propiedad (por ahora se permite al usuario autenticado)
+            $inspeccion->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Inspección eliminada en servidor',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar inspección',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Obtener datos necesarios para trabajar offline
      * Descarga catálogos (campañas, fundos, empresas, áreas)
      */

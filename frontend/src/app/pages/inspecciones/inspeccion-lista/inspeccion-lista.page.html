@@ -48,7 +48,7 @@
 
   <!-- Lista de inspecciones -->
   <ion-list *ngIf="inspeccionesFiltradas.length > 0">
-    <ion-item *ngFor="let inspeccion of inspeccionesFiltradas" [button]="true" (click)="editarInspeccion(inspeccion)">
+    <ion-item *ngFor="let inspeccion of inspeccionesFiltradas" [button]="!inspeccion.deleted" (click)="inspeccion.deleted ? null : editarInspeccion(inspeccion)" [class.deleted-item]="inspeccion.deleted">
       <!-- <ion-icon name="business-outline" size="small" slot="start" color="primary"></ion-icon> -->
       
       <ion-label>
@@ -63,22 +63,32 @@
       </ion-label>
 
       <div slot="end" class="item-end">
+        <ion-badge color="danger" *ngIf="inspeccion.deleted" class="deleted-badge">Pendiente de eliminación</ion-badge>
             <!-- <ion-badge [color]="getEstadoChip(inspeccion).color"> -->
               <ion-icon size="default" *ngIf="getEstadoChip(inspeccion).icon" [name]="getEstadoChip(inspeccion).icon" [color]="getEstadoChip(inspeccion).color"></ion-icon>
           <!-- {{ getEstadoChip(inspeccion).text }} -->
 
         <!-- </ion-badge> -->
-        <ion-button fill="clear" size="default" (click)="enviarNotificaciones(inspeccion); $event.stopPropagation()">
+        <ion-button fill="clear" size="default" *ngIf="!inspeccion.deleted"(click)="enviarNotificaciones(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="notifications-outline" color="primary"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="default" (click)="descargarPlantilla(inspeccion); $event.stopPropagation()">
+        <ion-button fill="clear" size="default" *ngIf="!inspeccion.deleted"(click)="descargarPlantilla(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="cloud-download-outline" color="medium"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="default" (click)="editarInspeccion(inspeccion); $event.stopPropagation()">
+        <ion-button fill="clear" size="default" *ngIf="hasPermission('inspecciones.update') && !inspeccion.deleted"(click)="editarInspeccion(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="create-outline" color="medium"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="default" (click)="eliminarInspeccion(inspeccion); $event.stopPropagation()">
+        <ion-button fill="clear" size="default" *ngIf="hasPermission('inspecciones.delete') && !inspeccion.deleted" (click)="eliminarInspeccion(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="trash-outline" color="danger"></ion-icon>
+        </ion-button>
+        <ion-button
+          fill="clear"
+          size="default"
+          *ngIf="inspeccion.deleted"
+          (click)="undoDeleteInspeccion(inspeccion); $event.stopPropagation()"
+          title="Deshacer eliminación"
+          aria-label="Deshacer eliminación">
+          <ion-icon slot="icon-only" name="arrow-undo-outline" color="success"></ion-icon>
         </ion-button>
       </div>
     </ion-item>
