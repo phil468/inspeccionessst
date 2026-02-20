@@ -275,7 +275,7 @@
                     @foreach ($roles as $rol)
                         <span class="role-badge">
                             @if ($rol === 'responsable')
-                                Responsable del Levantamiento
+                                Responsable del Resultado
                             @elseif($rol === 'visor')
                                 Visor (Solo Lectura)
                             @elseif($rol === 'responsable_levantamiento')
