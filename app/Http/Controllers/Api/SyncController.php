@@ -12,6 +12,7 @@ use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class SyncController extends Controller
 {
@@ -528,6 +529,27 @@ class SyncController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Logging detallado para diagnóstico: mensaje, traza, tamaño del payload y preview
+            try {
+                $inspeccionesCount = is_array($inspeccionesRecibidas) ? count($inspeccionesRecibidas) : null;
+                $payloadPreview = null;
+                if (isset($inspeccionesRecibidas) && is_array($inspeccionesRecibidas)) {
+                    $previewSlice = array_slice($inspeccionesRecibidas, 0, 5);
+                    $payloadPreview = json_encode($previewSlice, JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+                }
+            } catch (\Exception $le) {
+                $payloadPreview = 'Could not encode payload preview: ' . $le->getMessage();
+                $inspeccionesCount = null;
+            }
+
+            Log::error('Error durante la sincronización de inspecciones', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'inspecciones_count' => $inspeccionesCount,
+                'payload_preview' => $payloadPreview,
+                'user_id' => isset($user) && $user ? $user->id : null,
+            ]);
 
             return response()->json([
                 'success' => false,
