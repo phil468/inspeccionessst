@@ -408,7 +408,8 @@ class SyncController extends Controller
                 $localId = $inspeccionData['local_id'];
 
                 // Verificar si ya existe por local_id o por id del servidor
-                $existente = Inspeccion::where('local_id', $localId)
+                $existente = Inspeccion::withTrashed()
+                    ->where('local_id', $localId)
                     ->orWhere(function($query) use ($inspeccionData) {
                         if (isset($inspeccionData['id'])) {
                             $query->where('id', $inspeccionData['id']);
@@ -417,6 +418,10 @@ class SyncController extends Controller
                     ->first();
 
                 if ($existente) {
+                    if (method_exists($existente, 'trashed') && $existente->trashed()) {
+                        // Restablecer (o decidir actualizar aun estando borrado)
+                        $existente->restore();
+                    }
                     // Ya existe, verificar timestamps para evitar sobrescribir datos más recientes
                     $updatedAtServidor = $existente->updated_at; // Carbon instance en UTC
                     $updatedAtCliente = isset($inspeccionData['updated_at']) 
