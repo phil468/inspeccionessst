@@ -92,7 +92,9 @@ class NotificationService
                     'resultados_count' => count($resultadosUnicos),
                 ];
 
-                Log::info("Notificación enviada por email a: {$personal->correo_empresa}");
+                //informar de la notificacion enviada , cual eera el numero de registro y el nombre del usuario que envia la notificacion
+                Log::info("Notificación enviada por email a: {$personal->correo_empresa} para inspección ID: {$inspeccion->id} / { $inspeccion->numero_registro } por usuario ID: " . auth()->id() . " / " . auth()->user()->name);
+                // Log::info("Notificación enviada por email a: {$personal->correo_empresa}");
 
                 // Enviar push si existe usuario asociado
                 $user = User::where('personal_id', $personalId)->first();
