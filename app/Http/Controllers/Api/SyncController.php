@@ -547,7 +547,7 @@ class SyncController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'inspecciones_count' => $inspeccionesCount,
-                'payload_preview' => $payloadPreview,
+                // 'payload_preview' => $payloadPreview,
                 'user_id' => isset($user) && $user ? $user->id : null,
             ]);
 
