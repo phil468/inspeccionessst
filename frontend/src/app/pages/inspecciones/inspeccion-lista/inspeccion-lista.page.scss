@@ -105,3 +105,14 @@ ion-badge {
   margin-right: 8px;
   font-size: 12px;
 }
+
+.sync-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255,230,230,0.95);
+  border: 1px solid rgba(200,60,60,0.2);
+  margin: 8px 12px;
+  border-radius: 6px;
+}

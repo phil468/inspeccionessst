@@ -66,5 +66,7 @@ export interface SyncStatus {
   syncing?: boolean;
   lastSync?: Date | null;
   error?: string | null;
+  // Mensaje técnico completo (stack / detalles) para mostrar al usuario o copiar
+  error_detail?: string | null;
   pendingCount?: number;
 }

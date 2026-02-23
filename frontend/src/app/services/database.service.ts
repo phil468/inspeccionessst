@@ -127,14 +127,17 @@ export class DatabaseService extends Dexie {
     } catch (error: any) {
       console.error('Error al abrir la base de datos:', error);
 
-      // Si es un error de upgrade, resetear la BD
+      // Si es un error de upgrade o de almacenamiento corrupto, resetear la BD
       if (
         error.name === 'UpgradeError' ||
         error.name === 'DatabaseClosedError' ||
-        (error.message && error.message.includes('primary key'))
+        error.name === 'UnknownError' ||
+        error.name === 'OpenFailedError' ||
+        (error.message && error.message.includes('primary key')) ||
+        (error.message && error.message.includes('backing store'))
       ) {
         console.warn(
-          '⚠️ Error de migración detectado, reseteando base de datos...',
+          '⚠️ Error de almacenamiento/migración detectado, reseteando base de datos...',
         );
         await DatabaseService.resetDatabase();
         return false;

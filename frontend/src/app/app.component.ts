@@ -19,16 +19,22 @@ export class AppComponent implements OnInit {
     private authService: AuthService,
     private pushNotificationService: PushNotificationService,
     private alertController: AlertController,
-    private databaseService: DatabaseService
+    private databaseService: DatabaseService,
   ) {}
 
   async ngOnInit() {
     // Verificar que la base de datos esté accesible
     try {
       await this.databaseService.ensureOpen();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error crítico con la base de datos:', error);
-      // La página se recargará automáticamente si hay error de migración
+      // Si ensureOpen no pudo recuperar la BD (no hizo reload automático),
+      // intentar resetear y recargar como último recurso
+      try {
+        await DatabaseService.resetDatabase();
+      } catch (resetErr) {
+        console.error('No se pudo resetear la BD:', resetErr);
+      }
       return;
     }
 
@@ -108,10 +114,10 @@ export class AppComponent implements OnInit {
           `${i + 1}. Registro con ID ${
             c.local_id
           }...\n   Servidor actualizado: ${new Date(
-            c.server_updated_at
+            c.server_updated_at,
           ).toLocaleString()}\n   Tu cambio: ${new Date(
-            c.client_updated_at
-          ).toLocaleString()}`
+            c.client_updated_at,
+          ).toLocaleString()}`,
       )
       .join('\n\n');
 

@@ -53,6 +53,7 @@ import {
   cloudDone,
   cloudUpload,
   arrowUndoOutline,
+  alertCircleOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -85,10 +86,13 @@ export class InspeccionListaPage implements OnInit {
   inspeccionesFiltradas: Inspeccion[] = [];
   searchTerm = '';
   isOnline = true; // Inicializar como true, se actualizará inmediatamente con el valor real
+  isProd = environment.production;
   syncStatus = {
     total: 0,
     sincronizados: 0,
     pendientes: 0,
+    error: null as string | null,
+    error_detail: null as string | null,
   };
   private syncSubscription?: Subscription;
   private networkSubscription?: Subscription;
@@ -124,6 +128,7 @@ export class InspeccionListaPage implements OnInit {
       'cloud-done': cloudDone,
       'cloud-upload': cloudUpload,
       'arrow-undo-outline': arrowUndoOutline,
+      'alert-circle-outline': alertCircleOutline,
     });
   }
 
@@ -187,6 +192,16 @@ export class InspeccionListaPage implements OnInit {
 
     this.syncSubscription = this.syncService.syncStatus$.subscribe(
       async (status: any) => {
+        // Actualizar estado local con la información completa del sync
+        this.syncStatus.total = status.total_registros ?? this.syncStatus.total;
+        this.syncStatus.sincronizados =
+          status.sincronizados ?? this.syncStatus.sincronizados;
+        this.syncStatus.pendientes =
+          status.pendientes ?? this.syncStatus.pendientes;
+        this.syncStatus.error = status.error ?? null;
+        this.syncStatus.error_detail = status.error_detail ?? null;
+
+        // Si hubo una sincronización reciente, recargar datos locales
         if (status.lastSync) {
           await this.loadInspecciones();
           await this.loadSyncStatus();
@@ -310,53 +325,59 @@ export class InspeccionListaPage implements OnInit {
       await this.showToast('Debes estar conectado para sincronizar', 'warning');
       return;
     }
-
     const loading = await this.loadingController.create({
       message: 'Sincronizando...',
     });
     await loading.present();
 
     try {
-      // 1. Subir inspecciones pendientes
-      await this.syncService.syncInspecciones();
+      const result: any = await this.syncService.syncAll();
 
-      // 2. Descargar últimas 100 inspecciones del servidor
-      await this.syncService.downloadInspecciones();
+      if (result && result.success) {
+        await this.showToast('Sincronización completa', 'success');
+      } else {
+        // Mensajes segmentados según el tipo de fallo (agradar al usuario)
+        const raw = (result?.message || '').toString();
+        const lower = raw.toLowerCase();
 
-      await this.showToast('Sincronización completa', 'success');
-      await this.loadInspecciones();
-      await this.loadSyncStatus();
-    } catch (error: any) {
-      console.error('Error al sincronizar:', error);
+        let mensajeUsuario = 'No se pudo completar la sincronización';
 
-      // Mostrar mensaje amigable según el tipo de error
-      let mensajeUsuario = 'No se pudo completar la sincronización';
+        if (
+          lower.includes('no hay conexión') ||
+          lower.includes('sin conexión')
+        ) {
+          mensajeUsuario = 'Sin conexión a internet';
+        } else if (lower.includes('timeout') || lower.includes('tiemp')) {
+          mensajeUsuario = 'La conexión tardó demasiado. Intenta nuevamente';
+        } else if (
+          lower.includes('network') ||
+          lower.includes('failed to fetch')
+        ) {
+          mensajeUsuario = 'Error de conexión con el servidor';
+        } else if (
+          lower.includes('401') ||
+          lower.includes('unauthorized') ||
+          lower.includes('no autenticado')
+        ) {
+          mensajeUsuario =
+            'Sesión expirada. Por favor inicia sesión nuevamente';
+        } else if (lower.includes('500') || lower.includes('server')) {
+          mensajeUsuario = 'Error en el servidor. Intenta más tarde';
+        } else if (raw && raw.length > 0) {
+          // Mensaje genérico desde el servidor
+          mensajeUsuario = raw;
+        }
 
-      if (!navigator.onLine) {
-        mensajeUsuario = 'Sin conexión a internet';
-      } else if (
-        error.message?.includes('timeout') ||
-        error.message?.includes('Timeout')
-      ) {
-        mensajeUsuario = 'La conexión tardó demasiado. Intenta nuevamente';
-      } else if (
-        error.message?.includes('Network') ||
-        error.message?.includes('Failed to fetch')
-      ) {
-        mensajeUsuario = 'Error de conexión con el servidor';
-      } else if (
-        error.message?.includes('401') ||
-        error.message?.includes('Unauthorized')
-      ) {
-        mensajeUsuario = 'Sesión expirada. Por favor inicia sesión nuevamente';
-      } else if (
-        error.message?.includes('500') ||
-        error.message?.includes('Server')
-      ) {
-        mensajeUsuario = 'Error en el servidor. Intenta más tarde';
+        await this.showToast(mensajeUsuario, 'danger');
+        // `syncService.syncAll()` ya actualiza `syncStatus.error` y `error_detail`,
+        // por lo que el banner y el botón "Ver detalles" se activarán automáticamente.
       }
 
-      await this.showToast(mensajeUsuario, 'danger');
+      await this.loadInspecciones();
+      await this.loadSyncStatus();
+    } catch (error) {
+      console.error('Error al sincronizar:', error);
+      await this.showToast('Error en la sincronización', 'danger');
     } finally {
       await loading.dismiss();
     }
@@ -500,6 +521,48 @@ export class InspeccionListaPage implements OnInit {
           handler: async () => {
             await this.eliminarInspeccionConfirmado(inspeccion);
           },
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  // Método de ayuda para pruebas: simular un error de sincronización y probar el banner/alert
+  simularError() {
+    const sampleDetail = `Simulación de error de sincronización:\nHTTP 500 - Error interno\nRequest: POST /v1/sync/inspecciones\nResponse: {"message":"Simulated server failure","code":500}`;
+
+    // Actualizar estado local para mostrar banner inmediatamente
+    this.syncStatus.error = 'Error simulado de sincronización';
+    this.syncStatus.error_detail = sampleDetail;
+
+    // También mostrar un toast para feedback rápido
+    this.showToast('Error simulado activado (ver detalles)', 'warning');
+  }
+
+  async verDetallesError() {
+    const detail =
+      this.syncStatus.error_detail ||
+      this.syncStatus.error ||
+      'Sin detalles disponibles';
+
+    const alert = await this.alertController.create({
+      header: 'Error de sincronización',
+      message: `<div style="white-space:pre-wrap; max-height:400px; overflow:auto">${detail}</div>`,
+      buttons: [
+        {
+          text: 'Copiar',
+          handler: async () => {
+            try {
+              await navigator.clipboard.writeText(detail);
+            } catch (e) {
+              console.warn('No se pudo copiar al portapapeles', e);
+            }
+          },
+        },
+        {
+          text: 'Cerrar',
+          role: 'cancel',
         },
       ],
     });

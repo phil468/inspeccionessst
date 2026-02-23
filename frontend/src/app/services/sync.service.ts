@@ -220,11 +220,20 @@ export class SyncService {
       console.log('📥 Descargando catálogos...');
       await this.downloadCatalogos();
 
-      // NOTA: El download de registros e inspecciones se hace manualmente
-      // o cuando el usuario hace pull-to-refresh para evitar sobrecargar
-      // la sincronización automática con 122MB+ de datos
+      // 4. Propagar eliminaciones entre dispositivos (tombstones)
+      // Endpoint ligero que descarga solo los local_id de inspecciones eliminadas
+      console.log(
+        '🗑️ Verificando inspecciones eliminadas en otros dispositivos...',
+      );
+      await this.syncDeletedInspecciones();
 
-      // 4. Actualizar contador de pendientes
+      // 5. Descargar inspecciones actualizadas del servidor
+      // Se ejecuta DESPUÉS de subir y procesar tombstones para que el estado local
+      // refleje los datos más recientes del servidor (incluye cambios de otros dispositivos)
+      console.log('📥 Descargando inspecciones del servidor...');
+      await this.downloadInspecciones();
+
+      // 6. Actualizar contador de pendientes
       const pendingRegistros =
         await this.storageService.countPendingRegistros();
       const pendingInspecciones =
@@ -249,12 +258,28 @@ export class SyncService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error desconocido';
+      // Intentar extraer más detalles si vienen en objeto
+      let errorDetail: string | null = null;
 
-      console.error('❌ Error en sincronización:', errorMessage);
+      try {
+        // Si el error tiene propiedades adicionales, serializarlas
+        if (error && typeof error === 'object') {
+          // Evitar ciclos
+          errorDetail = JSON.stringify(
+            error,
+            Object.getOwnPropertyNames(error),
+          );
+        }
+      } catch (e) {
+        errorDetail = String(errorMessage);
+      }
+
+      console.error('❌ Error en sincronización:', errorMessage, errorDetail);
 
       this.updateSyncStatus({
         syncing: false,
         error: errorMessage,
+        error_detail: errorDetail,
       });
 
       return {
@@ -578,24 +603,29 @@ export class SyncService {
 
         // Mapear inspecciones del servidor con los datos locales
         const inspeccionesParaGuardar = inspecciones.map((i: any) => {
-          // Buscar si ya existe localmente por local_id o id del servidor
+          // Buscar si ya existe localmente por local_id
           const existente = inspeccionesLocales.find(
-            (local: any) => local.local_id === i.local_id || local.id === i.id,
+            (local: any) => local.local_id === i.local_id,
           );
 
-          // Si existe localmente, PRESERVAR su clave primaria de IndexedDB
+          // Separar el id del servidor para no sobreescribir el id auto-incremental de IndexedDB
+          const { id: _serverId, ...serverDataWithoutId } = i;
+
           if (existente) {
+            // PRESERVAR la clave primaria de IndexedDB (existente.id)
+            // y sobrescribir el resto con los datos del servidor
             return {
-              ...existente, // ← Primero el existente (incluye la clave primaria de IndexedDB)
-              ...i, // ← Luego los datos del servidor (sobrescribe todo excepto la clave)
+              ...existente,
+              ...serverDataWithoutId,
+              id: existente.id, // ← Forzar el id de IndexedDB (no el del servidor)
               synced: true,
               synced_at: new Date().toISOString(),
             };
           }
 
-          // Si es nuevo, crear sin clave primaria (IndexedDB auto-incrementará)
+          // Si es nuevo, crear SIN id para que IndexedDB auto-incremente
           return {
-            ...i,
+            ...serverDataWithoutId,
             synced: true,
             synced_at: new Date().toISOString(),
           };
@@ -615,9 +645,83 @@ export class SyncService {
         // Guardar las relaciones en sus tablas separadas
         await this.guardarRelacionesInspecciones(inspecciones);
       }
+
+      // ── Procesar tombstones (inspecciones eliminadas en el servidor) ──
+      const deletedList = (response as any)?.deleted;
+      if (deletedList && Array.isArray(deletedList) && deletedList.length > 0) {
+        await this.processDeletedTombstones(deletedList);
+      }
     } catch (error) {
       console.error('Error descargando inspecciones:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Procesar tombstones: eliminar inspecciones locales que fueron borradas en el servidor.
+   * Evita que dispositivos que no estaban online al momento del delete sigan mostrando
+   * inspecciones que ya no existen.
+   */
+  private async processDeletedTombstones(
+    tombstones: { local_id: string; deleted_at: string }[],
+  ): Promise<void> {
+    console.log(
+      `🗑️ Procesando ${tombstones.length} tombstones de eliminación...`,
+    );
+
+    for (const tombstone of tombstones) {
+      try {
+        const localRecord = await this.databaseService.inspecciones
+          .where('local_id')
+          .equals(tombstone.local_id)
+          .first();
+
+        if (localRecord && localRecord.id) {
+          // Limpiar relaciones antes de eliminar la inspección
+          await this.databaseService.inspeccion_areas
+            .where('inspeccion_id')
+            .equals(localRecord.id)
+            .delete();
+          await this.databaseService.inspeccion_inspectores
+            .where('inspeccion_id')
+            .equals(localRecord.id)
+            .delete();
+          await this.databaseService.resultados_inspeccion
+            .where('inspeccion_id')
+            .equals(localRecord.id)
+            .delete();
+
+          // Eliminar la inspección
+          await this.databaseService.inspecciones.delete(localRecord.id);
+          console.log(
+            `🗑️ Inspección ${tombstone.local_id} eliminada localmente (tombstone)`,
+          );
+        }
+      } catch (err) {
+        console.warn(`Error procesando tombstone ${tombstone.local_id}:`, err);
+      }
+    }
+  }
+
+  /**
+   * Sincronizar inspecciones eliminadas (tombstones) con el servidor.
+   * Endpoint ligero que se llama en cada ciclo de auto-sync para propagar
+   * eliminaciones entre dispositivos sin necesidad de descargar todos los datos.
+   */
+  async syncDeletedInspecciones(): Promise<void> {
+    try {
+      const lastSync = localStorage.getItem('last_sync');
+      const params = lastSync ? `?since=${lastSync}` : '';
+      const response: any = await this.apiService.get(
+        `/sync/inspecciones/deleted${params}`,
+      );
+
+      if (response?.success && response.data?.length > 0) {
+        await this.processDeletedTombstones(response.data);
+      }
+    } catch (error) {
+      // No fatal: si falla no interrumpe el resto del sync
+      console.warn('Error descargando tombstones de inspecciones:', error);
     }
   }
 
@@ -777,14 +881,27 @@ export class SyncService {
 
         // Mapear registros del servidor con los datos locales
         const registrosParaGuardar = registros.map((r: any) => {
-          // Buscar si ya existe localmente por local_id o id del servidor
+          // Buscar si ya existe localmente por local_id
           const existente = registrosLocales.find(
-            (local: any) => local.local_id === r.local_id || local.id === r.id,
+            (local: any) => local.local_id === r.local_id,
           );
 
-          // Si existe, preservar su clave primaria de IndexedDB
+          // Separar el id del servidor para no sobreescribir el id de IndexedDB
+          const { id: _serverId, ...serverDataWithoutId } = r;
+
+          if (existente) {
+            return {
+              ...existente,
+              ...serverDataWithoutId,
+              id: existente.id, // ← Preservar clave primaria de IndexedDB
+              synced: true,
+              synced_at: new Date().toISOString(),
+            };
+          }
+
+          // Nuevo registro: sin id para que IndexedDB auto-incremente
           return {
-            ...r,
+            ...serverDataWithoutId,
             synced: true,
             synced_at: new Date().toISOString(),
           };

@@ -12,6 +12,9 @@
       <ion-button (click)="nuevaInspeccion()">
         <ion-icon slot="icon-only" name="add-outline"></ion-icon>
       </ion-button>
+      <ion-button *ngIf="!isProd" (click)="simularError()" color="danger" fill="clear" size="default" title="Simular error">
+        Simular error
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
   
@@ -44,6 +47,17 @@
       <ion-icon name="cloud-upload-outline"></ion-icon>
       <ion-label>Pend: {{ syncStatus.pendientes }}</ion-label>
     </ion-chip>
+  </div>
+
+  <!-- Banner de error de sincronización visible para QA -->
+  <div *ngIf="syncStatus.error" class="sync-error-banner">
+    <ion-chip color="danger">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <ion-label>No se pudo completar la sincronización</ion-label>
+    </ion-chip>
+    <ion-button fill="outline" color="danger" size="small" (click)="verDetallesError()">
+      Ver detalles
+    </ion-button>
   </div>
 
   <!-- Lista de inspecciones -->

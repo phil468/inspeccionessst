@@ -418,22 +418,32 @@ class SyncController extends Controller
                     ->first();
 
                 if ($existente) {
-                    if (method_exists($existente, 'trashed') && $existente->trashed()) {
-                        // Restablecer (o decidir actualizar aun estando borrado)
-                        $existente->restore();
+                    $wasTrashed = method_exists($existente, 'trashed') && $existente->trashed();
+
+                    if ($wasTrashed) {
+                        // El registro estaba eliminado pero el cliente no lo sabe aún.
+                        // Restaurar SIN tocar updated_at para no generar conflicto falso.
+                        $existente->timestamps = false;
+                        $existente->deleted_at = null;
+                        $existente->save();
+                        $existente->timestamps = true;
+                        // Refrescar el modelo para tener el updated_at original (antes del delete)
+                        $existente->refresh();
                     }
-                    // Ya existe, verificar timestamps para evitar sobrescribir datos más recientes
+
+                    // Verificar timestamps para evitar sobrescribir datos más recientes
                     $updatedAtServidor = $existente->updated_at; // Carbon instance en UTC
                     $updatedAtCliente = isset($inspeccionData['updated_at']) 
                         ? \Carbon\Carbon::parse($inspeccionData['updated_at'])->setTimezone('UTC')
                         : null;
 
-                    // Si el cliente tiene un timestamp más antiguo que el servidor, hay conflicto
-                    if ($updatedAtCliente && $updatedAtCliente->lt($updatedAtServidor)) {
+                    // Solo verificar conflicto si NO estaba eliminado.
+                    // Si estaba eliminado, el cliente no sabía del delete, así que aceptamos su update.
+                    if (!$wasTrashed && $updatedAtCliente && $updatedAtCliente->lt($updatedAtServidor)) {
                         $resultados['errores'][] = [
                             'local_id' => $localId,
                             'server_id' => $existente->id,
-                            'message' => 'Conflicto: la inspección'. $existente->numero_registro. 'en el servidor es más reciente',
+                            'message' => 'Conflicto: la inspección '. $existente->numero_registro. ' en el servidor es más reciente',
                             'conflict' => true,
                             'server_updated_at' => $updatedAtServidor->toISOString(),
                             'client_updated_at' => $updatedAtCliente->format('c'),
@@ -585,10 +595,10 @@ class SyncController extends Controller
         }
 
         try {
-            // Verificar si el usuario tiene rol de administrador o supervisor
-            $esAdminOSupervisor = $user->hasRole('administrador') || $user->hasRole('supervisor');
+            // Verificar si el usuario tiene rol de administrador, supervisor o operador
+            $esAdminOSupervisor = $user->hasRole('administrador') || $user->hasRole('supervisor') || $user->hasRole('operador');
             
-            // Si es admin o supervisor, obtener todas las inspecciones, sino filtrar por usuario/inspector
+            // Si es admin, supervisor o operador, obtener todas las inspecciones, sino filtrar por usuario/inspector
             if ($esAdminOSupervisor) {
                 $query = Inspeccion::query();
             } else {
@@ -623,10 +633,25 @@ class SyncController extends Controller
             $limit = $request->input('limit', 100);
             $inspecciones = $query->limit($limit)->get();
 
+            // ── Tombstones: inspecciones eliminadas para propagar deletes a otros dispositivos ──
+            $deletedQuery = Inspeccion::onlyTrashed()
+                ->select('local_id', 'deleted_at');
+
+            if (!$esAdminOSupervisor) {
+                $deletedQuery->where('user_id', $user->id);
+            }
+
+            if ($request->filled('ultima_sincronizacion')) {
+                $deletedQuery->where('deleted_at', '>', $request->ultima_sincronizacion);
+            }
+
+            $deletedInspecciones = $deletedQuery->limit($limit)->get();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Inspecciones descargadas exitosamente',
                 'data' => $inspecciones,
+                'deleted' => $deletedInspecciones,
                 'total' => $inspecciones->count(),
                 'timestamp' => now()->toIso8601String(),
             ]);
@@ -635,6 +660,45 @@ class SyncController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al descargar inspecciones',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener inspecciones eliminadas (tombstones) para propagar deletes entre dispositivos.
+     * Endpoint ligero que se llama en cada ciclo de auto-sync.
+     */
+    public function getDeletedInspecciones(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $esAdminOSupervisor = $user->hasRole('administrador') || $user->hasRole('supervisor') || $user->hasRole('operador');
+
+            $query = Inspeccion::onlyTrashed()
+                ->select('local_id', 'deleted_at');
+
+            if (!$esAdminOSupervisor) {
+                $query->where('user_id', $user->id);
+            }
+
+            // Filtrar por fecha para no devolver tombstones antiguos innecesariamente
+            if ($request->filled('since')) {
+                $query->where('deleted_at', '>', $request->since);
+            }
+
+            $deleted = $query->orderBy('deleted_at', 'desc')->limit(200)->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $deleted,
+                'total' => $deleted->count(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener inspecciones eliminadas',
                 'error' => $e->getMessage(),
             ], 500);
         }
