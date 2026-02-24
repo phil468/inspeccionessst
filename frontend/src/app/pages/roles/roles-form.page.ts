@@ -6,7 +6,8 @@ import {
   Validators,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { IonicModule, AlertController } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { AlertController } from '@ionic/angular/standalone';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UsuarioService } from '../../services/usuario.service';
 import { Permission } from '../../models/usuario.model';
@@ -37,7 +38,7 @@ export class RolesFormPage implements OnInit {
     private usuarioService: UsuarioService,
     private router: Router,
     private route: ActivatedRoute,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {}
 
   ngOnInit() {
@@ -86,7 +87,7 @@ export class RolesFormPage implements OnInit {
       ([resource, perms]) => ({
         resource,
         permissions: perms.sort((a, b) => a.action.localeCompare(b.action)),
-      })
+      }),
     );
   }
 
@@ -126,7 +127,7 @@ export class RolesFormPage implements OnInit {
 
   selectAllInGroup(group: PermissionGroup) {
     const allSelected = group.permissions.every((p) =>
-      this.selectedPermissions.includes(p.id!)
+      this.selectedPermissions.includes(p.id!),
     );
 
     if (allSelected) {
@@ -149,7 +150,7 @@ export class RolesFormPage implements OnInit {
 
   isGroupFullySelected(group: PermissionGroup): boolean {
     return group.permissions.every((p) =>
-      this.selectedPermissions.includes(p.id!)
+      this.selectedPermissions.includes(p.id!),
     );
   }
 
@@ -179,7 +180,7 @@ export class RolesFormPage implements OnInit {
         this.showAlert(
           this.isEditMode
             ? 'Rol actualizado correctamente'
-            : 'Rol creado correctamente'
+            : 'Rol creado correctamente',
         );
         this.router.navigate(['/roles']);
         this.isLoading = false;

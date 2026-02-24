@@ -7,13 +7,13 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import {
-  IonicModule,
   LoadingController,
   ToastController,
   AlertController,
   ModalController,
-} from '@ionic/angular';
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { saveOutline, closeOutline } from 'ionicons/icons';
 import { ApiService } from '../../services/api.service';
@@ -51,7 +51,7 @@ export class CargosFormPage implements OnInit {
     private loadingController: LoadingController,
     private toastController: ToastController,
     private alertController: AlertController,
-    private modalController: ModalController
+    private modalController: ModalController,
   ) {
     addIcons({
       saveOutline,
@@ -93,7 +93,7 @@ export class CargosFormPage implements OnInit {
       this.cargos = cargosList.sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'es', {
           sensitivity: 'base',
-        })
+        }),
       );
     } catch (error) {
       console.error('Error cargando catálogos:', error);
@@ -152,7 +152,7 @@ export class CargosFormPage implements OnInit {
     if (this.cargoForm.invalid) {
       await this.showToast(
         'Por favor complete todos los campos requeridos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -160,7 +160,7 @@ export class CargosFormPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para guardar cambios',
-        'warning'
+        'warning',
       );
       return;
     }

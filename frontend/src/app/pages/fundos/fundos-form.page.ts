@@ -6,11 +6,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import {
-  IonicModule,
-  ToastController,
-  LoadingController,
-} from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../services/api.service';
 import { addIcons } from 'ionicons';
@@ -35,7 +32,7 @@ export class FundosFormPage implements OnInit {
     private route: ActivatedRoute,
     private apiService: ApiService,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({ arrowBackOutline, saveOutline });
   }
@@ -81,7 +78,7 @@ export class FundosFormPage implements OnInit {
     if (this.fundoForm.invalid) {
       this.showToast(
         'Por favor complete todos los campos requeridos',
-        'warning'
+        'warning',
       );
       return;
     }

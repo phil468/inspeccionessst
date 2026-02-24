@@ -1,6 +1,7 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule, AlertController } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { AlertController } from '@ionic/angular/standalone';
 import { SyncService } from './services/sync.service';
 import { AuthService } from './services/auth.service';
 import { PushNotificationService } from './services/push-notification.service';

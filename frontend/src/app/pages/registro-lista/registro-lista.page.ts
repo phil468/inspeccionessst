@@ -6,11 +6,8 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import {
-  IonicModule,
-  ToastController,
-  LoadingController,
-} from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { DatabaseService } from '../../services/database.service';
 import { SyncService } from '../../services/sync.service';
@@ -61,7 +58,7 @@ export class RegistroListaPage implements OnInit, OnDestroy {
     private networkService: NetworkService,
     private authService: AuthService,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({
       'arrow-back-outline': arrowBackOutline,
@@ -91,7 +88,7 @@ export class RegistroListaPage implements OnInit, OnDestroy {
           await this.loadRegistros();
           await this.loadSyncStatus();
         }
-      }
+      },
     );
   }
 
@@ -139,7 +136,7 @@ export class RegistroListaPage implements OnInit, OnDestroy {
       (status) => {
         this.isOnline = status;
         console.log('Estado de red en RegistroLista:', status);
-      }
+      },
     );
   }
 
@@ -153,7 +150,7 @@ export class RegistroListaPage implements OnInit, OnDestroy {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
-        }
+        },
       );
 
       if (!grupos[fecha]) {

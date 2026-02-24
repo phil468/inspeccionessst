@@ -6,7 +6,8 @@ import {
   Validators,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { IonicModule, AlertController } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { AlertController } from '@ionic/angular/standalone';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UsuarioService } from '../../services/usuario.service';
 import { Rol } from '../../models/usuario.model';
@@ -31,7 +32,7 @@ export class UsuariosFormPage implements OnInit {
     private usuarioService: UsuarioService,
     private router: Router,
     private route: ActivatedRoute,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {}
 
   ngOnInit() {
@@ -144,7 +145,7 @@ export class UsuariosFormPage implements OnInit {
         this.showAlert(
           this.isEditMode
             ? 'Usuario actualizado correctamente'
-            : 'Usuario creado correctamente'
+            : 'Usuario creado correctamente',
         );
         this.router.navigate(['/usuarios']);
         this.isLoading = false;

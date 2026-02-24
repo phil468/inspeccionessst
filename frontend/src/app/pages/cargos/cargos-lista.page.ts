@@ -2,12 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import {
-  IonicModule,
   AlertController,
   ToastController,
   LoadingController,
-} from '@ionic/angular';
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   addOutline,
@@ -43,7 +43,7 @@ export class CargosListaPage implements OnInit {
     private networkService: NetworkService,
     private alertController: AlertController,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({
       addOutline,
@@ -86,7 +86,7 @@ export class CargosListaPage implements OnInit {
       console.error('Error al cargar cargos:', error);
       await this.showToast(
         'Error al cargar cargos: ' + error.message,
-        'danger'
+        'danger',
       );
     } finally {
       await loading.dismiss();
@@ -101,7 +101,7 @@ export class CargosListaPage implements OnInit {
     }
 
     this.cargosFiltrados = this.cargos.filter((cargo) =>
-      cargo.name.toLowerCase().includes(term)
+      cargo.name.toLowerCase().includes(term),
     );
   }
 
@@ -109,7 +109,7 @@ export class CargosListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para crear cargos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -120,7 +120,7 @@ export class CargosListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para editar cargos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -131,7 +131,7 @@ export class CargosListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para eliminar cargos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -171,7 +171,7 @@ export class CargosListaPage implements OnInit {
       console.error('Error al eliminar cargo:', error);
       await this.showToast(
         'Error al eliminar cargo: ' + error.message,
-        'danger'
+        'danger',
       );
     } finally {
       await loading.dismiss();

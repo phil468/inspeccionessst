@@ -6,11 +6,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import {
-  IonicModule,
-  ToastController,
-  LoadingController,
-} from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { DatabaseService } from '../../services/database.service';
 import { SyncService } from '../../services/sync.service';
@@ -48,7 +45,7 @@ export class RegistroFormPage implements OnInit {
     private authService: AuthService,
     private networkService: NetworkService,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({ arrowBackOutline, saveOutline });
   }
@@ -98,7 +95,7 @@ export class RegistroFormPage implements OnInit {
         'Campanias antes de verificar descarga:',
         this.campanias,
         this.isOnline,
-        this.campanias.length
+        this.campanias.length,
       );
       if (this.isOnline && this.campanias.length === 0) {
         console.log('Descargando catálogos del servidor...');
@@ -133,7 +130,7 @@ export class RegistroFormPage implements OnInit {
       // Cargar desde IndexedDB
       const registros = await this.databaseService.getRegistros();
       const registro = registros.find(
-        (r: any) => r.id === parseInt(id) || r.local_id === id
+        (r: any) => r.id === parseInt(id) || r.local_id === id,
       );
 
       if (!registro) {
@@ -164,7 +161,7 @@ export class RegistroFormPage implements OnInit {
     if (this.registroForm.invalid) {
       this.showToast(
         'Por favor complete todos los campos requeridos',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -199,7 +196,7 @@ export class RegistroFormPage implements OnInit {
           } catch (error) {
             this.showToast(
               'Registro actualizado, se sincronizará cuando haya conexión',
-              'warning'
+              'warning',
             );
           }
         } else {
@@ -226,7 +223,7 @@ export class RegistroFormPage implements OnInit {
           } catch (error) {
             this.showToast(
               'Registro guardado, se sincronizará cuando haya conexión',
-              'warning'
+              'warning',
             );
           }
         } else {
@@ -242,7 +239,7 @@ export class RegistroFormPage implements OnInit {
         this.isEditMode
           ? 'Error al actualizar registro'
           : 'Error al guardar registro',
-        'danger'
+        'danger',
       );
     } finally {
       await loading.dismiss();

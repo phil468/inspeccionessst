@@ -1,11 +1,11 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import {
-  IonicModule,
   ToastController,
   LoadingController,
   AlertController,
-} from '@ionic/angular';
+} from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DatabaseService } from '../../../services/database.service';
@@ -43,7 +43,7 @@ export class EmpresasListaPage implements OnInit {
     private networkService: NetworkService,
     private toastController: ToastController,
     private loadingController: LoadingController,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       addOutline,
@@ -100,7 +100,7 @@ export class EmpresasListaPage implements OnInit {
       console.error('Error al cargar empresas:', error);
       await this.showToast(
         'Error al cargar empresas: ' + error.message,
-        'danger'
+        'danger',
       );
     } finally {
       await loading.dismiss();
@@ -118,7 +118,7 @@ export class EmpresasListaPage implements OnInit {
       (empresa) =>
         empresa.name.toLowerCase().includes(term) ||
         empresa.razon_social?.toLowerCase().includes(term) ||
-        empresa.ruc?.toLowerCase().includes(term)
+        empresa.ruc?.toLowerCase().includes(term),
     );
   }
 
@@ -126,7 +126,7 @@ export class EmpresasListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para crear empresas',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -137,7 +137,7 @@ export class EmpresasListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para editar empresas',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -148,7 +148,7 @@ export class EmpresasListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para eliminar empresas',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -188,7 +188,7 @@ export class EmpresasListaPage implements OnInit {
       console.error('Error al eliminar empresa:', error);
       await this.showToast(
         'Error al eliminar empresa: ' + error.message,
-        'danger'
+        'danger',
       );
     } finally {
       await loading.dismiss();

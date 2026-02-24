@@ -1,7 +1,8 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, AlertController } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { AlertController } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { Rol } from '../../models/usuario.model';
 import { UsuarioService } from '../../services/usuario.service';
@@ -34,7 +35,7 @@ export class RolesListaPage implements OnInit {
     private usuarioService: UsuarioService,
     private authService: AuthService,
     private router: Router,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       add,
@@ -71,7 +72,7 @@ export class RolesListaPage implements OnInit {
     this.rolesFiltrados = this.roles.filter(
       (rol) =>
         rol.name.toLowerCase().includes(term) ||
-        (rol.description && rol.description.toLowerCase().includes(term))
+        (rol.description && rol.description.toLowerCase().includes(term)),
     );
   }
 

@@ -1,11 +1,11 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import {
-  IonicModule,
   ToastController,
   LoadingController,
   AlertController,
-} from '@ionic/angular';
+} from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DatabaseService } from '../../../services/database.service';
@@ -46,7 +46,7 @@ export class AreasListaPage implements OnInit {
     private networkService: NetworkService,
     private toastController: ToastController,
     private loadingController: LoadingController,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       addOutline,
@@ -131,7 +131,7 @@ export class AreasListaPage implements OnInit {
     // Filtrar por empresa
     if (this.empresaFiltro) {
       filtradas = filtradas.filter(
-        (area) => area.empresa_id === this.empresaFiltro
+        (area) => area.empresa_id === this.empresaFiltro,
       );
     }
 
@@ -142,7 +142,7 @@ export class AreasListaPage implements OnInit {
         (area) =>
           area.name.toLowerCase().includes(term) ||
           area.centro_costo?.toLowerCase().includes(term) ||
-          this.getNombreEmpresa(area.empresa_id).toLowerCase().includes(term)
+          this.getNombreEmpresa(area.empresa_id).toLowerCase().includes(term),
       );
     }
 
@@ -166,7 +166,7 @@ export class AreasListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para editar áreas',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -177,7 +177,7 @@ export class AreasListaPage implements OnInit {
     if (!this.isOnline) {
       await this.showToast(
         'Debes estar conectado para eliminar áreas',
-        'warning'
+        'warning',
       );
       return;
     }
@@ -217,7 +217,7 @@ export class AreasListaPage implements OnInit {
       console.error('Error al eliminar área:', error);
       await this.showToast(
         'Error al eliminar área: ' + error.message,
-        'danger'
+        'danger',
       );
     } finally {
       await loading.dismiss();

@@ -1,7 +1,7 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { AlertController } from '@ionic/angular';
+import { AlertController } from '@ionic/angular/standalone';
 import { AuthService } from '../../services/auth.service';
 import { addIcons } from 'ionicons';
 import {
@@ -24,7 +24,12 @@ import {
   personCircleOutline,
   closeOutline,
 } from 'ionicons/icons';
-import { IonIcon, IonTabBar, IonTabButton, IonTabs } from '@ionic/angular/standalone';
+import {
+  IonIcon,
+  IonTabBar,
+  IonTabButton,
+  IonTabs,
+} from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-tabs',
@@ -32,7 +37,7 @@ import { IonIcon, IonTabBar, IonTabButton, IonTabs } from '@ionic/angular/standa
   styleUrls: ['tabs.page.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [CommonModule, IonIcon, IonTabBar, IonTabButton, IonTabs ],
+  imports: [CommonModule, IonIcon, IonTabBar, IonTabButton, IonTabs],
 })
 export class TabsPage {
   isMenuOpen = false;
@@ -41,7 +46,7 @@ export class TabsPage {
   constructor(
     private router: Router,
     private authService: AuthService,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       homeOutline,

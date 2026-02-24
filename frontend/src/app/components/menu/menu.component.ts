@@ -1,7 +1,7 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule, AlertController } from '@ionic/angular';
-import { MenuController } from '@ionic/angular/standalone';
+import { IonicModule } from '@ionic/angular';
+import { AlertController, MenuController } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { addIcons } from 'ionicons';
@@ -116,7 +116,7 @@ export class MenuComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private menuController: MenuController,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       homeOutline,

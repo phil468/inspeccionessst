@@ -2,11 +2,8 @@ import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import {
-  IonicModule,
-  LoadingController,
-  ToastController,
-} from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { LoadingController, ToastController } from '@ionic/angular/standalone';
 import { AuthService } from '../../services/auth.service';
 import { SyncService } from '../../services/sync.service';
 import { addIcons } from 'ionicons';

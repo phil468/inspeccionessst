@@ -1,7 +1,8 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { IonicModule, ModalController, AlertController } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { ModalController, AlertController } from '@ionic/angular/standalone';
 import { AuthService } from '../../services/auth.service';
 import { addIcons } from 'ionicons';
 import {
@@ -37,7 +38,7 @@ export class SideMenuComponent implements OnInit {
     private modalController: ModalController,
     private router: Router,
     private authService: AuthService,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       homeOutline,

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Platform } from '@ionic/angular';
+import { Platform } from '@ionic/angular/standalone';
 import {
   PushNotifications,
   Token,
@@ -16,7 +16,10 @@ import { firstValueFrom } from 'rxjs';
 export class PushNotificationService {
   private apiUrl = `${environment.apiUrl}/push-notifications`;
 
-  constructor(private http: HttpClient, private platform: Platform) {}
+  constructor(
+    private http: HttpClient,
+    private platform: Platform,
+  ) {}
 
   /**
    * Inicializar push notifications
@@ -25,7 +28,7 @@ export class PushNotificationService {
     // Solo en dispositivos móviles
     if (!this.platform.is('capacitor')) {
       console.log(
-        'Push notifications solo disponibles en dispositivos móviles'
+        'Push notifications solo disponibles en dispositivos móviles',
       );
       return;
     }
@@ -70,7 +73,7 @@ export class PushNotificationService {
         console.log('Notificación recibida:', notification);
         // Aquí puedes mostrar una alerta o toast
         this.handleNotification(notification);
-      }
+      },
     );
 
     // Notificación clickeada (app en background o cerrada)
@@ -80,7 +83,7 @@ export class PushNotificationService {
         console.log('Notificación clickeada:', notification);
         // Navegar a la pantalla correspondiente
         this.handleNotificationTap(notification);
-      }
+      },
     );
   }
 
@@ -97,7 +100,7 @@ export class PushNotificationService {
           token,
           platform,
           device_id: deviceId,
-        })
+        }),
       );
 
       console.log('Token registrado en backend:', response);
@@ -112,7 +115,7 @@ export class PushNotificationService {
   async deactivateToken(token: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.post(`${this.apiUrl}/deactivate`, { token })
+        this.http.post(`${this.apiUrl}/deactivate`, { token }),
       );
       console.log('Token desactivado');
     } catch (error) {

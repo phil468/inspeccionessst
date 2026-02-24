@@ -6,11 +6,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import {
-  IonicModule,
-  ToastController,
-  LoadingController,
-} from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../services/api.service';
 import { addIcons } from 'ionicons';
@@ -35,7 +32,7 @@ export class CampaniasFormPage implements OnInit {
     private route: ActivatedRoute,
     private apiService: ApiService,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({ arrowBackOutline, saveOutline });
   }
@@ -67,7 +64,7 @@ export class CampaniasFormPage implements OnInit {
 
     try {
       const response = await this.apiService.get<any>(
-        `/campanias/${this.campaniaId}`
+        `/campanias/${this.campaniaId}`,
       );
       this.campaniaForm.patchValue(response.data);
     } catch (error) {
@@ -83,7 +80,7 @@ export class CampaniasFormPage implements OnInit {
     if (this.campaniaForm.invalid) {
       this.showToast(
         'Por favor complete todos los campos requeridos',
-        'warning'
+        'warning',
       );
       return;
     }

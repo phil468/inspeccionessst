@@ -1,6 +1,7 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
-import { IonicModule, AlertController, ToastController } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -37,7 +38,7 @@ export class CampaniasListaPage implements OnInit {
     private storageService: StorageService,
     private networkService: NetworkService,
     private alertController: AlertController,
-    private toastController: ToastController
+    private toastController: ToastController,
   ) {
     addIcons({
       add,
@@ -79,7 +80,7 @@ export class CampaniasListaPage implements OnInit {
         } catch (apiError) {
           console.warn(
             'Error al actualizar desde API, usando datos locales:',
-            apiError
+            apiError,
           );
         }
       }

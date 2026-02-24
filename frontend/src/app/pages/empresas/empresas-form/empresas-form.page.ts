@@ -1,10 +1,7 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import {
-  IonicModule,
-  ToastController,
-  LoadingController,
-} from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -40,7 +37,7 @@ export class EmpresasFormPage implements OnInit {
     private apiService: ApiService,
     private networkService: NetworkService,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({ saveOutline, closeOutline });
 
@@ -72,7 +69,7 @@ export class EmpresasFormPage implements OnInit {
       if (!status && this.isEditMode) {
         this.showToast(
           'Se perdió la conexión. No se puede editar offline.',
-          'warning'
+          'warning',
         );
         this.router.navigate(['/empresas']);
       }
@@ -98,7 +95,7 @@ export class EmpresasFormPage implements OnInit {
       console.error('Error al cargar empresa:', error);
       await this.showToast(
         'Error al cargar empresa: ' + error.message,
-        'danger'
+        'danger',
       );
       this.router.navigate(['/empresas']);
     } finally {
@@ -110,7 +107,7 @@ export class EmpresasFormPage implements OnInit {
     if (this.empresaForm.invalid) {
       await this.showToast(
         'Por favor completa todos los campos requeridos',
-        'warning'
+        'warning',
       );
       return;
     }
