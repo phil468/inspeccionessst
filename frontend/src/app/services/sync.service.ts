@@ -554,6 +554,77 @@ export class SyncService {
   }
 
   /**
+   * Refrescar una inspección específica desde el servidor y actualizar IndexedDB.
+   * Se usa al abrir el formulario de edición para asegurar datos frescos.
+   * Retorna true si se actualizó exitosamente, false si no se pudo.
+   */
+  async refreshSingleInspeccion(localId: string): Promise<boolean> {
+    try {
+      const response: any = await this.apiService
+        .getInspeccionByLocalId(localId)
+        .toPromise();
+
+      if (!response?.success || !response.data) {
+        console.warn(
+          `⚠️ No se pudo obtener inspección ${localId} del servidor`,
+        );
+        return false;
+      }
+
+      const serverInspeccion = response.data;
+      console.log(
+        `📥 Inspección ${localId} obtenida del servidor (updated_at: ${serverInspeccion.updated_at})`,
+      );
+
+      // Buscar la inspección local en IndexedDB
+      const existente = await this.databaseService.inspecciones
+        .where('local_id')
+        .equals(localId)
+        .first();
+
+      // Separar el id del servidor para no sobreescribir el id auto-incremental de IndexedDB
+      const { id: _serverId, ...serverDataWithoutId } = serverInspeccion;
+
+      let inspeccionParaGuardar: any;
+
+      if (existente) {
+        // Preservar la clave primaria de IndexedDB
+        inspeccionParaGuardar = {
+          ...existente,
+          ...serverDataWithoutId,
+          id: existente.id,
+          synced: true,
+          synced_at: new Date().toISOString(),
+        };
+      } else {
+        // Nueva inspección, dejar que IndexedDB auto-incremente
+        inspeccionParaGuardar = {
+          ...serverDataWithoutId,
+          synced: true,
+          synced_at: new Date().toISOString(),
+        };
+      }
+
+      // Guardar/actualizar en IndexedDB
+      await this.databaseService.inspecciones.put(inspeccionParaGuardar);
+
+      // Actualizar relaciones (áreas, inspectores, resultados)
+      await this.guardarRelacionesInspecciones([serverInspeccion]);
+
+      console.log(
+        `✅ Inspección ${localId} actualizada en IndexedDB desde el servidor`,
+      );
+      return true;
+    } catch (error) {
+      console.warn(
+        `⚠️ No se pudo refrescar inspección ${localId} desde el servidor:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
    * Descargar inspecciones del servidor
    */
   async downloadInspecciones(): Promise<void> {

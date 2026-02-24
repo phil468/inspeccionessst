@@ -85,7 +85,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       )
       .toPromise() as Promise<T>;
   }
@@ -141,11 +141,9 @@ export class ApiService {
    */
   logout(): Observable<ApiResponse<null>> {
     return this.http
-      .post<ApiResponse<null>>(
-        `${this.baseUrl}/auth/logout`,
-        {},
-        { headers: this.getHeaders() }
-      )
+      .post<
+        ApiResponse<null>
+      >(`${this.baseUrl}/auth/logout`, {}, { headers: this.getHeaders() })
       .pipe(timeout(this.timeout), catchError(this.handleError));
   }
 
@@ -160,7 +158,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -177,7 +175,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -192,7 +190,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -207,7 +205,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -222,7 +220,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -243,7 +241,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -254,7 +252,7 @@ export class ApiService {
    */
   getRegistros(
     page: number = 1,
-    perPage: number = 50
+    perPage: number = 50,
   ): Observable<PaginatedResponse<Registro>> {
     const params = new HttpParams()
       .set('page', page.toString())
@@ -268,7 +266,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -288,14 +286,13 @@ export class ApiService {
    */
   getEstadisticas(): Observable<ApiResponse<EstadisticasRegistro>> {
     return this.http
-      .get<ApiResponse<EstadisticasRegistro>>(
-        `${this.baseUrl}/registros/estadisticas`,
-        { headers: this.getHeaders() }
-      )
+      .get<
+        ApiResponse<EstadisticasRegistro>
+      >(`${this.baseUrl}/registros/estadisticas`, { headers: this.getHeaders() })
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -306,7 +303,7 @@ export class ApiService {
    */
   getInspecciones(
     page: number = 1,
-    perPage: number = 50
+    perPage: number = 50,
   ): Observable<PaginatedResponse<Inspeccion>> {
     const params = new HttpParams()
       .set('page', page.toString())
@@ -320,7 +317,7 @@ export class ApiService {
       .pipe(
         timeout(this.timeout),
         retry(this.retryAttempts),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -328,7 +325,7 @@ export class ApiService {
    * Crear nueva inspección
    */
   createInspeccion(
-    inspeccion: Inspeccion
+    inspeccion: Inspeccion,
   ): Observable<ApiResponse<Inspeccion>> {
     return this.http
       .post<ApiResponse<Inspeccion>>(
@@ -336,7 +333,7 @@ export class ApiService {
         inspeccion,
         {
           headers: this.getHeaders(),
-        }
+        },
       )
       .pipe(timeout(this.timeout), catchError(this.handleError));
   }
@@ -346,7 +343,7 @@ export class ApiService {
    */
   updateInspeccion(
     id: number,
-    inspeccion: Partial<Inspeccion>
+    inspeccion: Partial<Inspeccion>,
   ): Observable<ApiResponse<Inspeccion>> {
     return this.http
       .put<ApiResponse<Inspeccion>>(
@@ -354,7 +351,7 @@ export class ApiService {
         inspeccion,
         {
           headers: this.getHeaders(),
-        }
+        },
       )
       .pipe(timeout(this.timeout), catchError(this.handleError));
   }
@@ -380,11 +377,11 @@ export class ApiService {
       .post<SyncResponse>(
         `${this.baseUrl}/sync/registros`,
         { registros },
-        { headers: this.getHeaders() }
+        { headers: this.getHeaders() },
       )
       .pipe(
         timeout(this.timeout * 2), // Timeout mayor para sincronización
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -396,12 +393,26 @@ export class ApiService {
       .post<SyncResponse>(
         `${this.baseUrl}/sync/inspecciones`,
         { inspecciones },
-        { headers: this.getHeaders() }
+        { headers: this.getHeaders() },
       )
       .pipe(
         timeout(this.timeout * 2), // Timeout mayor para sincronización
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
+  }
+
+  /**
+   * Obtener una inspección específica del servidor por su local_id
+   */
+  getInspeccionByLocalId(localId: string): Observable<ApiResponse<Inspeccion>> {
+    return this.http
+      .get<ApiResponse<Inspeccion>>(
+        `${this.baseUrl}/sync/inspecciones/show/${localId}`,
+        {
+          headers: this.getHeaders(),
+        },
+      )
+      .pipe(timeout(this.timeout), catchError(this.handleError));
   }
 
   /**
@@ -425,7 +436,7 @@ export class ApiService {
       })
       .pipe(
         timeout(5000), // 5 segundos
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -443,11 +454,11 @@ export class ApiService {
         {},
         {
           headers: this.getHeaders(),
-        }
+        },
       )
       .pipe(
         timeout(300000), // 5 minutos
-        catchError(this.handleError)
+        catchError(this.handleError),
       )
       .toPromise() as Promise<any>;
   }
@@ -517,7 +528,7 @@ export class ApiService {
   uploadFoto(
     file: File,
     tipo: 'inicial' | 'final',
-    resultadoId?: string
+    resultadoId?: string,
   ): Observable<any> {
     const formData = new FormData();
     formData.append('foto', file);
@@ -532,7 +543,7 @@ export class ApiService {
       })
       .pipe(
         timeout(30000), // 30 segundos para upload
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 

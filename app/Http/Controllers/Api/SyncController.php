@@ -666,6 +666,69 @@ class SyncController extends Controller
     }
 
     /**
+     * Obtener una inspección específica por su local_id.
+     * Usado cuando un dispositivo abre una inspección para editar y necesita
+     * asegurarse de tener la versión más reciente del servidor.
+     */
+    public function getInspeccionByLocalId(Request $request, $localId)
+    {
+        $user = $request->user();
+
+        try {
+            $esAdminOSupervisor = $user->hasRole('administrador') || $user->hasRole('supervisor') || $user->hasRole('operador');
+
+            $query = Inspeccion::where('local_id', $localId);
+
+            // Aplicar filtro de permisos si no es admin/supervisor/operador
+            if (!$esAdminOSupervisor) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                      ->orWhereHas('inspectores', function ($q2) use ($user) {
+                          $q2->where('personal_id', $user->personal_id);
+                      });
+                });
+            }
+
+            $inspeccion = $query->with([
+                'user:id,name,email',
+                'empresa:id,name,razon_social,ruc',
+                'area:id,name,empresa_id',
+                'areas:id,name',
+                'fundo:id,nombre',
+                'inspectores:id,nombres,apellido_paterno,apellido_materno,dni',
+                'resultados' => function($q) {
+                    $q->orderBy('nivel_riesgo', 'asc');
+                },
+                'resultados.visores:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.responsablesLevantamiento:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.responsable:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.fotoFinalAprobador:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.fotoInicialAprobador:id,nombres,apellido_paterno,apellido_materno',
+                'responsableRegistro.personal:id,nombres,apellido_paterno,apellido_materno',
+            ])->first();
+
+            if (!$inspeccion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Inspección no encontrada',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $inspeccion,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener inspección',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Obtener inspecciones eliminadas (tombstones) para propagar deletes entre dispositivos.
      * Endpoint ligero que se llama en cada ciclo de auto-sync.
      */

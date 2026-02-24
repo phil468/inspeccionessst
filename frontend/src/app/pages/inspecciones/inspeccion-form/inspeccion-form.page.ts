@@ -345,6 +345,42 @@ export class InspeccionFormPage implements OnInit {
     await loading.present();
 
     try {
+      // Si estamos online, refrescar la inspección desde el servidor antes de cargar
+      // Esto garantiza que siempre se muestre la versión más reciente
+      if (this.isOnline) {
+        // Determinar el local_id: si el id parece UUID lo usamos directamente,
+        // si no, buscamos primero en IndexedDB para obtener el local_id
+        let localIdParaRefresh = id;
+        const esUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            id,
+          );
+        if (!esUuid) {
+          const temp = await this.databaseService.inspecciones.get(Number(id));
+          if (temp?.local_id) {
+            localIdParaRefresh = temp.local_id;
+          }
+        }
+
+        try {
+          loading.message = 'Actualizando desde el servidor...';
+          const refreshed =
+            await this.syncService.refreshSingleInspeccion(localIdParaRefresh);
+          if (refreshed) {
+            console.log(
+              '✅ Inspección actualizada desde el servidor antes de cargar',
+            );
+          }
+        } catch (refreshError) {
+          console.warn(
+            'No se pudo refrescar desde el servidor, usando datos locales:',
+            refreshError,
+          );
+        }
+      }
+
+      loading.message = 'Cargando inspección...';
+
       const inspecciones = await this.databaseService.getInspecciones();
       const inspeccion = inspecciones.find(
         (i: Inspeccion) => i.id?.toString() === id || i.local_id === id,

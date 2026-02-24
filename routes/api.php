@@ -65,6 +65,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // Sincronización de inspecciones
         Route::post('/inspecciones', [SyncController::class, 'syncInspecciones']);
         Route::get('/inspecciones', [SyncController::class, 'downloadInspecciones']);
+        // Obtener inspección específica por local_id (para refrescar al editar)
+        Route::get('/inspecciones/show/{local_id}', [SyncController::class, 'getInspeccionByLocalId']);
         // Tombstones: inspecciones eliminadas para propagar deletes entre dispositivos
         Route::get('/inspecciones/deleted', [SyncController::class, 'getDeletedInspecciones']);
         // Eliminar inspección por local_id (soporta sincronización de borrados desde cliente)
