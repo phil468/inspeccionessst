@@ -486,7 +486,7 @@ export class InspeccionListaPage implements OnInit {
 
     try {
       const response: any = await this.inspeccionService.enviarNotificaciones(
-        inspeccion.id!,
+        inspeccion.local_id!,
       );
 
       await loading.dismiss();

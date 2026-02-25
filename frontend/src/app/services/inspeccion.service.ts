@@ -54,7 +54,7 @@ export class InspeccionService {
   /**
    * Enviar notificaciones de una inspección
    */
-  async enviarNotificaciones(inspeccionId: number): Promise<any> {
+  async enviarNotificaciones(inspeccionId: string): Promise<any> {
     try {
       const response = await firstValueFrom(
         this.http.post(`${this.apiUrl}/${inspeccionId}/notificar`, {})
@@ -69,7 +69,7 @@ export class InspeccionService {
   /**
    * Enviar notificaciones masivas
    */
-  async enviarNotificacionesMasivas(inspeccionIds: number[]): Promise<any> {
+  async enviarNotificacionesMasivas(inspeccionIds: string[]): Promise<any> {
     try {
       const response = await firstValueFrom(
         this.http.post(`${environment.apiUrl}/notificaciones/masivas`, {

@@ -19,8 +19,9 @@ class NotificationController extends Controller
     /**
      * Enviar notificaciones de una inspección
      */
-    public function enviarNotificacionesInspeccion(Request $request, $inspeccionId)
+    public function enviarNotificacionesInspeccion(Request $request, $inspeccionLocalId)
     {
+        // Validar que la inspección exista        
         $inspeccion = Inspeccion::with([
             'empresa',
             'area',
@@ -28,7 +29,14 @@ class NotificationController extends Controller
             'resultados.responsable',
             'resultados.visores',
             'resultados.responsablesLevantamiento',
-        ])->findOrFail($inspeccionId);
+        ])->where('local_id', $inspeccionLocalId)->first();
+
+        if (!$inspeccion) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Inspección no encontrada',
+            ], 404);
+        }
 
         // return response()->json([
         //     'success' => true,
