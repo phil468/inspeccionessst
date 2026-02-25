@@ -176,8 +176,8 @@ class NotificationService
                 // la foto final resuelta (no 'pendiente' y no nulo). Si hay alguno pendiente,
                 // omitimos el envío hasta que estén todos resueltos.
                 $tienePendiente = collect($resultadosUnicos)->contains(function ($r) {
-                    $estadoFoto = $r->foto_final_estado ?? null;
-                    strtolower($estadoFoto) === 'pendiente';
+                    $estadoFoto = $r->foto_final_estado ?? '';
+                    return strtolower($estadoFoto) === 'pendiente';
                 });
 
                 if ($tienePendiente) {

@@ -70,6 +70,7 @@ import {
   addOutline,
   trashOutline,
   cameraOutline,
+  imagesOutline,
   searchOutline,
   checkmarkCircleOutline,
   checkmarkCircle,
@@ -173,6 +174,7 @@ export class InspeccionFormPage implements OnInit {
       'add-outline': addOutline,
       'trash-outline': trashOutline,
       'camera-outline': cameraOutline,
+      'images-outline': imagesOutline,
       'search-outline': searchOutline,
       'checkmark-circle-outline': checkmarkCircleOutline,
       'checkmark-circle': checkmarkCircle,
@@ -275,17 +277,17 @@ export class InspeccionFormPage implements OnInit {
       buttons: [
         {
           text: 'Cámara',
-          icon: 'camera',
+          icon: 'camera-outline',
           handler: () => this.tomarFoto(resultado, tipo, 'camera'),
         },
         {
           text: 'Galería',
-          icon: 'images',
+          icon: 'images-outline',
           handler: () => this.tomarFoto(resultado, tipo, 'gallery'),
         },
         {
           text: 'Cancelar',
-          icon: 'close',
+          icon: 'close-outline',
           role: 'cancel',
         },
       ],
@@ -346,36 +348,53 @@ export class InspeccionFormPage implements OnInit {
 
     try {
       // Si estamos online, refrescar la inspección desde el servidor antes de cargar
-      // Esto garantiza que siempre se muestre la versión más reciente
+      // SOLO si la inspección local ya está sincronizada (synced: true).
+      // Si tiene cambios pendientes (synced: false), no sobreescribir con datos del servidor.
       if (this.isOnline) {
         // Determinar el local_id: si el id parece UUID lo usamos directamente,
         // si no, buscamos primero en IndexedDB para obtener el local_id
         let localIdParaRefresh = id;
+        let inspeccionLocal: any = null;
         const esUuid =
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
             id,
           );
         if (!esUuid) {
-          const temp = await this.databaseService.inspecciones.get(Number(id));
-          if (temp?.local_id) {
-            localIdParaRefresh = temp.local_id;
+          inspeccionLocal = await this.databaseService.inspecciones.get(
+            Number(id),
+          );
+          if (inspeccionLocal?.local_id) {
+            localIdParaRefresh = inspeccionLocal.local_id;
           }
+        } else {
+          // Buscar por local_id para verificar el estado de synced
+          const todas = await this.databaseService.inspecciones.toArray();
+          inspeccionLocal = todas.find((i: any) => i.local_id === id);
         }
 
-        try {
-          loading.message = 'Actualizando desde el servidor...';
-          const refreshed =
-            await this.syncService.refreshSingleInspeccion(localIdParaRefresh);
-          if (refreshed) {
-            console.log(
-              '✅ Inspección actualizada desde el servidor antes de cargar',
+        // Solo refrescar si la inspección local ya está sincronizada
+        if (inspeccionLocal?.synced === false) {
+          console.log(
+            '⚠️ Inspección tiene cambios pendientes (synced: false), no se sobreescribe con datos del servidor',
+          );
+        } else {
+          try {
+            loading.message = 'Actualizando desde el servidor...';
+            const refreshed =
+              await this.syncService.refreshSingleInspeccion(
+                localIdParaRefresh,
+              );
+            if (refreshed) {
+              console.log(
+                '✅ Inspección actualizada desde el servidor antes de cargar',
+              );
+            }
+          } catch (refreshError) {
+            console.warn(
+              'No se pudo refrescar desde el servidor, usando datos locales:',
+              refreshError,
             );
           }
-        } catch (refreshError) {
-          console.warn(
-            'No se pudo refrescar desde el servidor, usando datos locales:',
-            refreshError,
-          );
         }
       }
 
@@ -525,6 +544,23 @@ export class InspeccionFormPage implements OnInit {
     if (this.inspeccionForm.invalid) {
       await this.showToast(
         'Por favor completa todos los campos requeridos',
+        'warning',
+      );
+      return;
+    }
+
+    // Validar que todos los resultados tengan descripción
+    const resultadosSinDescripcion = this.resultados.filter(
+      (r, i) => !r.descripcion || r.descripcion.trim() === '',
+    );
+    if (resultadosSinDescripcion.length > 0) {
+      const indices = this.resultados
+        .map((r, i) =>
+          !r.descripcion || r.descripcion.trim() === '' ? i + 1 : null,
+        )
+        .filter((i) => i !== null);
+      await this.showToast(
+        `La descripción es obligatoria en el resultado #${indices.join(', #')}`,
         'warning',
       );
       return;

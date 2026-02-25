@@ -804,6 +804,29 @@ class SyncController extends Controller
 
         // 3. Sincronizar resultados/hallazgos
         if (isset($data['resultados']) && is_array($data['resultados'])) {
+            // Obtener los local_ids que vienen del cliente
+            $localIdsRecibidos = collect($data['resultados'])
+                ->pluck('local_id')
+                ->filter()
+                ->toArray();
+
+            // Eliminar resultados que ya no existen en el cliente
+            // (fueron eliminados por el usuario en el formulario)
+            $resultadosAEliminar = ResultadoInspeccion::where('inspeccion_id', $inspeccion->id)
+                ->whereNotIn('local_id', $localIdsRecibidos)
+                ->get();
+
+            foreach ($resultadosAEliminar as $resultadoEliminar) {
+                // Limpiar relaciones del resultado antes de eliminarlo
+                \App\Models\ResultadoVisor::where('resultado_id', $resultadoEliminar->id)->forceDelete();
+                \App\Models\ResultadoResponsableLevantamiento::where('resultado_id', $resultadoEliminar->id)->forceDelete();
+                $resultadoEliminar->forceDelete();
+            }
+
+            if (count($resultadosAEliminar) > 0) {
+                Log::info("Eliminados " . count($resultadosAEliminar) . " resultados huérfanos de inspección {$inspeccion->id}");
+            }
+
             foreach ($data['resultados'] as $resultadoData) {
                 // Buscar por local_id para evitar duplicados
                 $resultado = ResultadoInspeccion::where('local_id', $resultadoData['local_id'])->first();
