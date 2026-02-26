@@ -88,7 +88,7 @@
           <ion-icon slot="icon-only" name="notifications-outline" color="primary"></ion-icon>
         </ion-button>
         <ion-button fill="clear" size="default" *ngIf="!inspeccion.deleted"(click)="descargarPlantilla(inspeccion); $event.stopPropagation()">
-          <ion-icon slot="icon-only" name="cloud-download-outline" color="medium"></ion-icon>
+          <ion-icon slot="icon-only" name="document-text-outline" color="medium"></ion-icon>
         </ion-button>
         <ion-button fill="clear" size="default" *ngIf="hasPermission('inspecciones.update') && !inspeccion.deleted"(click)="editarInspeccion(inspeccion); $event.stopPropagation()">
           <ion-icon slot="icon-only" name="create-outline" color="medium"></ion-icon>

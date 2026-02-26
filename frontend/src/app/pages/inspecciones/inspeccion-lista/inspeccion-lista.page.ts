@@ -145,10 +145,11 @@ export class InspeccionListaPage implements OnInit {
       if (env && env.apiUrl) {
         // Construir endpoint que devuelve la plantilla (backend): {apiUrl}/inspecciones/{id}/template
         templateUrl =
-          env.apiUrl +
-          '/inspecciones/' +
-          (inspeccion.id || inspeccion.local_id) +
-          '/template';
+          env.apiUrl + '/inspecciones/' + inspeccion.local_id + '/template';
+        console.log(
+          '🔗 URL de plantilla construida desde environment.apiUrl:',
+          templateUrl,
+        );
       } else {
         templateUrl = '/storage/inspecciones/template/template_inspeccion.xlsx';
       }
@@ -158,11 +159,16 @@ export class InspeccionListaPage implements OnInit {
     }
 
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(templateUrl, {
         method: 'GET',
-        credentials: 'include',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Accept: 'application/octet-stream',
+        },
       });
-      if (!response.ok) throw new Error('Error al descargar plantilla');
+      if (!response.ok)
+        throw new Error(`Error al descargar plantilla: ${response.status}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -404,7 +410,10 @@ export class InspeccionListaPage implements OnInit {
 
   formatDate(date?: string): string {
     if (!date) return 'Sin fecha';
-    const d = new Date(date);
+    // Eliminar sufijo 'Z' para evitar conversión UTC → local.
+    // El valor almacenado ya contiene la hora Lima codificada como ISO.
+    const d = new Date(date.replace(/Z$/i, ''));
+    if (isNaN(d.getTime())) return 'Sin fecha';
     return d.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: '2-digit',
@@ -414,7 +423,10 @@ export class InspeccionListaPage implements OnInit {
 
   formatDateTime(datetime?: string): string {
     if (!datetime) return 'Sin fecha';
-    const d = new Date(datetime);
+    // Eliminar sufijo 'Z' para evitar conversión UTC → local.
+    // El valor almacenado ya contiene la hora Lima codificada como ISO.
+    const d = new Date(datetime.replace(/Z$/i, ''));
+    if (isNaN(d.getTime())) return 'Sin fecha';
     return d.toLocaleString('es-PE', {
       day: '2-digit',
       month: '2-digit',

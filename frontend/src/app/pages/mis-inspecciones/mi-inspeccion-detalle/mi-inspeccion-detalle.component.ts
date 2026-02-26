@@ -561,6 +561,21 @@ export class MiInspeccionDetalleComponent implements OnInit {
     await alert.present();
   }
 
+  formatDateTime(datetime?: string): string {
+    if (!datetime) return 'Sin fecha';
+    // Eliminar sufijo 'Z' para evitar conversión UTC → local.
+    // El valor almacenado ya contiene la hora Lima codificada como ISO.
+    const d = new Date(datetime.replace(/Z$/i, ''));
+    if (isNaN(d.getTime())) return 'Sin fecha';
+    return d.toLocaleString('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+  
   async verFoto(url: string, titulo: string = 'Foto') {
     if (!url) return;
 

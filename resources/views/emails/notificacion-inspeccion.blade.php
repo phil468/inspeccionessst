@@ -263,7 +263,8 @@
                 <p><strong>Empresa:</strong> {{ $inspeccion->empresa->name ?? 'N/A' }}</p>
                 <p><strong>Sede:</strong> {{ $inspeccion->fundo->nombre ?? ($inspeccion->fundo_nombre ?? 'N/A') }}</p>
                 <p><strong>Área:</strong> {{ $inspeccion->area->name ?? 'N/A' }}</p>
-                <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($inspeccion->fecha_inspeccion)->format('d/m/Y') }}
+                {{-- 03:52 p.m. --}}
+                <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($inspeccion->fecha_hora_inspeccion)->format('d/m/Y h:i A') }}
                 </p>
                 <p><strong>Tipo:</strong> {{ $inspeccion->tipo_inspeccion }}</p>
             </div>

@@ -33,7 +33,7 @@
                 <p><strong>Sede:</strong> {{ inspeccion.fundo?.nombre || 'N/A' }}</p>
                  <!-- área -->
                 <h2 class="area-name">{{ inspeccion.area?.name || 'Sin área' }}</h2>
-                <p class="fecha">{{ inspeccion.fecha_hora_inspeccion | date:'dd/MM/yyyy' }}</p>
+                <p class="fecha">{{ formatDateTime(inspeccion.fecha_hora_inspeccion) }}</p>
                 <ion-chip color="primary">
                   {{ inspeccion.tipo_inspeccion }}
                 </ion-chip>

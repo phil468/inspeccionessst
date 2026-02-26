@@ -35,7 +35,7 @@
              <!-- área -->
             <p><strong>Área:</strong> {{ inspeccion.area?.name || 'N/A' }}</p>
             <!-- <p><strong>Número de registro:</strong> {{ inspeccion.numero_registro || 'N/A' }}</p> -->
-            <p><strong>Fecha:</strong> {{ inspeccion.fecha_hora_inspeccion | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p><strong>Fecha:</strong> {{ formatDateTime(inspeccion.fecha_hora_inspeccion) }}</p>
           </ion-label>
         </ion-item>
 
