@@ -333,7 +333,8 @@ export class InspeccionFormPage implements OnInit {
   filterAreas(empresaId: number) {
     if (empresaId) {
       this.areasFiltradas = this.areas.filter(
-        (area) => area.empresa_id === empresaId,
+        //filtro por idempresa y por áreas activas
+        (area) => area.empresa_id === empresaId && area.activo
       );
     } else {
       this.areasFiltradas = [];

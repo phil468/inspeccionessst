@@ -1,7 +1,7 @@
 <ion-header>
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/home"></ion-back-button>
+      <ion-back-button defaultHref="/mantenimiento"></ion-back-button>
     </ion-buttons>
     <ion-title>Áreas</ion-title>
     <ion-buttons slot="end">
@@ -21,11 +21,11 @@
   </ion-toolbar>
 
   <ion-toolbar *ngIf="empresas.length > 0">
-    <ion-segment [(ngModel)]="empresaFiltro" (ionChange)="filterAreas()" scrollable>
-      <ion-segment-button [value]="null">
+    <ion-segment [(ngModel)]="empresaFiltro" (ionChange)="filterAreas()" [scrollable]="true">
+      <ion-segment-button value="all">
         <ion-label>Todas</ion-label>
       </ion-segment-button>
-      <ion-segment-button *ngFor="let empresa of empresas" [value]="empresa.id">
+      <ion-segment-button *ngFor="let empresa of empresas" [value]="empresa.id + ''">
         <ion-label>{{ empresa.name }}</ion-label>
       </ion-segment-button>
     </ion-segment>
@@ -47,9 +47,15 @@
         <p *ngIf="area.centro_costo" class="text-muted">Centro de Costo: {{ area.centro_costo }}</p>
       </ion-label>
       
-      <ion-badge slot="end" [color]="area.activo ? 'success' : 'medium'">
-        {{ area.activo ? 'Activo' : 'Inactivo' }}
-      </ion-badge>
+      <ion-toggle
+        slot="end"
+        [checked]="area.activo"
+        (ionChange)="toggleActivo(area, $event)"
+        [disabled]="!isOnline"
+        (click)="$event.stopPropagation()"
+        color="success"
+        style="margin-right: 8px;"
+      ></ion-toggle>
       
       <ion-buttons slot="end" *ngIf="isOnline">
         <ion-button (click)="editarArea(area); $event.stopPropagation()">

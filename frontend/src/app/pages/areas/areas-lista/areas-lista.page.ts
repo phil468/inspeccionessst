@@ -36,7 +36,7 @@ export class AreasListaPage implements OnInit {
   areasFiltradas: Area[] = [];
   empresas: Empresa[] = [];
   searchTerm = '';
-  empresaFiltro: number | null = null;
+  empresaFiltro: string = 'all';
   isOnline = false;
 
   constructor(
@@ -105,7 +105,7 @@ export class AreasListaPage implements OnInit {
         const response = await this.apiService.get<{
           success: boolean;
           data: Area[];
-        }>('/areas');
+        }>('/areas?solo_activas=false');
         if (response.success) {
           this.areas = response.data;
           await this.databaseService.areas.clear();
@@ -129,10 +129,9 @@ export class AreasListaPage implements OnInit {
     let filtradas = [...this.areas];
 
     // Filtrar por empresa
-    if (this.empresaFiltro) {
-      filtradas = filtradas.filter(
-        (area) => area.empresa_id === this.empresaFiltro,
-      );
+    if (this.empresaFiltro && this.empresaFiltro !== 'all') {
+      const empresaId = Number(this.empresaFiltro);
+      filtradas = filtradas.filter((area) => area.empresa_id === empresaId);
     }
 
     // Filtrar por búsqueda
@@ -152,6 +151,35 @@ export class AreasListaPage implements OnInit {
   getNombreEmpresa(empresaId: number): string {
     const empresa = this.empresas.find((e) => e.id === empresaId);
     return empresa ? empresa.name : 'Desconocida';
+  }
+
+  async toggleActivo(area: Area, event: any) {
+    event.stopPropagation();
+    const nuevoEstado = event.detail.checked;
+
+    if (!this.isOnline) {
+      event.target.checked = area.activo;
+      await this.showToast(
+        'Debes estar conectado para cambiar el estado',
+        'warning',
+      );
+      return;
+    }
+
+    try {
+      await this.apiService.put(`/areas/${area.id}`, { activo: nuevoEstado });
+      area.activo = nuevoEstado;
+      await this.showToast(
+        `Área ${nuevoEstado ? 'activada' : 'desactivada'} exitosamente`,
+        'success',
+      );
+    } catch (error: any) {
+      event.target.checked = area.activo;
+      await this.showToast(
+        'Error al cambiar estado: ' + error.message,
+        'danger',
+      );
+    }
   }
 
   async nuevaArea() {
