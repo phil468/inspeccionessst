@@ -26,9 +26,9 @@ import {
   IonChip,
   IonInfiniteScroll,
   IonInfiniteScrollContent,
+  IonProgressBar,
   AlertController,
   ToastController,
-  LoadingController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -82,6 +82,7 @@ import { FilterPipe } from '../../pipes/filter.pipe';
     IonChip,
     IonInfiniteScroll,
     IonInfiniteScrollContent,
+    IonProgressBar,
     FilterPipe,
   ],
 })
@@ -107,13 +108,18 @@ export class PersonalListaPage implements OnInit {
   loading: boolean = false;
   syncing: boolean = false;
 
+  // Estado de sincronización inline
+  syncMessage: string = '';
+  syncProgress: number = 0; // 0 a 1
+  syncError: string = '';
+  syncSuccess: string = '';
+
   constructor(
     private apiService: ApiService,
     private storageService: StorageService,
     private router: Router,
     private alertController: AlertController,
     private toastController: ToastController,
-    private loadingController: LoadingController,
   ) {
     addIcons({
       add,
@@ -300,96 +306,116 @@ export class PersonalListaPage implements OnInit {
         },
         {
           text: 'Sincronizar',
-          handler: async () => {
-            await this.performSync();
-          },
+          role: 'confirm',
         },
       ],
     });
 
     await alert.present();
+    const { role } = await alert.onDidDismiss();
+
+    if (role === 'confirm') {
+      await this.performSync();
+    }
   }
 
   /**
-   * Realizar sincronización directa
+   * Realizar sincronización directa (con barra de progreso inline)
    */
   async performSync() {
-    const loading = await this.loadingController.create({
-      message: 'Sincronizando personal desde API externa...',
-      spinner: 'crescent',
-      backdropDismiss: false,
-    });
-
-    await loading.present();
+    // Resetear estado
+    this.syncError = '';
+    this.syncSuccess = '';
+    this.syncMessage = 'Sincronizando con API externa...';
+    this.syncProgress = 0;
+    this.syncing = true;
 
     try {
-      this.syncing = true;
-
+      // Paso 1: Sincronizar desde API externa (~20s)
+      this.syncProgress = 0.1;
       const response = await this.apiService.syncPersonalFromExternalApi();
 
       if (response && response.success) {
-        // Recargar datos desde el servidor por lotes
-        loading.message = 'Descargando datos actualizados...';
+        // Paso 2: Descargar datos actualizados por lotes
+        this.syncMessage = 'Descargando datos actualizados...';
+        this.syncProgress = 0.5;
 
         try {
           const personalData = await this.apiService.getPersonal(
             undefined,
             (loaded, total) => {
-              loading.message = `Descargando personal: ${loaded} de ${total}...`;
+              // Progreso de 0.5 a 0.9 durante la descarga
+              const downloadProgress = total > 0 ? loaded / total : 0;
+              this.syncProgress = 0.5 + downloadProgress * 0.4;
+              this.syncMessage = `Descargando personal: ${loaded} de ${total}...`;
             },
           );
+
+          this.syncMessage = 'Guardando en almacenamiento local...';
+          this.syncProgress = 0.9;
           await this.storageService.clearPersonal();
           if (personalData.data && personalData.data.length > 0) {
-            loading.message = 'Guardando en almacenamiento local...';
             await this.storageService.savePersonal(personalData.data);
           }
           await this.loadData();
         } catch (reloadError) {
           console.error('Error recargando datos post-sync:', reloadError);
-          this.showToast(
-            'Sincronización exitosa, pero hubo un error al actualizar la lista. Use pull-to-refresh.',
-            'warning',
-          );
+          this.syncError =
+            'Sincronización exitosa, pero hubo un error al actualizar la lista. Use pull-to-refresh.';
         }
 
-        await loading.dismiss();
+        this.syncProgress = 1;
 
         // Mostrar resultado con estadísticas
         const stats = response.stats;
-        const message = stats
-          ? `Sincronización completada: ${stats.nuevos || 0} nuevos, ${stats.actualizados || 0} actualizados, ${stats.cesados || 0} cesados`
-          : response.message || 'Sincronización completada';
-        this.showToast(message, 'success');
+        this.syncSuccess = stats
+          ? `✓ Sincronización completada: ${stats.nuevos || 0} nuevos, ${stats.actualizados || 0} actualizados, ${stats.cesados || 0} cesados`
+          : '✓ ' + (response.message || 'Sincronización completada');
+        this.syncMessage = '';
+
+        // Auto-ocultar mensaje de éxito después de 8 segundos
+        setTimeout(() => {
+          this.syncSuccess = '';
+          this.syncProgress = 0;
+        }, 8000);
       } else {
-        await loading.dismiss();
-        this.showToast(
-          response?.message || 'Error en la sincronización',
-          'danger',
-        );
+        this.syncProgress = 0;
+        this.syncError = response?.message || 'Error en la sincronización';
+        this.syncMessage = '';
       }
     } catch (error: any) {
       console.error('Error sincronizando:', error);
-      await loading.dismiss();
-
-      let errorMsg = 'Error al sincronizar personal';
+      this.syncProgress = 0;
+      this.syncMessage = '';
 
       if (
         error?.status === 401 ||
         error?.error?.message?.includes('Unauthenticated')
       ) {
-        errorMsg = 'Sesión expirada. Por favor inicie sesión nuevamente.';
+        this.syncError = 'Sesión expirada. Por favor inicie sesión nuevamente.';
       } else if (error?.status === 409) {
-        errorMsg = 'Ya hay una sincronización en curso. Por favor espere.';
+        this.syncError =
+          'Ya hay una sincronización en curso. Por favor espere.';
       } else if (error?.error?.message) {
-        errorMsg = error.error.message;
+        this.syncError = error.error.message;
       } else if (error?.message) {
-        errorMsg = error.message;
+        this.syncError = error.message;
+      } else {
+        this.syncError = 'Error al sincronizar personal';
       }
-
-      this.showToast(errorMsg, 'danger');
     } finally {
       this.syncing = false;
     }
+  }
+
+  /**
+   * Cerrar mensaje de error/éxito de sincronización
+   */
+  dismissSyncMessage() {
+    this.syncError = '';
+    this.syncSuccess = '';
+    this.syncMessage = '';
+    this.syncProgress = 0;
   }
 
   /**

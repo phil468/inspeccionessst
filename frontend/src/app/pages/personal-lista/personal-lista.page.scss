@@ -1,3 +1,72 @@
+// Barra de sincronización inline
+.sync-status-bar {
+  padding: 0;
+  background: var(--ion-color-light);
+  border-bottom: 1px solid var(--ion-color-light-shade);
+
+  .sync-progress {
+    padding: 10px 16px 0;
+
+    .sync-progress-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+
+      ion-spinner {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+    }
+
+    ion-progress-bar {
+      border-radius: 4px;
+      height: 6px;
+      margin-bottom: 10px;
+    }
+  }
+
+  .sync-text {
+    font-size: 13px;
+    color: var(--ion-color-dark);
+    flex: 1;
+  }
+
+  .sync-result {
+    display: flex;
+    align-items: center;
+    padding: 8px 8px 8px 16px;
+    gap: 8px;
+
+    &--success {
+      background: var(--ion-color-success-tint);
+      border-left: 4px solid var(--ion-color-success);
+
+      .sync-text {
+        color: var(--ion-color-success-shade);
+        font-weight: 500;
+      }
+    }
+
+    &--error {
+      background: var(--ion-color-danger-tint);
+      border-left: 4px solid var(--ion-color-danger);
+
+      .sync-text {
+        color: var(--ion-color-danger-shade);
+        font-weight: 500;
+      }
+    }
+
+    ion-button {
+      flex-shrink: 0;
+      --padding-start: 4px;
+      --padding-end: 4px;
+    }
+  }
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
