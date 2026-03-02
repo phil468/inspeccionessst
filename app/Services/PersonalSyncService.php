@@ -12,6 +12,7 @@ use App\Models\Planilla;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Exception;
 
 class PersonalSyncService
@@ -20,9 +21,113 @@ class PersonalSyncService
     
     private $authService;
 
+    // Cachés en memoria para evitar queries repetitivas
+    private array $empresaCache = [];
+    private array $areaCache = [];
+    private array $cargoCache = [];
+    private array $planillaCache = [];
+    private array $tipoTrabajadorCache = [];
+    private array $tipoPersonalCache = [];
+    private array $personalDniCache = [];
+
     public function __construct(ExternalApiAuthService $authService)
     {
         $this->authService = $authService;
+    }
+
+    /**
+     * Obtener estado actual de la sincronización
+     */
+    public static function getSyncStatus(): array
+    {
+        $status = Cache::get('personal_sync_status', [
+            'running' => false,
+            'progress' => 0,
+            'total' => 0,
+            'processed' => 0,
+            'stats' => null,
+            'message' => '',
+            'finished' => false,
+            'error' => null,
+        ]);
+
+        // Si lleva más de 10 minutos "running" sin progreso, considerarlo muerto
+        if (!empty($status['running']) && !empty($status['started_at'])) {
+            $startedAt = \Carbon\Carbon::parse($status['started_at']);
+            $minutesRunning = $startedAt->diffInMinutes(now());
+
+            if ($minutesRunning > 10 && empty($status['processed'])) {
+                $status['running'] = false;
+                $status['finished'] = true;
+                $status['error'] = 'La sincronización no respondió. Intente nuevamente.';
+                Cache::put('personal_sync_status', $status, 60);
+            }
+        }
+
+        return $status;
+    }
+
+    /**
+     * Actualizar estado de sincronización en caché
+     */
+    private function updateSyncStatus(array $data): void
+    {
+        $current = Cache::get('personal_sync_status', []);
+        Cache::put('personal_sync_status', array_merge($current, $data), 600); // 10 min TTL
+    }
+
+    /**
+     * Pre-cargar catálogos en memoria para evitar queries repetitivas
+     */
+    private function preloadCatalogs(): void
+    {
+        // Pre-cargar empresas
+        foreach (Empresa::all() as $e) {
+            $key = strtolower(trim($e->name));
+            $this->empresaCache[$key] = $e;
+        }
+
+        // Pre-cargar áreas
+        foreach (Area::all() as $a) {
+            $key = ($a->idarea_nisira ?? '') . '_' . ($a->empresa_id ?? '');
+            $this->areaCache[$key] = $a;
+        }
+
+        // Pre-cargar cargos
+        foreach (Cargo::all() as $c) {
+            $key = ($c->idcargo_nisira ?? '') . '_' . ($c->empresa_id ?? '');
+            $this->cargoCache[$key] = $c;
+        }
+
+        // Pre-cargar planillas
+        foreach (Planilla::all() as $p) {
+            $key = ($p->idplanilla_nisira ?? '') . '_' . ($p->empresa_id ?? '');
+            $this->planillaCache[$key] = $p;
+        }
+
+        // Pre-cargar tipos de trabajador
+        foreach (TipoDeTrabajador::all() as $t) {
+            $key = ($t->idtipotrabajador_nisira ?? '') . '_' . ($t->empresa_id ?? '');
+            $this->tipoTrabajadorCache[$key] = $t;
+        }
+
+        // Pre-cargar tipos de personal
+        foreach (TipoDePersonal::all() as $t) {
+            $key = ($t->idtipopersonal_nisira ?? '') . '_' . ($t->empresa_id ?? '');
+            $this->tipoPersonalCache[$key] = $t;
+        }
+
+        // Pre-cargar personal por DNI
+        foreach (Personal::select('id', 'dni', 'seleccionado', 'cesado')->get() as $p) {
+            $this->personalDniCache[$p->dni] = $p;
+        }
+
+        Log::info('Catálogos pre-cargados en memoria', [
+            'empresas' => count($this->empresaCache),
+            'areas' => count($this->areaCache),
+            'cargos' => count($this->cargoCache),
+            'personal' => count($this->personalDniCache),
+        ]);
     }
 
     /**
@@ -31,22 +136,41 @@ class PersonalSyncService
     public function syncFromExternalApi()
     {
         try {
+            $this->updateSyncStatus([
+                'running' => true,
+                'progress' => 0,
+                'total' => 0,
+                'processed' => 0,
+                'stats' => null,
+                'message' => 'Obteniendo token de autenticación...',
+                'finished' => false,
+                'error' => null,
+                'started_at' => now()->toISOString(),
+            ]);
+
             // Obtener token válido
             $token = $this->authService->getValidToken();
 
             if (!$token) {
+                $this->updateSyncStatus([
+                    'running' => false,
+                    'finished' => true,
+                    'error' => 'No se pudo obtener token de autenticación del API externo',
+                ]);
                 return [
                     'success' => false,
                     'message' => 'No se pudo obtener token de autenticación del API externo',
                 ];
             }
 
+            $this->updateSyncStatus(['message' => 'Descargando datos del API externo...']);
+
             // Obtener datos del API con autenticación
             $response = Http::withoutVerifying()
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $token->access_token,
                 ])
-                ->timeout(60)
+                ->timeout(120)
                 ->get(self::API_URL);
             
             if (!$response->successful()) {
@@ -56,11 +180,25 @@ class PersonalSyncService
             $personalData = $response->json();
             
             if (empty($personalData)) {
+                $this->updateSyncStatus([
+                    'running' => false,
+                    'finished' => true,
+                    'error' => 'No se obtuvo información del API',
+                ]);
                 return [
                     'success' => false,
                     'message' => 'No se obtuvo información del API',
                 ];
             }
+
+            $totalRecords = count($personalData);
+            $this->updateSyncStatus([
+                'message' => "Pre-cargando catálogos...",
+                'total' => $totalRecords,
+            ]);
+
+            // Pre-cargar catálogos en memoria
+            $this->preloadCatalogs();
 
             $stats = [
                 'nuevos' => 0,
@@ -71,53 +209,84 @@ class PersonalSyncService
 
             // Marcar todos los registros importados actuales para comparar después
             $dniFromApi = collect($personalData)->pluck('NRODOCUMENTO')->filter()->unique()->toArray();
-            
-            DB::beginTransaction();
 
-            try {
-                // Procesar en lotes de 100
-                $chunks = array_chunk($personalData, 100);
+            $this->updateSyncStatus([
+                'message' => "Procesando $totalRecords registros...",
+            ]);
 
-                foreach ($chunks as $chunk) {
+            // Procesar en lotes de 200 con transacciones por lote
+            $chunks = array_chunk($personalData, 200);
+            $processed = 0;
+
+            foreach ($chunks as $chunkIndex => $chunk) {
+                DB::beginTransaction();
+                try {
                     foreach ($chunk as $item) {
                         try {
                             $this->processPersonalRecord($item, $stats);
                         } catch (Exception $e) {
                             $stats['errors']++;
                             Log::error('Error procesando personal: ' . $e->getMessage(), [
-                                'data' => $item,
+                                'dni' => $item['NRODOCUMENTO'] ?? 'N/A',
                             ]);
                         }
+                        $processed++;
                     }
+                    DB::commit();
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    $stats['errors'] += count($chunk);
+                    Log::error('Error en lote ' . ($chunkIndex + 1) . ': ' . $e->getMessage());
                 }
 
-                // Marcar como cesados los que NO aparecen en el API pero están importados
-                $cesados = Personal::where('importado', 1)
-                    ->whereNotIn('dni', $dniFromApi)
-                    ->where('cesado', 0)
-                    ->update([
-                        'cesado' => 1,
-                        'fecha_cese' => now(),
-                        'seleccionado' => 0, // Desmarcar si estaba seleccionado
-                    ]);
-
-                $stats['cesados'] = $cesados;
-
-                DB::commit();
-
-                return [
-                    'success' => true,
-                    'message' => 'Sincronización completada',
+                // Actualizar progreso cada lote
+                $progress = round(($processed / $totalRecords) * 100);
+                $this->updateSyncStatus([
+                    'processed' => $processed,
+                    'progress' => $progress,
+                    'message' => "Procesando... $processed de $totalRecords ($progress%)",
                     'stats' => $stats,
-                ];
-
-            } catch (Exception $e) {
-                DB::rollBack();
-                throw $e;
+                ]);
             }
+
+            // Marcar como cesados los que NO aparecen en el API pero están importados
+            $cesados = Personal::where('importado', 1)
+                ->whereNotIn('dni', $dniFromApi)
+                ->where('cesado', 0)
+                ->update([
+                    'cesado' => 1,
+                    'fecha_cese' => now(),
+                    'seleccionado' => 0,
+                ]);
+
+            $stats['cesados'] = $cesados;
+
+            $this->updateSyncStatus([
+                'running' => false,
+                'finished' => true,
+                'progress' => 100,
+                'processed' => $totalRecords,
+                'stats' => $stats,
+                'message' => 'Sincronización completada',
+                'error' => null,
+                'finished_at' => now()->toISOString(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Sincronización completada',
+                'stats' => $stats,
+            ];
 
         } catch (Exception $e) {
             Log::error('Error en sincronización de personal: ' . $e->getMessage());
+
+            $this->updateSyncStatus([
+                'running' => false,
+                'finished' => true,
+                'error' => 'Error en sincronización: ' . $e->getMessage(),
+                'message' => 'Error en sincronización',
+            ]);
             
             return [
                 'success' => false,
@@ -137,51 +306,59 @@ class PersonalSyncService
             return; // Skip si no tiene DNI
         }
 
-        // Buscar o crear empresa
-        $empresa = $this->findOrCreateEmpresa($item['empresa'] ?? null, $item['IDEMPRESA'] ?? null);
+        // Buscar o crear empresa (con caché en memoria)
+        $empresa = $this->findOrCreateEmpresaCached($item['empresa'] ?? null, $item['IDEMPRESA'] ?? null);
         
-        // Buscar o crear área
-        $area = $this->findOrCreateArea(
+        // Buscar o crear área (con caché en memoria)
+        $area = $this->findOrCreateAreaCached(
             $item['IDCCOSTO'] ?? null,
             $item['CENTRO_COSTO'] ?? null,
             $empresa
         );
         
-        // Buscar o crear cargo
-        $cargo = $this->findOrCreateCargo(
+        // Buscar o crear cargo (con caché en memoria)
+        $cargo = $this->findOrCreateCargoCached(
             $item['IDCARGO'] ?? null,
             $item['cargo'] ?? null,
             $empresa
         );
         
-        // Buscar o crear planilla
-        $planilla = $this->findOrCreatePlanilla(
+        // Buscar o crear planilla (con caché en memoria)
+        $planilla = $this->findOrCreatePlanillaCached(
             $item['IDPLANILLA'] ?? null,
             $item['planilla'] ?? null,
             $empresa
         );
         
-        // Buscar o crear tipo de trabajador
-        $tipoTrabajador = $this->findOrCreateTipoTrabajador(
+        // Buscar o crear tipo de trabajador (con caché en memoria)
+        $tipoTrabajador = $this->findOrCreateTipoTrabajadorCached(
             $item['IDTIPOTRABAJADOR'] ?? null,
             $item['TIPOTRABAJADOR'] ?? null,
             $empresa
         );
         
-        // Buscar o crear tipo de personal
-        $tipoPersonal = $this->findOrCreateTipoPersonal(
+        // Buscar o crear tipo de personal (con caché en memoria)
+        $tipoPersonal = $this->findOrCreateTipoPersonalCached(
             $item['IDTIPOPERSONAL'] ?? null,
             $item['tipopersonal'] ?? null,
             $empresa
         );
 
-        // Buscar si ya existe el personal
-        $personal = Personal::where('dni', $dni)->first();
+        // Buscar si ya existe el personal (desde caché en memoria)
+        $personal = $this->personalDniCache[$dni] ?? null;
         $isNew = !$personal;
 
-        if (!$personal) {
+        if ($isNew) {
             $personal = new Personal();
             $personal->dni = $dni;
+        } else {
+            // Recargar modelo completo solo cuando necesitamos actualizar
+            $personal = Personal::find($personal->id);
+            if (!$personal) {
+                $personal = new Personal();
+                $personal->dni = $dni;
+                $isNew = true;
+            }
         }
 
         // Solo actualizar si NO está seleccionado
@@ -212,6 +389,9 @@ class PersonalSyncService
             if ($personal->isDirty()) {
                 $personal->save();
                 
+                // Actualizar caché en memoria
+                $this->personalDniCache[$dni] = $personal;
+                
                 if ($isNew) {
                     $stats['nuevos']++;
                 } else {
@@ -222,62 +402,82 @@ class PersonalSyncService
     }
 
     /**
-     * Busca o crea una empresa
+     * Busca o crea una empresa (con caché en memoria)
      */
-    private function findOrCreateEmpresa(?string $nombre, ?string $idEmpresa)
+    private function findOrCreateEmpresaCached(?string $nombre, ?string $idEmpresa)
     {
         if (!$nombre && !$idEmpresa) {
             return null;
         }
 
-        // Validar que tenga ID de empresa
         if (!$idEmpresa || trim($idEmpresa) === '') {
             return null;
         }
 
-        return Empresa::firstOrCreate(
+        $key = strtolower(trim($nombre));
+
+        if (isset($this->empresaCache[$key])) {
+            return $this->empresaCache[$key];
+        }
+
+        $empresa = Empresa::firstOrCreate(
             ['name' => trim($nombre)],
-            [
-                'activo' => true,
-            ]
+            ['activo' => true]
         );
+
+        $this->empresaCache[$key] = $empresa;
+        return $empresa;
     }
 
     /**
-     * Busca o crea un área
+     * Busca o crea un área (con caché en memoria)
      */
-    private function findOrCreateArea(?string $id, ?string $nombre, ?Empresa $empresa)
+    private function findOrCreateAreaCached(?string $id, ?string $nombre, ?Empresa $empresa)
     {
         if (!$id && !$nombre) {
             return null;
         }
 
-        // Usar CENTRO_COSTO como nombre si está disponible
+        $key = ($id ?? '') . '_' . ($empresa?->id ?? '');
+
+        if (isset($this->areaCache[$key])) {
+            return $this->areaCache[$key];
+        }
+
         $nombreArea = $nombre ? trim($nombre) : 'No especificado';
 
-        return Area::firstOrCreate(
+        $area = Area::firstOrCreate(
             [
                 'idarea_nisira' => $id,
                 'empresa_id' => $empresa?->id,
             ],
             [
                 'name' => $nombreArea,
-                'centro_costo' => $id, // Guardar el ID como centro de costo
+                'centro_costo' => $id,
                 'activo' => true,
             ]
         );
+
+        $this->areaCache[$key] = $area;
+        return $area;
     }
 
     /**
-     * Busca o crea un cargo
+     * Busca o crea un cargo (con caché en memoria)
      */
-    private function findOrCreateCargo(?string $id, ?string $nombre, ?Empresa $empresa)
+    private function findOrCreateCargoCached(?string $id, ?string $nombre, ?Empresa $empresa)
     {
         if (!$id && !$nombre) {
             return null;
         }
 
-        return Cargo::firstOrCreate(
+        $key = ($id ?? '') . '_' . ($empresa?->id ?? '');
+
+        if (isset($this->cargoCache[$key])) {
+            return $this->cargoCache[$key];
+        }
+
+        $cargo = Cargo::firstOrCreate(
             [
                 'idcargo_nisira' => $id,
                 'empresa_id' => $empresa?->id,
@@ -287,18 +487,27 @@ class PersonalSyncService
                 'activo' => true,
             ]
         );
+
+        $this->cargoCache[$key] = $cargo;
+        return $cargo;
     }
 
     /**
-     * Busca o crea un tipo de trabajador
+     * Busca o crea un tipo de trabajador (con caché en memoria)
      */
-    private function findOrCreateTipoTrabajador(?string $id, ?string $nombre, ?Empresa $empresa)
+    private function findOrCreateTipoTrabajadorCached(?string $id, ?string $nombre, ?Empresa $empresa)
     {
         if (!$id && !$nombre) {
             return null;
         }
 
-        return TipoDeTrabajador::firstOrCreate(
+        $key = ($id ?? '') . '_' . ($empresa?->id ?? '');
+
+        if (isset($this->tipoTrabajadorCache[$key])) {
+            return $this->tipoTrabajadorCache[$key];
+        }
+
+        $tipo = TipoDeTrabajador::firstOrCreate(
             [
                 'idtipotrabajador_nisira' => $id,
                 'empresa_id' => $empresa?->id,
@@ -308,18 +517,27 @@ class PersonalSyncService
                 'estado' => 1,
             ]
         );
+
+        $this->tipoTrabajadorCache[$key] = $tipo;
+        return $tipo;
     }
 
     /**
-     * Busca o crea un tipo de personal
+     * Busca o crea un tipo de personal (con caché en memoria)
      */
-    private function findOrCreateTipoPersonal(?string $id, ?string $nombre, ?Empresa $empresa)
+    private function findOrCreateTipoPersonalCached(?string $id, ?string $nombre, ?Empresa $empresa)
     {
         if (!$id && !$nombre) {
             return null;
         }
 
-        return TipoDePersonal::firstOrCreate(
+        $key = ($id ?? '') . '_' . ($empresa?->id ?? '');
+
+        if (isset($this->tipoPersonalCache[$key])) {
+            return $this->tipoPersonalCache[$key];
+        }
+
+        $tipo = TipoDePersonal::firstOrCreate(
             [
                 'idtipopersonal_nisira' => $id,
                 'empresa_id' => $empresa?->id,
@@ -329,18 +547,27 @@ class PersonalSyncService
                 'estado' => 1,
             ]
         );
+
+        $this->tipoPersonalCache[$key] = $tipo;
+        return $tipo;
     }
 
     /**
-     * Busca o crea una planilla
+     * Busca o crea una planilla (con caché en memoria)
      */
-    private function findOrCreatePlanilla(?string $id, ?string $nombre, ?Empresa $empresa)
+    private function findOrCreatePlanillaCached(?string $id, ?string $nombre, ?Empresa $empresa)
     {
         if (!$id && !$nombre) {
             return null;
         }
 
-        return Planilla::firstOrCreate(
+        $key = ($id ?? '') . '_' . ($empresa?->id ?? '');
+
+        if (isset($this->planillaCache[$key])) {
+            return $this->planillaCache[$key];
+        }
+
+        $planilla = Planilla::firstOrCreate(
             [
                 'idplanilla_nisira' => $id,
                 'empresa_id' => $empresa?->id,
@@ -350,6 +577,9 @@ class PersonalSyncService
                 'estado' => 1,
             ]
         );
+
+        $this->planillaCache[$key] = $planilla;
+        return $planilla;
     }
 
     /**

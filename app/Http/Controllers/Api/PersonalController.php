@@ -7,6 +7,9 @@ use App\Models\Personal;
 use App\Services\PersonalSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class PersonalController extends Controller
 {
@@ -332,21 +335,53 @@ class PersonalController extends Controller
     public function syncFromExternalApi()
     {
         try {
-            // Aumentar el tiempo límite para la sincronización (5 minutos)
+            // Verificar si ya hay una sincronización en curso
+            $status = PersonalSyncService::getSyncStatus();
+            if (!empty($status['running'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya hay una sincronización en curso. Por favor espere.',
+                    'status' => $status,
+                ], 409);
+            }
+
+            // Aumentar límites para esta operación
             set_time_limit(300);
-            
+            ini_set('memory_limit', '512M');
+
+            // Ejecutar sincronización directamente (optimizada, tarda ~20s)
             $result = $this->syncService->syncFromExternalApi();
 
             return response()->json($result);
+
         } catch (\Exception $e) {
-            \Log::error('Error en sincronización de personal: ' . $e->getMessage());
+            Log::error('Error en sincronización de personal: ' . $e->getMessage());
+
+            Cache::put('personal_sync_status', [
+                'running' => false,
+                'finished' => true,
+                'error' => $e->getMessage(),
+                'message' => 'Error al iniciar sincronización',
+            ], 600);
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error al sincronizar personal: ' . $e->getMessage(),
-                'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Consultar estado de la sincronización en curso
+     */
+    public function syncStatus()
+    {
+        $status = PersonalSyncService::getSyncStatus();
+
+        return response()->json([
+            'success' => true,
+            'data' => $status,
+        ]);
     }
 
     /**

@@ -160,14 +160,16 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Personal
     Route::prefix('personal')->group(function () {
         Route::get('/', [PersonalController::class, 'index']);
+
+        // Sincronización (rutas estáticas ANTES de {id})
+        Route::post('/sync-from-api', [PersonalController::class, 'syncFromExternalApi']);
+        Route::get('/sync-status', [PersonalController::class, 'syncStatus']);
+
         Route::get('/{id}', [PersonalController::class, 'show']);
         
         // Validación para notificaciones (necesario para seleccionar personal en inspecciones)
         Route::get('/{id}/validar-notificacion', [PersonalController::class, 'validarParaNotificacion']);
         Route::post('/{id}/asegurar-acceso', [PersonalController::class, 'asegurarAccesoSistema']);
-        
-        // Sincronización (sin restricción por ahora)
-        Route::post('/sync-from-api', [PersonalController::class, 'syncFromExternalApi']);
         
         // Acciones especiales
         Route::post('/{id}/marcar-cesado', [PersonalController::class, 'marcarCesado'])

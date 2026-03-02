@@ -113,7 +113,7 @@ export class PersonalListaPage implements OnInit {
     private router: Router,
     private alertController: AlertController,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({
       add,
@@ -225,7 +225,7 @@ export class PersonalListaPage implements OnInit {
       filtered = filtered.filter(
         (p) =>
           p.name.toLowerCase().includes(term) ||
-          p.dni?.toLowerCase().includes(term)
+          p.dni?.toLowerCase().includes(term),
       );
     }
 
@@ -311,12 +311,13 @@ export class PersonalListaPage implements OnInit {
   }
 
   /**
-   * Realizar sincronización
+   * Realizar sincronización directa
    */
   async performSync() {
     const loading = await this.loadingController.create({
       message: 'Sincronizando personal desde API externa...',
       spinner: 'crescent',
+      backdropDismiss: false,
     });
 
     await loading.present();
@@ -324,56 +325,62 @@ export class PersonalListaPage implements OnInit {
     try {
       this.syncing = true;
 
-      // Llamar al endpoint de sincronización
       const response = await this.apiService.syncPersonalFromExternalApi();
 
-      console.log('Respuesta de sincronización:', response);
+      if (response && response.success) {
+        // Recargar datos desde el servidor por lotes
+        loading.message = 'Descargando datos actualizados...';
 
-      if (!response || !response.success) {
-        throw new Error(response?.message || 'Error en la sincronización');
+        try {
+          const personalData = await this.apiService.getPersonal(
+            undefined,
+            (loaded, total) => {
+              loading.message = `Descargando personal: ${loaded} de ${total}...`;
+            },
+          );
+          await this.storageService.clearPersonal();
+          if (personalData.data && personalData.data.length > 0) {
+            loading.message = 'Guardando en almacenamiento local...';
+            await this.storageService.savePersonal(personalData.data);
+          }
+          await this.loadData();
+        } catch (reloadError) {
+          console.error('Error recargando datos post-sync:', reloadError);
+          this.showToast(
+            'Sincronización exitosa, pero hubo un error al actualizar la lista. Use pull-to-refresh.',
+            'warning',
+          );
+        }
+
+        await loading.dismiss();
+
+        // Mostrar resultado con estadísticas
+        const stats = response.stats;
+        const message = stats
+          ? `Sincronización completada: ${stats.nuevos || 0} nuevos, ${stats.actualizados || 0} actualizados, ${stats.cesados || 0} cesados`
+          : response.message || 'Sincronización completada';
+        this.showToast(message, 'success');
+      } else {
+        await loading.dismiss();
+        this.showToast(
+          response?.message || 'Error en la sincronización',
+          'danger',
+        );
       }
-
-      // Recargar datos desde el servidor
-      const personalData = await this.apiService.getPersonal();
-
-      // Guardar en IndexedDB
-      await this.storageService.clearPersonal();
-      if (personalData.data && personalData.data.length > 0) {
-        await this.storageService.savePersonal(personalData.data);
-      }
-
-      // Recargar lista
-      await this.loadData();
-
-      // Mostrar resultado con estadísticas
-      const stats = response.stats;
-      const message = stats
-        ? `Sincronización completada: ${stats.nuevos} nuevos, ${stats.actualizados} actualizados, ${stats.cesados} cesados`
-        : 'Sincronización completada';
-
-      this.showToast(message, 'success');
     } catch (error: any) {
       console.error('Error sincronizando:', error);
+      await loading.dismiss();
 
       let errorMsg = 'Error al sincronizar personal';
 
-      // Verificar si es error de timeout
       if (
-        error?.name === 'TimeoutError' ||
-        error?.message?.includes('Timeout')
-      ) {
-        errorMsg =
-          'La sincronización está tardando demasiado. El proceso continúa en segundo plano. Por favor espere unos minutos y recargue la página.';
-      }
-      // Verificar si es error de autenticación
-      else if (
         error?.status === 401 ||
         error?.error?.message?.includes('Unauthenticated')
       ) {
         errorMsg = 'Sesión expirada. Por favor inicie sesión nuevamente.';
-      }
-      // Otros errores
-      else if (error?.error?.message) {
+      } else if (error?.status === 409) {
+        errorMsg = 'Ya hay una sincronización en curso. Por favor espere.';
+      } else if (error?.error?.message) {
         errorMsg = error.error.message;
       } else if (error?.message) {
         errorMsg = error.message;
@@ -382,7 +389,6 @@ export class PersonalListaPage implements OnInit {
       this.showToast(errorMsg, 'danger');
     } finally {
       this.syncing = false;
-      await loading.dismiss();
     }
   }
 
@@ -391,7 +397,7 @@ export class PersonalListaPage implements OnInit {
    */
   async handleRefresh(event: any) {
     try {
-      // Cargar desde servidor
+      // Cargar desde servidor por lotes
       const response = await this.apiService.getPersonal();
 
       if (response.data) {
@@ -402,7 +408,10 @@ export class PersonalListaPage implements OnInit {
         // Recargar lista
         await this.loadData();
 
-        this.showToast('Datos actualizados', 'success');
+        this.showToast(
+          `${response.data.length} registros actualizados`,
+          'success',
+        );
       }
     } catch (error) {
       console.error('Error refrescando:', error);

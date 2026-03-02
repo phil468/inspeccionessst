@@ -37,6 +37,10 @@ class SyncPersonalFromExternalApi extends Command
      */
     public function handle()
     {
+        // Sin límite de tiempo para el comando CLI
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
         $this->info('Iniciando sincronización de personal desde API externo...');
 
         $result = $this->syncService->syncFromExternalApi();

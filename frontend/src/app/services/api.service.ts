@@ -443,11 +443,10 @@ export class ApiService {
   // ==================== PERSONAL ====================
 
   /**
-   * Sincronizar personal desde API externa (con timeout extendido)
+   * Sincronizar personal desde API externa (ejecución directa ~20s)
    */
   async syncPersonalFromExternalApi(): Promise<any> {
     const url = `${this.baseUrl}/personal/sync-from-api`;
-    // Timeout extendido de 5 minutos (300,000 ms) para la sincronización
     return this.http
       .post<any>(
         url,
@@ -457,32 +456,82 @@ export class ApiService {
         },
       )
       .pipe(
-        timeout(300000), // 5 minutos
+        timeout(120000), // 2 minutos - la sync tarda ~20s pero damos margen
         catchError(this.handleError),
       )
       .toPromise() as Promise<any>;
   }
 
   /**
-   * Obtener todo el personal con filtros
+   * Consultar estado de sincronización de personal
    */
-  async getPersonal(filters?: {
-    empresa_id?: number;
-    area_id?: number;
-    cargo_id?: number;
-    activo?: boolean;
-    cesado?: boolean;
-    search?: string;
-  }): Promise<any> {
-    let params = new HttpParams().set('per_page', '-1'); // Solicitar todos los registros
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params = params.set(key, String(value));
-        }
-      });
-    }
-    return this.get('/personal', params);
+  async getSyncStatus(): Promise<any> {
+    const url = `${this.baseUrl}/personal/sync-status`;
+    return this.http
+      .get<any>(url, {
+        headers: this.getHeaders(),
+      })
+      .pipe(timeout(10000), catchError(this.handleError))
+      .toPromise() as Promise<any>;
+  }
+
+  /**
+   * Obtener todo el personal descargando por lotes paginados.
+   * Devuelve { success: true, data: Personal[] }.
+   * onProgress se invoca con (registrosCargados, total) en cada página.
+   */
+  async getPersonal(
+    filters?: {
+      empresa_id?: number;
+      area_id?: number;
+      cargo_id?: number;
+      activo?: boolean;
+      cesado?: boolean;
+      search?: string;
+    },
+    onProgress?: (loaded: number, total: number) => void,
+  ): Promise<any> {
+    const batchSize = 1000;
+    let page = 1;
+    let allData: any[] = [];
+    let lastPage = 1;
+    let total = 0;
+
+    do {
+      let params = new HttpParams()
+        .set('per_page', String(batchSize))
+        .set('page', String(page));
+
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            params = params.set(key, String(value));
+          }
+        });
+      }
+
+      const response: any = await this.get('/personal', params);
+
+      if (response?.data) {
+        allData = allData.concat(response.data);
+      }
+
+      if (response?.pagination) {
+        lastPage = response.pagination.last_page;
+        total = response.pagination.total;
+      } else {
+        // Si no hay paginación, es que vino todo de golpe
+        break;
+      }
+
+      if (onProgress) {
+        onProgress(allData.length, total);
+      }
+
+      page++;
+    } while (page <= lastPage);
+
+    return { success: true, data: allData };
   }
 
   /**
