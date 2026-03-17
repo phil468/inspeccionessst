@@ -17,11 +17,14 @@ class InspeccionInspector extends Model
         'local_id',
         'inspeccion_id',
         'personal_id',
+        'fecha_firma',
+        'firma_digital',
     ];
 
     protected $casts = [
         'inspeccion_id' => 'integer',
         'personal_id' => 'integer',
+        'fecha_firma' => 'date',
     ];
 
     // Boot

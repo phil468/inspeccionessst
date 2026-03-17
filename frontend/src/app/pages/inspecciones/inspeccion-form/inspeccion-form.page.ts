@@ -87,6 +87,7 @@ import {
 } from 'ionicons/icons';
 import { AreaSelectionModalComponent } from './area-selection-modal/area-selection-modal.component';
 import { InspectorSelectionModalComponent } from './inspector-selection-modal/inspector-selection-modal.component';
+import { SignaturePadComponent } from '../../../components/signature-pad/signature-pad.component';
 
 @Component({
   selector: 'app-inspeccion-form',
@@ -124,6 +125,7 @@ import { InspectorSelectionModalComponent } from './inspector-selection-modal/in
     IonCardContent,
     IonNote,
     IonBackButton,
+    SignaturePadComponent,
   ],
 })
 export class InspeccionFormPage implements OnInit {
@@ -152,6 +154,12 @@ export class InspeccionFormPage implements OnInit {
   areasSeleccionadas: Area[] = [];
   inspectoresSeleccionados: Personal[] = [];
   resultados: ResultadoInspeccion[] = [];
+
+  // Firmas de inspectores: { personal_id: { fecha_firma, firma_digital } }
+  firmasInspectores: Record<
+    number,
+    { fecha_firma?: string; firma_digital?: string }
+  > = {};
 
   constructor(
     private fb: FormBuilder,
@@ -334,7 +342,7 @@ export class InspeccionFormPage implements OnInit {
     if (empresaId) {
       this.areasFiltradas = this.areas.filter(
         //filtro por idempresa y por áreas activas
-        (area) => area.empresa_id === empresaId && area.activo
+        (area) => area.empresa_id === empresaId && area.activo,
       );
     } else {
       this.areasFiltradas = [];
@@ -479,12 +487,19 @@ export class InspeccionFormPage implements OnInit {
             inspeccion.id,
           );
         this.inspectoresSeleccionados = [];
+        this.firmasInspectores = {};
         for (const ii of inspeccionInspectores) {
           const personal = this.personalList.find(
             (p) => p.id === ii.personal_id,
           );
           if (personal) {
             this.inspectoresSeleccionados.push(personal);
+            if (ii.fecha_firma || ii.firma_digital) {
+              this.firmasInspectores[personal.id!] = {
+                fecha_firma: ii.fecha_firma,
+                firma_digital: ii.firma_digital,
+              };
+            }
           }
         }
 
@@ -714,6 +729,8 @@ export class InspeccionFormPage implements OnInit {
         local_id: uuidv4(),
         inspeccion_id: inspeccionIndexedDBId,
         personal_id: personal.id!,
+        fecha_firma: this.firmasInspectores[personal.id!]?.fecha_firma,
+        firma_digital: this.firmasInspectores[personal.id!]?.firma_digital,
         synced: false,
       }));
     if (inspectores.length > 0) {
@@ -827,6 +844,21 @@ export class InspeccionFormPage implements OnInit {
     return `${personal.nombres || ''} ${personal.apellido_paterno || ''} ${
       personal.apellido_materno || ''
     }`.trim();
+  }
+
+  // ========== FIRMA DE INSPECTORES ==========
+  onFirmaChange(personalId: number, firma: string | undefined) {
+    if (!this.firmasInspectores[personalId]) {
+      this.firmasInspectores[personalId] = {};
+    }
+    this.firmasInspectores[personalId].firma_digital = firma;
+    if (firma) {
+      this.firmasInspectores[personalId].fecha_firma = new Date()
+        .toISOString()
+        .split('T')[0];
+    } else {
+      this.firmasInspectores[personalId].fecha_firma = undefined;
+    }
   }
 
   // ========== GESTIÓN DE RESULTADOS/HALLAZGOS ==========

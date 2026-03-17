@@ -798,6 +798,8 @@ class SyncController extends Controller
                     'local_id' => \Illuminate\Support\Str::uuid(),
                     'inspeccion_id' => $inspeccion->id,
                     'personal_id' => $inspectorData['personal_id'],
+                    'fecha_firma' => $inspectorData['fecha_firma'] ?? null,
+                    'firma_digital' => $inspectorData['firma_digital'] ?? null,
                 ]);
             }
         }

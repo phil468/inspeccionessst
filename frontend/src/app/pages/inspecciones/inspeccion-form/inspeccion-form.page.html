@@ -241,6 +241,32 @@
         <ion-icon slot="end" name="chevron-forward-outline" color="medium"></ion-icon>
       </ion-item>
 
+      <!-- ========== SECCIÓN: FIRMA DE INSPECTORES ========== -->
+      <div *ngIf="inspectoresSeleccionados.length > 0" class="firma-inspectores-section">
+        <ion-list-header>
+          <ion-label>Firma de Inspectores</ion-label>
+        </ion-list-header>
+        <ion-card *ngFor="let inspector of inspectoresSeleccionados" class="firma-card">
+          <ion-card-header>
+            <ion-card-title class="firma-title">
+              <ion-icon name="person-outline"></ion-icon>
+              {{ getNombreCompleto(inspector) }}
+            </ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <app-signature-pad
+              [initialData]="firmasInspectores[inspector.id!]?.firma_digital"
+              (signatureChange)="onFirmaChange(inspector.id!, $event)"
+            ></app-signature-pad>
+            <p *ngIf="firmasInspectores[inspector.id!]?.fecha_firma" class="fecha-firma">
+              <ion-text color="medium">
+                <small>Firmado: {{ firmasInspectores[inspector.id!]?.fecha_firma }}</small>
+              </ion-text>
+            </p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
       <!-- ========== SECCIÓN: RESULTADOS/HALLAZGOS ========== -->
       <ion-list-header>
         <ion-label>Resultados de la Inspección / Hallazgos</ion-label>

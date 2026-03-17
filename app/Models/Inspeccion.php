@@ -95,7 +95,9 @@ class Inspeccion extends Model
     {
         return $this->belongsToMany(Personal::class, 'inspeccion_inspectores', 'inspeccion_id', 'personal_id')
             ->wherePivotNull('deleted_at')
-            ->select(['personal.id', 'personal.nombres', 'personal.apellido_paterno', 'personal.apellido_materno', 'personal.dni'])
+            ->select(['personal.id', 'personal.nombres', 'personal.apellido_paterno', 'personal.apellido_materno', 'personal.dni', 'cargos.name as cargo_name'])
+            ->join('cargos', 'personal.cargo_id', '=', 'cargos.id')
+            ->withPivot('local_id', 'fecha_firma', 'firma_digital')
             ->withTimestamps();
     }
 

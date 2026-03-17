@@ -460,8 +460,12 @@ export class SyncService {
           ...inspeccion,
           // Transformar áreas al formato esperado por el backend: { area_id }
           areas: areas.map((a) => ({ area_id: a.area_id })),
-          // Transformar inspectores al formato esperado: { personal_id }
-          inspectores: inspectores.map((i) => ({ personal_id: i.personal_id })),
+          // Transformar inspectores al formato esperado: { personal_id, fecha_firma?, firma_digital? }
+          inspectores: inspectores.map((i) => ({
+            personal_id: i.personal_id,
+            fecha_firma: i.fecha_firma,
+            firma_digital: i.firma_digital,
+          })),
           // Resultados con visores y responsables transformados
           resultados: resultadosTransformados,
         } as InspeccionSync;
@@ -865,6 +869,8 @@ export class SyncService {
             local_id: `insp-${inspeccionServerId}-inspector-${inspector.id}`,
             inspeccion_id: inspeccionIdIndexedDB, // ← Usar ID de IndexedDB
             personal_id: inspector.id,
+            fecha_firma: inspector.pivot?.fecha_firma,
+            firma_digital: inspector.pivot?.firma_digital,
             synced: true,
           });
         }

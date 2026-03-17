@@ -301,7 +301,6 @@ class InspeccionController extends Controller
      */
     public function downloadTemplate(Request $request, string $local_id)
     {
-        // dd("Función downloadTemplate: local_id={$local_id}");
         try {
             $inspeccion = Inspeccion::with([
                 'empresa',
@@ -323,9 +322,9 @@ class InspeccionController extends Controller
                 ], 404);
             }
 
-            \Log::info("downloadTemplate: local_id={$local_id}, id={$inspeccion->id}, resultados=" . $inspeccion->resultados->count() . ", responsableRegistro=" . ($inspeccion->responsableRegistro ? 'SÍ' : 'NO'));
+            \Log::info("downloadTemplate: local_id={$local_id}, id={$inspeccion->id}, resultados=" . $inspeccion->resultados->count() . ", inspectores=" . $inspeccion->inspectores->count());
 
-            $templatePath = public_path('template_inspeccion.xlsx');
+            $templatePath = public_path('inspecciones_internas.xlsx');
 
             if (!File::exists($templatePath)) {
                 return response()->json([
@@ -340,27 +339,28 @@ class InspeccionController extends Controller
             $sheet = $spreadsheet->getActiveSheet();
 
             // =====================================================
-            // 1) ENCABEZADO (B8)
+            // 1) ENCABEZADO - N° REGISTRO (B8)
             // =====================================================
             $sheet->setCellValue('B8', $inspeccion->numero_registro ?? '');
 
             // =====================================================
             // 2) DATOS DEL EMPLEADOR (fila 12)
+            //    A=Razón Social, D=RUC, E=Domicilio, H=Actividad Económica
             // =====================================================
             $sheet->setCellValue('A12', $inspeccion->razon_social ?? optional($inspeccion->empresa)->razon_social ?? '');
             $sheet->setCellValue('D12', $inspeccion->ruc ?? optional($inspeccion->empresa)->ruc ?? '');
-            $sheet->setCellValue('F12', $inspeccion->domicilio ?? optional($inspeccion->empresa)->domicilio ?? '');
-            $sheet->setCellValue('I12', $inspeccion->actividad_economica ?? optional($inspeccion->empresa)->actividad_economica ?? '');
+            $sheet->setCellValue('E12', $inspeccion->domicilio ?? optional($inspeccion->empresa)->domicilio ?? '');
+            $sheet->setCellValue('H12', $inspeccion->actividad_economica ?? optional($inspeccion->empresa)->actividad_economica ?? '');
 
             // =====================================================
             // 3) DATOS DE LA INSPECCIÓN (fila 14)
+            //    A=Área, D=Fecha, G=Resp. Área, J=Resp. Inspección
             // =====================================================
             $areasNames = $inspeccion->areas->pluck('name')->implode(', ');
             if (empty($areasNames) && $inspeccion->area) {
                 $areasNames = $inspeccion->area->name;
             }
             $sheet->setCellValue('A14', $areasNames);
-            $sheet->setCellValue('B14', $inspeccion->zona_inspeccionada ?? '');
 
             if ($inspeccion->fecha_hora_inspeccion) {
                 $sheet->setCellValue('D14', Carbon::parse($inspeccion->fecha_hora_inspeccion)->format('d/m/Y'));
@@ -382,7 +382,7 @@ class InspeccionController extends Controller
             // 4) HORA Y TIPO DE INSPECCIÓN (fila 17)
             // =====================================================
             if ($inspeccion->fecha_hora_inspeccion) {
-                $sheet->setCellValue('A17', Carbon::parse($inspeccion->fecha_hora_inspeccion)->format('H:i'));
+                $sheet->setCellValue('A17', Carbon::parse($inspeccion->fecha_hora_inspeccion)->format('h:i A'));
             }
 
             if ($inspeccion->tipo_inspeccion == 'Otro') {
@@ -396,56 +396,107 @@ class InspeccionController extends Controller
             // =====================================================
             // 5) TEXTOS DESCRIPTIVOS
             //    Se llenan ANTES de insertar filas de resultados
-            //    porque insertNewRowBefore desplaza las celdas automáticamente
+            //    porque insertNewRowBefore desplaza las celdas automáticamente.
+            //    Nuevo formato: A19=Objetivo, A29=Descripción causa,
+            //    A32=Conclusiones y recomendaciones
             // =====================================================
             $sheet->setCellValue('A19', $inspeccion->objetivo ?? '');
-            $sheet->setCellValue('A26', $inspeccion->descripcion_causa ?? '');
-            $sheet->setCellValue('A29', $inspeccion->conclusiones_recomendaciones ?? '');
-            $sheet->setCellValue('A32', $inspeccion->comentario ?? '');
+            $sheet->setCellValue('A29', $inspeccion->descripcion_causa ?? '');
+            $sheet->setCellValue('A32', $inspeccion->conclusiones_recomendaciones ?? '');
 
             // =====================================================
-            // 6) RESPONSABLE DEL REGISTRO (fila 34 existente)
-            //    La relación es hasOne, así que llenamos la fila 34 directamente
-            //    sin insertar filas nuevas. El template ya tiene la estructura:
-            //    A34="Nombre:" E34="Cargo:" H34="Fecha:" J34="Firma:"
+            // 6) RESPONSABLE DEL REGISTRO (filas 37-39)
+            //    El nuevo template tiene 3 filas pre-construidas:
+            //    A="Nombre:" D="Cargo:" H="Fecha:" J="Firma:"
+            //    Si hay más de 3 inspectores, se insertan filas adicionales.
             // =====================================================
-            $responsableRegistro = $inspeccion->responsableRegistro;
-            if ($responsableRegistro) {
-                $personalName = optional($responsableRegistro->personal)->name ?? '';
-                $cargoName = optional(optional($responsableRegistro->personal)->cargo)->name ?? '';
-                $fechaFirma = $responsableRegistro->fecha_firma
-                    ? Carbon::parse($responsableRegistro->fecha_firma)->format('d/m/Y')
-                    : '';
+            $inspectoresCollection = $inspeccion->inspectores;
+            $firstRow = 37;
+            $templateRows = 1; // filas pre-construidas: 37, 38, 39
 
-                $sheet->setCellValue('A34', "Nombre: {$personalName}");
-                $sheet->setCellValue('E34', "Cargo: {$cargoName}");
-                $sheet->setCellValue('H34', "Fecha: {$fechaFirma}");
-                $sheet->setCellValue('J34', 'Firma: ');
+            if ($inspectoresCollection->isNotEmpty()) {
+                foreach ($inspectoresCollection as $idx => $inspector) {
+                    $currentRow = $firstRow + $idx;
 
-                // Firma digital (base64)
-                if ($responsableRegistro->firma_digital) {
-                    try {
-                        $firmaPath = $this->resolveImagePath($responsableRegistro->firma_digital);
-                        if ($firmaPath && file_exists($firmaPath)) {
-                            $drawing = new Drawing();
-                            $drawing->setName('Firma');
-                            $drawing->setDescription('Firma');
-                            $drawing->setPath($firmaPath);
-                            $drawing->setCoordinates('K34');
-                            $drawing->setHeight(70);
-                            $drawing->setWorksheet($sheet);
+                    // Insertar fila nueva para inspectores que excedan las 3 filas del template
+                    if ($idx >= $templateRows) {
+                        $sheet->insertNewRowBefore($currentRow, 1);
+                    }
+
+                    $personalName = trim("{$inspector->apellido_paterno} {$inspector->apellido_materno}, {$inspector->nombres}");
+                    $cargoName = ($inspector->cargo_name) ?? '';
+                    $fechaFirma = $inspector->pivot->fecha_firma
+                        ? Carbon::parse($inspector->pivot->fecha_firma)->format('d/m/Y')
+                        : '';
+
+                    $sheet->setCellValue("A{$currentRow}", "Nombre: {$personalName}");
+                    $sheet->setCellValue("E{$currentRow}", "Cargo: {$cargoName}");
+                    $sheet->setCellValue("H{$currentRow}", "Fecha: {$fechaFirma}");
+                    $sheet->setCellValue("J{$currentRow}", 'Firma: ');
+                    // agregar tamaño de fila para la firma digital
+                    $sheet->getRowDimension($currentRow)->setRowHeight(51);
+                    // hacer que la sección imprimible de la pagina sea hasta esta ultima firma
+                    $sheet->getPageSetup()->setPrintArea("A1:K{$currentRow}");
+
+                    // Firma digital (base64)
+                    if ($inspector->pivot->firma_digital) {
+                        try {
+                            $firmaPath = $this->resolveImagePath($inspector->pivot->firma_digital);
+                            if ($firmaPath && file_exists($firmaPath)) {
+                                $drawing = new Drawing();
+                                $drawing->setName('Firma Inspector ' . ($idx + 1));
+                                $drawing->setDescription('Firma Inspector');
+                                $drawing->setPath($firmaPath);
+                                $drawing->setCoordinates("K{$currentRow}");
+                                $drawing->setHeight(70);
+                                $drawing->setWorksheet($sheet);
+                            }
+                        } catch (\Throwable $e) {
+                            \Log::warning("Error al insertar firma inspector #{$inspector->id}: {$e->getMessage()}");
                         }
-                    } catch (\Throwable $e) {
-                        \Log::warning("Error al insertar firma: {$e->getMessage()}");
+                    }
+                }
+            } else {
+                // Fallback: usar responsable de registro si no hay inspectores
+                $responsableRegistro = $inspeccion->responsableRegistro;
+                if ($responsableRegistro) {
+                    $personalName = optional($responsableRegistro->personal)->name ?? '';
+                    $cargoName = optional(optional($responsableRegistro->personal)->cargo)->name ?? '';
+                    $fechaFirma = $responsableRegistro->fecha_firma
+                        ? Carbon::parse($responsableRegistro->fecha_firma)->format('d/m/Y')
+                        : '';
+
+                    $sheet->setCellValue('A37', "Nombre: {$personalName}");
+                    $sheet->setCellValue('D37', "Cargo: {$cargoName}");
+                    $sheet->setCellValue('H37', "Fecha: {$fechaFirma}");
+                    $sheet->setCellValue('J37', 'Firma: ');
+
+                    if ($responsableRegistro->firma_digital) {
+                        try {
+                            $firmaPath = $this->resolveImagePath($responsableRegistro->firma_digital);
+                            if ($firmaPath && file_exists($firmaPath)) {
+                                $drawing = new Drawing();
+                                $drawing->setName('Firma');
+                                $drawing->setDescription('Firma');
+                                $drawing->setPath($firmaPath);
+                                $drawing->setCoordinates('K37');
+                                $drawing->setHeight(70);
+                                $drawing->setWorksheet($sheet);
+                            }
+                        } catch (\Throwable $e) {
+                            \Log::warning("Error al insertar firma: {$e->getMessage()}");
+                        }
                     }
                 }
             }
 
             // =====================================================
-            // 7) RESULTADOS DE LA INSPECCIÓN (insertar desde fila 23)
-            //    Fila 22 = headers. Fila 23 = primera fila disponible.
-            //    Cada insertNewRowBefore(23) empuja las filas 23+ hacia abajo,
-            //    incluyendo textos descriptivos y responsable que ya llenamos.
+            // 7) RESULTADOS DE LA INSPECCIÓN (insertar desde fila 24)
+            //    Fila 22 = headers. Filas 23-26 = filas vacías del template.
+            //    Columnas del nuevo formato:
+            //    A-B: Descripción | C: Foto inicial | D: Nivel riesgo
+            //    E: Acción | F: Responsable | G: Cargo | H: Estado
+            //    I: Fecha cierre | J: Foto final (levantamiento)
             // =====================================================
             $numResultados = $inspeccion->resultados->count();
             if ($numResultados > 0) {
@@ -466,10 +517,9 @@ class InspeccionController extends Controller
                         ? Carbon::parse($resultado->fecha_cierre)->format('d/m/Y')
                         : '');
 
-                    // Foto inicial (registro fotográfico)
+                    // Foto inicial (registro fotográfico) → columna C
                     if ($resultado->registro_fotografico_inicial) {
                         try {
-                            // La foto puede ser base64, una ruta relativa (/storage/...) o una URL remota.
                             $fotoInicialPath = $this->resolveImagePath($resultado->registro_fotografico_inicial);
                             if ($fotoInicialPath && file_exists($fotoInicialPath)) {
                                 $drawing = new Drawing();
@@ -487,7 +537,7 @@ class InspeccionController extends Controller
                         }
                     }
 
-                    // Foto final (levantamiento ejecutado)
+                    // Foto final (levantamiento ejecutado) → columna J
                     if ($resultado->registro_fotografico_final) {
                         try {
                             $fotoFinalPath = $this->resolveImagePath($resultado->registro_fotografico_final);
@@ -510,10 +560,13 @@ class InspeccionController extends Controller
                     $row++;
                 }
 
-                // Limpiar las 2 filas vacías originales del template (23 y 24)
-                // que ahora están en posiciones $row y $row+1 (desplazadas)
-                $sheet->removeRow($row); // antigua fila 24
-                $sheet->removeRow(23);     // antigua fila 23
+                // Limpiar las 4 filas vacías originales del template (23-26)
+                // Las filas 24, 25, 26 fueron empujadas a $row, $row+1, $row+2
+                // La fila 23 sigue en su posición original
+                for ($i = 3; $i >= 0; $i--) {
+                    $sheet->removeRow($row + $i);
+                }
+                $sheet->removeRow(23);
             }
 
             // Guardar en un archivo temporal

@@ -26,6 +26,8 @@ export interface InspeccionInspector {
   local_id: string;
   inspeccion_id: number;
   personal_id: number;
+  fecha_firma?: string;
+  firma_digital?: string;
   personal?: Personal;
   synced?: boolean;
   created_at?: string;
@@ -187,6 +189,10 @@ export interface InspeccionSync extends Omit<
   'areas' | 'inspectores' | 'resultados'
 > {
   areas?: { area_id: number }[];
-  inspectores?: { personal_id: number }[];
+  inspectores?: {
+    personal_id: number;
+    fecha_firma?: string;
+    firma_digital?: string;
+  }[];
   resultados?: ResultadoInspeccion[];
 }
