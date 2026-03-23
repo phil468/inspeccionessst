@@ -366,15 +366,15 @@ class InspeccionController extends Controller
                 $sheet->setCellValue('D14', Carbon::parse($inspeccion->fecha_hora_inspeccion)->format('d/m/Y'));
             }
 
-            // Responsables de área
-            $respAreaNames = $inspeccion->responsablesArea->map(function ($ra) {
-                return optional($ra->personal)->name ?? '';
-            })->filter()->implode(', ');
+            // Responsables de área, se saca de los resultados.responsable, pero no se deben repetir los nombres de los responsables
+            $respAreaNames = $inspeccion->resultados->map(function ($ra) {
+                return optional($ra->responsable)->name ?? '';
+            })->unique()->filter()->implode(', ');
             $sheet->setCellValue('G14', $respAreaNames);
 
             // Inspectores
             $inspectoresNames = $inspeccion->inspectores->map(function ($i) {
-                return $i->name ?? trim("{$i->apellido_paterno} {$i->apellido_materno}, {$i->nombres}");
+                return $i->name ?? trim("{$i->apellido_paterno} {$i->apellido_materno} {$i->nombres}");
             })->filter()->implode(', ');
             $sheet->setCellValue('J14', $inspectoresNames);
 
