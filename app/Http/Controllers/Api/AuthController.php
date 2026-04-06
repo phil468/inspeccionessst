@@ -57,7 +57,6 @@ class AuthController extends Controller
                 ],
                 'message' => 'Login exitoso',
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -147,10 +146,15 @@ class AuthController extends Controller
 
             $email = $microsoftUser->getEmail();
             $microsoftId = $microsoftUser->getId();
+            // Truncar avatar a 255 chars como respaldo si la columna aún es VARCHAR(255)
+            $avatarUrl = $microsoftUser->getAvatar();
+            if ($avatarUrl && strlen($avatarUrl) > 2000) {
+                $avatarUrl = null; // Descartar URLs absurdamente largas
+            }
 
             // Usar transacción para evitar race conditions
             try {
-                $user = DB::transaction(function () use ($microsoftId, $email, $microsoftUser) {
+                $user = DB::transaction(function () use ($microsoftId, $email, $microsoftUser, $avatarUrl) {
                     // 1) Intentar encontrar por microsoft_id
                     $user = User::where('microsoft_id', $microsoftId)->first();
 
@@ -163,7 +167,7 @@ class AuthController extends Controller
                     if ($user) {
                         $user->microsoft_id = $microsoftId;
                         $user->name = $microsoftUser->getName() ?? $user->name;
-                        $user->avatar = $microsoftUser->getAvatar() ?? $user->avatar;
+                        $user->avatar = $avatarUrl ?? $user->avatar;
                         $user->activo = $user->activo ?? true;
                         $user->save();
                         return $user;
@@ -174,7 +178,7 @@ class AuthController extends Controller
                         'microsoft_id' => $microsoftId,
                         'name' => $microsoftUser->getName(),
                         'email' => $email,
-                        'avatar' => $microsoftUser->getAvatar(),
+                        'avatar' => $avatarUrl,
                         'activo' => true,
                         'password' => bcrypt(Str::random(40)),
                     ]);
@@ -247,11 +251,10 @@ class AuthController extends Controller
             }
 
             return redirect($callbackUrl);
-
         } catch (\Exception $e) {
             Log::error('Error en callback Microsoft: ' . $e->getMessage());
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:8102');
-            return redirect($frontendUrl . '/login?error=' . urlencode($e->getMessage()));
+            return redirect($frontendUrl . '/login?error=error_autenticacion');
         }
     }
 
@@ -261,7 +264,7 @@ class AuthController extends Controller
     public function getSessionData(Request $request)
     {
         $sessionKey = $request->input('session');
-        
+
         if (!$sessionKey) {
             return response()->json([
                 'success' => false,
@@ -270,7 +273,7 @@ class AuthController extends Controller
         }
 
         $sessionData = cache()->get($sessionKey);
-        
+
         if (!$sessionData) {
             return response()->json([
                 'success' => false,
