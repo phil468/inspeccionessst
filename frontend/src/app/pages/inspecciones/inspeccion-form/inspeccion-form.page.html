@@ -270,10 +270,6 @@
       <!-- ========== SECCIÓN: RESULTADOS/HALLAZGOS ========== -->
       <ion-list-header>
         <ion-label>Resultados de la Inspección / Hallazgos</ion-label>
-        <ion-button fill="clear" (click)="agregarResultado()">
-          <ion-icon slot="start" name="add-outline"></ion-icon>
-          Agregar
-        </ion-button>
       </ion-list-header>
 
       <ion-card *ngFor="let resultado of resultados; let i = index" class="resultado-card">
@@ -536,6 +532,13 @@
           <p>No hay resultados agregados. Presione "Agregar" para registrar hallazgos.</p>
         </ion-label>
       </ion-item>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <ion-button fill="clear" (click)="agregarResultado()" aria-label="Agregar nuevo resultado de inspección">
+          <ion-icon slot="start" name="add-outline"></ion-icon>
+          Agregar
+        </ion-button>
+      </div>
 
     </ion-list>
 

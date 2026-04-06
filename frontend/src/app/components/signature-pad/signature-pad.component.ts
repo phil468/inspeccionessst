@@ -73,7 +73,9 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
     this.signaturePad = new SignaturePad(canvas, {
-      backgroundColor: 'rgb(255, 255, 255)',
+      backgroundColor: 'rgb(0,0,0,0)', // Transparent background
+      minWidth: 1,
+      maxWidth: 1,
       penColor: 'rgb(0, 0, 0)',
     });
 
