@@ -16,4 +16,8 @@ ion-note {
 
 ion-accordion ion-item[slot="header"] {
   --background: var(--ion-color-light-tint);
+  // en modo oscuro cambiar el color de findo del header
+  @media (prefers-color-scheme: dark) {
+    --background: var(--ion-color-dark-tint);
+  }
 }
