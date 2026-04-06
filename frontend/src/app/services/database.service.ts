@@ -88,6 +88,12 @@ export class DatabaseService extends Dexie {
       nivelesJerarquicos: '++id, name, estado',
     });
 
+    // Versión 2: Agregar server_id a inspecciones
+    this.version(2).stores({
+      inspecciones:
+        '++id, local_id, server_id, user_id, empresa_id, area_id, synced, fecha_inspeccion, created_at',
+    });
+
     // Manejar error de upgrade - si hay error al abrir, eliminar y recrear la BD
     this.on('blocked', () => {
       console.warn('Database upgrade blocked, please close other tabs');
@@ -108,6 +114,26 @@ export class DatabaseService extends Dexie {
       console.log('✅ Base de datos eliminada correctamente');
 
       // Recargar la página para recrear la BD con el nuevo esquema
+      window.location.reload();
+    } catch (error) {
+      console.error('❌ Error al eliminar la base de datos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cierra la conexión abierta, elimina la BD y recarga la página.
+   * Usar esta variante cuando se llama desde la app en ejecución
+   * para evitar que la conexión activa bloquee el Dexie.delete().
+   */
+  async closeAndResetDatabase(): Promise<void> {
+    const dbName = environment.storage.dbName;
+    console.warn('🔄 Cerrando conexión y reseteando base de datos:', dbName);
+
+    try {
+      this.close(); // cerrar la conexión Dexie activa
+      await Dexie.delete(dbName);
+      console.log('✅ Base de datos eliminada correctamente');
       window.location.reload();
     } catch (error) {
       console.error('❌ Error al eliminar la base de datos:', error);

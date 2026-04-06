@@ -197,11 +197,15 @@ export class StorageService {
       throw new Error('No se encontró la clave primaria para la inspección');
     }
 
-    // Actualizar solo synced, no tocar la clave primaria
-    return await this.db.inspecciones.update(dbKey, {
+    // Actualizar synced y guardar el server_id (ID de la base de datos central)
+    const updateData: any = {
       synced: true,
       synced_at: new Date().toISOString(),
-    });
+    };
+    if (serverId) {
+      updateData.server_id = serverId;
+    }
+    return await this.db.inspecciones.update(dbKey, updateData);
   }
 
   /**

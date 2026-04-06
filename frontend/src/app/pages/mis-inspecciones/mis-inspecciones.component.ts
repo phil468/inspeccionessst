@@ -98,8 +98,14 @@ export class MisInspeccionesComponent implements OnInit {
       const todasLasInspecciones =
         await this.inspeccionService.getInspecciones();
 
+      // solo inspecciones con resultados cargados (para mostrar conteos en la lista) y con server_id definido (para evitar inspecciones incompletas)
+      const inspeccionesConResultados = todasLasInspecciones.filter(
+        (inspeccion) =>
+          inspeccion.resultados && inspeccion.resultados.length > 0 && inspeccion.server_id
+      );
+
       // Filtrar según el rol del usuario
-      this.inspecciones = this.filtrarInspeccionesPorRol(todasLasInspecciones);
+      this.inspecciones = this.filtrarInspeccionesPorRol(inspeccionesConResultados);
     } catch (error) {
       console.error('Error al cargar inspecciones:', error);
     } finally {
@@ -205,7 +211,7 @@ export class MisInspeccionesComponent implements OnInit {
   }
 
   verDetalle(inspeccion: Inspeccion) {
-    this.navController.navigateForward(`/mis-inspecciones/${inspeccion.id}`);
+    this.navController.navigateForward(`/mis-inspecciones/${inspeccion.server_id}`);
   }
 
   async doRefresh(event: any) {

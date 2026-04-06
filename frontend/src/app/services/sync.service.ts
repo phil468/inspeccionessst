@@ -587,7 +587,8 @@ export class SyncService {
         .first();
 
       // Separar el id del servidor para no sobreescribir el id auto-incremental de IndexedDB
-      const { id: _serverId, ...serverDataWithoutId } = serverInspeccion;
+      // pero guardarlo como server_id para mantener la referencia a la BD central
+      const { id: serverId, ...serverDataWithoutId } = serverInspeccion;
 
       let inspeccionParaGuardar: any;
 
@@ -597,6 +598,7 @@ export class SyncService {
           ...existente,
           ...serverDataWithoutId,
           id: existente.id,
+          server_id: serverId, // ← Guardar el ID real de la BD central
           synced: true,
           synced_at: new Date().toISOString(),
         };
@@ -604,6 +606,7 @@ export class SyncService {
         // Nueva inspección, dejar que IndexedDB auto-incremente
         inspeccionParaGuardar = {
           ...serverDataWithoutId,
+          server_id: serverId, // ← Guardar el ID real de la BD central
           synced: true,
           synced_at: new Date().toISOString(),
         };
@@ -646,6 +649,7 @@ export class SyncService {
             local_id: insp.local_id,
             numero_registro: insp.numero_registro,
             fecha_hora_inspeccion: insp.fecha_hora_inspeccion,
+            id: insp.id,
           });
         });
 
@@ -684,7 +688,8 @@ export class SyncService {
           );
 
           // Separar el id del servidor para no sobreescribir el id auto-incremental de IndexedDB
-          const { id: _serverId, ...serverDataWithoutId } = i;
+          // pero guardarlo como server_id para mantener la referencia a la BD central
+          const { id: serverId, ...serverDataWithoutId } = i;
 
           if (existente) {
             // PRESERVAR la clave primaria de IndexedDB (existente.id)
@@ -693,6 +698,7 @@ export class SyncService {
               ...existente,
               ...serverDataWithoutId,
               id: existente.id, // ← Forzar el id de IndexedDB (no el del servidor)
+              server_id: serverId, // ← Guardar el ID real de la BD central
               synced: true,
               synced_at: new Date().toISOString(),
             };
@@ -701,6 +707,7 @@ export class SyncService {
           // Si es nuevo, crear SIN id para que IndexedDB auto-incremente
           return {
             ...serverDataWithoutId,
+            server_id: serverId, // ← Guardar el ID real de la BD central
             synced: true,
             synced_at: new Date().toISOString(),
           };

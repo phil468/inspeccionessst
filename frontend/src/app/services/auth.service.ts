@@ -16,6 +16,7 @@ export class AuthService {
 
   private tokenKey = 'auth_token';
   private userKey = 'auth_user';
+  private lastSync = 'last_sync';
 
   constructor(
     private apiService: ApiService,
@@ -143,11 +144,12 @@ export class AuthService {
   }
 
   /**
-   * Limpiar sesión local
+   * Limpiar sesión local (público para uso desde logoutAndClearDB)
    */
-  private clearSession(): void {
+  clearSession(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
+    // localStorage.removeItem(this.lastSync);
     this.currentUserSubject.next(null);
     this.authStateSubject.next(false);
   }

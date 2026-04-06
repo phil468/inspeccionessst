@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular/standalone';
 import { AuthService } from '../../services/auth.service';
+import { DatabaseService } from '../../services/database.service';
 import { addIcons } from 'ionicons';
 import {
   homeOutline,
@@ -23,6 +24,7 @@ import {
   logOutOutline,
   personCircleOutline,
   closeOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import {
   IonIcon,
@@ -47,6 +49,7 @@ export class TabsPage {
     private router: Router,
     private authService: AuthService,
     private alertController: AlertController,
+    private databaseService: DatabaseService,
   ) {
     addIcons({
       homeOutline,
@@ -67,6 +70,7 @@ export class TabsPage {
       logOutOutline,
       personCircleOutline,
       closeOutline,
+      trashOutline,
     });
     this.loadUserInfo();
   }
@@ -112,6 +116,36 @@ export class TabsPage {
         },
       ],
     });
+    await alert.present();
+  }
+  
+  async logoutAndClearDB() {
+    const alert = await this.alertController.create({
+      header: 'Cerrar sesión y limpiar datos',
+      message:
+        'Se eliminará toda la base de datos local (IndexedDB). ' +
+        'Los datos no sincronizados se perderán. ' +
+        '¿Deseas continuar?',
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+        },
+        {
+          text: 'Sí, limpiar y cerrar sesión',
+          role: 'destructive',
+          handler: async () => {
+            this.closeMenu();
+            // Limpiar sesión localmente (sin llamada HTTP ni navegación)
+            this.authService.clearSession();
+            // Cerrar conexión Dexie activa, eliminar BD y recargar
+            // Tras recargar, el auth guard redirige a /login
+            await this.databaseService.closeAndResetDatabase();
+          },
+        },
+      ],
+    });
+
     await alert.present();
   }
 }

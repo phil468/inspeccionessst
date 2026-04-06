@@ -134,6 +134,7 @@ export interface ResponsableRegistro {
 
 export interface Inspeccion {
   id?: number;
+  server_id?: number; // ID real de la base de datos central (se asigna tras sincronizar)
   local_id: string;
   user_id: number;
   empresa_id: number;

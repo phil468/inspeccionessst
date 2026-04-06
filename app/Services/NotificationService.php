@@ -29,6 +29,11 @@ class NotificationService
         // Agrupar resultados por personal (responsables, visores, responsables levantamiento)
         $resultadosPorPersonal = $this->agruparResultadosPorPersonal($inspeccion);
 
+        // return [
+        //     'enviadas' => 0,
+        //     'detalles' => $resultadosPorPersonal,
+        // ];
+
         foreach ($resultadosPorPersonal as $personalId => $datos) {
             $personal = Personal::find($personalId);
             
@@ -39,8 +44,18 @@ class NotificationService
             // Determinar tipo de notificación
             $tipoNotificacion = $this->determinarTipoNotificacion($datos['resultados']);
 
+            // return [
+            //     'enviadas' => 0,
+            //     'detalles' => $tipoNotificacion,
+            // ];
+
             try {
                 $resultadosUnicos = collect($datos['resultados'])->unique('id')->values()->all();
+                
+                // return [
+                //     'enviadas' => 0,
+                //     'detalles' => $resultadosUnicos,
+                // ];
 
                 // Verificar que TODOS los resultados relevantes para este personal tengan
                 // la foto final resuelta (no 'pendiente' y no nulo). Si hay alguno pendiente,
@@ -274,7 +289,20 @@ class NotificationService
     }
 
     /**
-     * Agrupar resultados por personal
+     * Agrupar resultados por personal: responsable, visores y responsables de levantamiento.
+     * Devuelve un array con personal_id como clave y un array con los resultados asociados y los roles que tiene en esos resultados (puede ser más de un rol si es responsable en un resultado y visor en otro, por ejemplo).
+     * Ejemplo de estructura devuelta:
+     * [
+     *   5 => [
+     *     'resultados' => [/* array de resultados donde el personal 5 es responsable, visor o responsable levantamiento * /],
+     *     'roles' => ['responsable', 'visor'] // roles que tiene el personal 5 en esos resultados
+     *   ],
+     *   8 => [
+     *     'resultados' => [/* array de resultados donde el personal 8 es responsable, visor o responsable levantamiento * /],
+     *     'roles' => ['responsable_levantamiento'] // roles que tiene el personal 8 en esos resultados
+     *   ],
+     *   // ...
+     * ]
      */
     private function agruparResultadosPorPersonal(Inspeccion $inspeccion): array
     {
@@ -300,6 +328,8 @@ class NotificationService
                 }
             }
         }
+
+        // dd($agrupacion);
 
         return $agrupacion;
     }
@@ -328,22 +358,16 @@ class NotificationService
      */
     private function determinarTipoNotificacion(array $resultados): string
     {
-        $hayPendientes = false;
         $todosCerrados = true;
 
         foreach ($resultados as $resultado) {
-            if (in_array($resultado->estado, ['Pendiente', 'En Proceso'])) {
-                $hayPendientes = true;
-                $todosCerrados = false;
-            }
-            
             if (!in_array($resultado->estado, ['Cerrado', 'Ejecutado','Cumplimiento','Buena Práctica'])) {
                 $todosCerrados = false;
             }
         }
 
         // Si todos están cerrados o ejecutados -> felicitaciones
-        // Si hay pendientes -> advertencia
+        // En caso contrario -> advertencia por pendientes u otros estados no cerrados
         return $todosCerrados ? 'felicitaciones' : 'pendientes';
     }
 }
