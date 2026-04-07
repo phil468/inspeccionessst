@@ -456,8 +456,12 @@ export class SyncService {
           ),
         }));
 
+        // Excluir el id auto-incremental de IndexedDB del payload enviado al servidor
+        // para evitar que el backend lo confunda con el id del servidor
+        const { id: _indexedDbId, ...inspeccionSinId } = inspeccion;
+
         return {
-          ...inspeccion,
+          ...inspeccionSinId,
           // Transformar áreas al formato esperado por el backend: { area_id }
           areas: areas.map((a) => ({ area_id: a.area_id })),
           // Transformar inspectores al formato esperado: { personal_id, fecha_firma?, firma_digital? }

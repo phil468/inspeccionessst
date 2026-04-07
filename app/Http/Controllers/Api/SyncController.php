@@ -57,19 +57,13 @@ class SyncController extends Controller
             foreach ($registrosRecibidos as $registroData) {
                 $localId = $registroData['local_id'];
 
-                // Verificar si ya existe por local_id o por id del servidor
-                $existente = Registro::where('local_id', $localId)
-                    ->orWhere(function($query) use ($registroData) {
-                        if (isset($registroData['id'])) {
-                            $query->where('id', $registroData['id']);
-                        }
-                    })
-                    ->first();
+                // Verificar si ya existe por local_id (identificador único generado en el cliente)
+                $existente = Registro::where('local_id', $localId)->first();
 
                 if ($existente) {
                     // Ya existe, verificar timestamps para evitar sobrescribir datos más recientes
                     $updatedAtServidor = $existente->updated_at; // Carbon instance en UTC
-                    $updatedAtCliente = isset($registroData['updated_at']) 
+                    $updatedAtCliente = isset($registroData['updated_at'])
                         ? \Carbon\Carbon::parse($registroData['updated_at'])->setTimezone('UTC')
                         : null;
 
@@ -94,7 +88,7 @@ class SyncController extends Controller
                         'numero_tractor' => $registroData['numero_tractor'] ?? null,
                         'observaciones' => $registroData['observaciones'] ?? null,
                         // 'fecha_registro' => $registroData['fecha_registro'],
-                         // Mantener la fecha_registro original para no perder la referencia temporal
+                        // Mantener la fecha_registro original para no perder la referencia temporal
                         'synced' => true,
                         'synced_at' => now(),
                         'updated_at' => $updatedAtCliente ?? now(),
@@ -147,7 +141,6 @@ class SyncController extends Controller
                     'errores' => count($resultados['errores']),
                 ],
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -233,9 +226,19 @@ class SyncController extends Controller
                     ->get(),
                 // Personal activo (no cesado) - para selects de inspectores/responsables
                 'personal' => \App\Models\Personal::select([
-                        'id', 'dni', 'nombres', 'apellido_paterno', 'apellido_materno',
-                        'empresa_id', 'area_id', 'cargo_id', 'inspector', 'cesado', 'correo_empresa','name'
-                    ])
+                    'id',
+                    'dni',
+                    'nombres',
+                    'apellido_paterno',
+                    'apellido_materno',
+                    'empresa_id',
+                    'area_id',
+                    'cargo_id',
+                    'inspector',
+                    'cesado',
+                    'correo_empresa',
+                    'name'
+                ])
                     ->where('cesado', false)
                     ->orderBy('nombres')
                     ->get(),
@@ -247,7 +250,6 @@ class SyncController extends Controller
                 'data' => $catalogos,
                 'timestamp' => now()->toIso8601String(),
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -298,7 +300,6 @@ class SyncController extends Controller
                 'total' => $registros->count(),
                 'timestamp' => now()->toIso8601String(),
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -334,7 +335,6 @@ class SyncController extends Controller
                     'timestamp_servidor' => now()->toIso8601String(),
                 ],
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -407,14 +407,11 @@ class SyncController extends Controller
             foreach ($inspeccionesRecibidas as $inspeccionData) {
                 $localId = $inspeccionData['local_id'];
 
-                // Verificar si ya existe por local_id o por id del servidor
+                // Verificar si ya existe por local_id (identificador único generado en el cliente)
+                // IMPORTANTE: NO usar orWhere('id', ...) porque el cliente envía el id auto-incremental
+                // de IndexedDB, que NO corresponde al id del servidor y puede coincidir con otra inspección
                 $existente = Inspeccion::withTrashed()
                     ->where('local_id', $localId)
-                    ->orWhere(function($query) use ($inspeccionData) {
-                        if (isset($inspeccionData['id'])) {
-                            $query->where('id', $inspeccionData['id']);
-                        }
-                    })
                     ->first();
 
                 if ($existente) {
@@ -433,7 +430,7 @@ class SyncController extends Controller
 
                     // Verificar timestamps para evitar sobrescribir datos más recientes
                     $updatedAtServidor = $existente->updated_at; // Carbon instance en UTC
-                    $updatedAtCliente = isset($inspeccionData['updated_at']) 
+                    $updatedAtCliente = isset($inspeccionData['updated_at'])
                         ? \Carbon\Carbon::parse($inspeccionData['updated_at'])->setTimezone('UTC')
                         : null;
 
@@ -443,7 +440,7 @@ class SyncController extends Controller
                         $resultados['errores'][] = [
                             'local_id' => $localId,
                             'server_id' => $existente->id,
-                            'message' => 'Conflicto: la inspección '. $existente->numero_registro. ' en el servidor es más reciente',
+                            'message' => 'Conflicto: la inspección ' . $existente->numero_registro . ' en el servidor es más reciente',
                             'conflict' => true,
                             'server_updated_at' => $updatedAtServidor->toISOString(),
                             'client_updated_at' => $updatedAtCliente->format('c'),
@@ -541,7 +538,6 @@ class SyncController extends Controller
                     'errores' => count($resultados['errores']),
                 ],
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -597,31 +593,31 @@ class SyncController extends Controller
         try {
             // Verificar si el usuario tiene rol de administrador, supervisor o operador
             $esAdminOSupervisor = $user->hasRole('administrador') || $user->hasRole('supervisor') || $user->hasRole('operador');
-            
+
             // Si es admin, supervisor o operador, obtener todas las inspecciones, sino filtrar por usuario/inspector
             if ($esAdminOSupervisor) {
                 $query = Inspeccion::query();
             } else {
                 $query = Inspeccion::porUsuarioOInspector($user->id, $user->personal_id);
             }
-            
+
             $query->with([
-                    'user:id,name,email',
-                    'empresa:id,name,razon_social,ruc',
-                    'area:id,name,empresa_id',
-                    'areas:id,name',
-                    'fundo:id,nombre',
-                    'inspectores:id,nombres,apellido_paterno,apellido_materno,dni',
-                    'resultados' => function($q) {
-                        $q->orderBy('nivel_riesgo', 'asc'); // Alto primero
-                    },
-                    'resultados.visores:id,nombres,apellido_paterno,apellido_materno',
-                    'resultados.responsablesLevantamiento:id,nombres,apellido_paterno,apellido_materno',
-                    'resultados.responsable:id,nombres,apellido_paterno,apellido_materno',
-                    'resultados.fotoFinalAprobador:id,nombres,apellido_paterno,apellido_materno',
-                    'resultados.fotoInicialAprobador:id,nombres,apellido_paterno,apellido_materno',
-                    'responsableRegistro.personal:id,nombres,apellido_paterno,apellido_materno',
-                ])                
+                'user:id,name,email',
+                'empresa:id,name,razon_social,ruc',
+                'area:id,name,empresa_id',
+                'areas:id,name',
+                'fundo:id,nombre',
+                'inspectores:id,nombres,apellido_paterno,apellido_materno,dni',
+                'resultados' => function ($q) {
+                    $q->orderBy('nivel_riesgo', 'asc'); // Alto primero
+                },
+                'resultados.visores:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.responsablesLevantamiento:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.responsable:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.fotoFinalAprobador:id,nombres,apellido_paterno,apellido_materno',
+                'resultados.fotoInicialAprobador:id,nombres,apellido_paterno,apellido_materno',
+                'responsableRegistro.personal:id,nombres,apellido_paterno,apellido_materno',
+            ])
                 ->orderBy('fecha_hora_inspeccion', 'desc');
 
             // Si se proporciona última sincronización, solo enviar las más recientes
@@ -655,7 +651,6 @@ class SyncController extends Controller
                 'total' => $inspecciones->count(),
                 'timestamp' => now()->toIso8601String(),
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -683,9 +678,9 @@ class SyncController extends Controller
             if (!$esAdminOSupervisor) {
                 $query->where(function ($q) use ($user) {
                     $q->where('user_id', $user->id)
-                      ->orWhereHas('inspectores', function ($q2) use ($user) {
-                          $q2->where('personal_id', $user->personal_id);
-                      });
+                        ->orWhereHas('inspectores', function ($q2) use ($user) {
+                            $q2->where('personal_id', $user->personal_id);
+                        });
                 });
             }
 
@@ -696,7 +691,7 @@ class SyncController extends Controller
                 'areas:id,name',
                 'fundo:id,nombre',
                 'inspectores:id,nombres,apellido_paterno,apellido_materno,dni',
-                'resultados' => function($q) {
+                'resultados' => function ($q) {
                     $q->orderBy('nivel_riesgo', 'asc');
                 },
                 'resultados.visores:id,nombres,apellido_paterno,apellido_materno',
@@ -718,7 +713,6 @@ class SyncController extends Controller
                 'success' => true,
                 'data' => $inspeccion,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -776,7 +770,7 @@ class SyncController extends Controller
         if (isset($data['areas']) && is_array($data['areas'])) {
             // Limpiar áreas existentes
             InspeccionArea::where('inspeccion_id', $inspeccion->id)->delete();
-            
+
             // Agregar nuevas áreas con local_id
             foreach ($data['areas'] as $areaData) {
                 InspeccionArea::create([
@@ -791,7 +785,7 @@ class SyncController extends Controller
         if (isset($data['inspectores']) && is_array($data['inspectores'])) {
             // Limpiar inspectores existentes
             InspeccionInspector::where('inspeccion_id', $inspeccion->id)->delete();
-            
+
             // Agregar nuevos inspectores con local_id
             foreach ($data['inspectores'] as $inspectorData) {
                 InspeccionInspector::create([
@@ -876,7 +870,7 @@ class SyncController extends Controller
                 if (isset($resultadoData['visores']) && is_array($resultadoData['visores'])) {
                     // Limpiar visores existentes (forceDelete para eliminar físicamente, no soft delete)
                     \App\Models\ResultadoVisor::where('resultado_id', $resultado->id)->forceDelete();
-                    
+
                     foreach ($resultadoData['visores'] as $visorData) {
                         $personalId = is_array($visorData) ? ($visorData['personal_id'] ?? $visorData['id'] ?? null) : $visorData;
                         if ($personalId) {
@@ -893,7 +887,7 @@ class SyncController extends Controller
                 if (isset($resultadoData['responsablesLevantamiento']) && is_array($resultadoData['responsablesLevantamiento'])) {
                     // Limpiar responsables existentes (forceDelete para eliminar físicamente, no soft delete)
                     \App\Models\ResultadoResponsableLevantamiento::where('resultado_id', $resultado->id)->forceDelete();
-                    
+
                     foreach ($resultadoData['responsablesLevantamiento'] as $respData) {
                         $personalId = is_array($respData) ? ($respData['personal_id'] ?? $respData['id'] ?? null) : $respData;
                         if ($personalId) {

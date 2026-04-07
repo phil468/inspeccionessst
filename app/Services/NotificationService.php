@@ -29,11 +29,6 @@ class NotificationService
         // Agrupar resultados por personal (responsables, visores, responsables levantamiento)
         $resultadosPorPersonal = $this->agruparResultadosPorPersonal($inspeccion);
 
-        // return [
-        //     'enviadas' => 0,
-        //     'detalles' => $resultadosPorPersonal,
-        // ];
-
         foreach ($resultadosPorPersonal as $personalId => $datos) {
             $personal = Personal::find($personalId);
             
@@ -44,25 +39,15 @@ class NotificationService
             // Determinar tipo de notificación
             $tipoNotificacion = $this->determinarTipoNotificacion($datos['resultados']);
 
-            // return [
-            //     'enviadas' => 0,
-            //     'detalles' => $tipoNotificacion,
-            // ];
-
             try {
                 $resultadosUnicos = collect($datos['resultados'])->unique('id')->values()->all();
-                
-                // return [
-                //     'enviadas' => 0,
-                //     'detalles' => $resultadosUnicos,
-                // ];
 
                 // Verificar que TODOS los resultados relevantes para este personal tengan
                 // la foto final resuelta (no 'pendiente' y no nulo). Si hay alguno pendiente,
                 // omitimos el envío hasta que estén todos resueltos. Registramos log de omisión.
                 $tienePendiente = collect($resultadosUnicos)->contains(function ($r) {
                     $estadoFoto = $r->foto_final_estado ?? null;
-                    strtolower($estadoFoto) === 'pendiente';
+                    return strtolower($estadoFoto) === 'pendiente';
                 });
 
                 if ($tienePendiente) {
@@ -107,7 +92,7 @@ class NotificationService
                     'resultados_count' => count($resultadosUnicos),
                 ];
 
-                //informar de la notificacion enviada , cual eera el numero de registro y el nombre del usuario que envia la notificacion
+                //informar de la notificacion enviada , cual era el numero de registro y el nombre del usuario que envia la notificacion
                 Log::info("Notificación enviada por email a: {$personal->correo_empresa} para inspección ID: {$inspeccion->id} / { $inspeccion->numero_registro } por usuario ID: " . auth()->id() . " / " . auth()->user()->name);
                 // Log::info("Notificación enviada por email a: {$personal->correo_empresa}");
 
