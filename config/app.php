@@ -197,4 +197,5 @@ return [
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),
 
+    'hora_actualizacion_personal' => env('HORA_ACTUALIZACION_PERSONAL', '09:00'),
 ];
