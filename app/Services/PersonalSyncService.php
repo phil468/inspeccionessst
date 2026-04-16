@@ -17,7 +17,7 @@ use Exception;
 
 class PersonalSyncService
 {
-    private const API_URL = 'https://apps.vanguardfresh.pe/sv/ivg/api/manager/capacitaciones/personal/0';
+    private const API_URL = 'https://apps.vanguardfresh.pe/sv/ivg/api/manager/capacitaciones/personalV2/0';
     
     private $authService;
 
