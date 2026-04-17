@@ -527,9 +527,9 @@ class InspeccionController extends Controller
                                 $drawing->setDescription('Foto inicial');
                                 $drawing->setPath($fotoInicialPath);
                                 $drawing->setCoordinates("C{$row}");
-                                $drawing->setOffsetX(5);
-                                $drawing->setOffsetY(5);
-                                $drawing->setHeight(150);
+                                $drawing->setOffsetX(1);
+                                $drawing->setOffsetY(1);
+                                $drawing->setHeight(195);
                                 $drawing->setWorksheet($sheet);
                             }
                         } catch (\Throwable $e) {
@@ -547,9 +547,9 @@ class InspeccionController extends Controller
                                 $drawing->setDescription('Levantamiento Ejecutado');
                                 $drawing->setPath($fotoFinalPath);
                                 $drawing->setCoordinates("K{$row}");
-                                $drawing->setOffsetX(5);
-                                $drawing->setOffsetY(5);
-                                $drawing->setHeight(150);
+                                $drawing->setOffsetX(1);
+                                $drawing->setOffsetY(1);
+                                $drawing->setHeight(195);
                                 $drawing->setWorksheet($sheet);
                             }
                         } catch (\Throwable $e) {
