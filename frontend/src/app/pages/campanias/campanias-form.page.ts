@@ -49,8 +49,11 @@ export class CampaniasFormPage implements OnInit {
   }
 
   initForm() {
+    const currentYear = new Date().getFullYear();
     this.campaniaForm = this.fb.group({
       nombre: ['', Validators.required],
+      anio_inicio: [currentYear, Validators.required],
+      anio_fin: [currentYear + 1, Validators.required],
       descripcion: [''],
       activo: [true],
     });
