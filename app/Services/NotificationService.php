@@ -65,7 +65,7 @@ class NotificationService
                 }
 
                 // Enviar email
-                Mail::to($personal->correo_empresa, $personal->name)
+                Mail::to($personal->correo_empresa)
                     ->send(new NotificacionInspeccion(
                         $personal,
                         $inspeccion,
@@ -194,7 +194,7 @@ class NotificationService
                     continue;
                 }
 
-                Mail::to($personal->correo_empresa, $personal->name)
+                Mail::to($personal->correo_empresa)
                     ->send(new NotificacionInspeccion(
                         $personal,
                         $inspeccion,
