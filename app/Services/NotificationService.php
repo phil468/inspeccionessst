@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
+use App\Jobs\SendInspeccionNotificationEmailJob;
 use App\Models\Inspeccion;
 use App\Models\Personal;
 use App\Models\User;
 use App\Models\NotificationLog;
-use App\Mail\NotificacionInspeccion;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -25,13 +24,15 @@ class NotificationService
     public function enviarNotificacionesInspeccion(Inspeccion $inspeccion): array
     {
         $notificacionesEnviadas = [];
+        $recipientIndex = 0;
+        $delayStepSeconds = $this->getDelayStepSeconds();
 
         // Agrupar resultados por personal (responsables, visores, responsables levantamiento)
         $resultadosPorPersonal = $this->agruparResultadosPorPersonal($inspeccion);
 
         foreach ($resultadosPorPersonal as $personalId => $datos) {
             $personal = Personal::find($personalId);
-            
+
             if (!$personal || !$personal->correo_empresa) {
                 continue;
             }
@@ -58,43 +59,38 @@ class NotificationService
                         'canal' => 'email',
                         'estado' => 'omitted',
                         'motivo' => 'Existen resultados con foto_final_estado pendiente',
-                        'detalles' => ['resultados' => array_map(function ($r) { return ['id' => $r->id, 'foto_final_estado' => $r->foto_final_estado ?? null]; }, $resultadosUnicos)],
+                        'detalles' => ['resultados' => array_map(function ($r) {
+                            return ['id' => $r->id, 'foto_final_estado' => $r->foto_final_estado ?? null];
+                        }, $resultadosUnicos)],
                         'resultados_count' => count($resultadosUnicos),
                     ]);
                     continue;
                 }
 
-                // Enviar email
-                Mail::to($personal->correo_empresa)
-                    ->send(new NotificacionInspeccion(
-                        $personal,
-                        $inspeccion,
-                        $resultadosUnicos,
-                        $datos['roles'],
-                        $tipoNotificacion
-                    ));
-
-                // Registrar log de envío por email
-                NotificationLog::create([
-                    'inspeccion_id' => $inspeccion->id ?? null,
-                    'personal_id' => $personalId,
-                    'canal' => 'email',
-                    'estado' => 'sent',
-                    'motivo' => null,
-                    'detalles' => ['tipo' => $tipoNotificacion],
-                    'resultados_count' => count($resultadosUnicos),
-                ]);
+                $delaySeconds = $recipientIndex * $delayStepSeconds;
+                $emailLog = $this->encolarNotificacionEmail(
+                    $inspeccion,
+                    $personal,
+                    $resultadosUnicos,
+                    $datos['roles'],
+                    $tipoNotificacion,
+                    $delaySeconds
+                );
+                $recipientIndex++;
 
                 $notificacionesEnviadas[] = [
                     'personal_id' => $personalId,
                     'email' => $personal->correo_empresa,
                     'tipo' => $tipoNotificacion,
                     'resultados_count' => count($resultadosUnicos),
+                    'estado' => 'queued',
+                    'delay_seconds' => $delaySeconds,
                 ];
 
-                //informar de la notificacion enviada , cual era el numero de registro y el nombre del usuario que envia la notificacion
-                Log::info("Notificación enviada por email a: {$personal->correo_empresa} para inspección ID: {$inspeccion->id} / { $inspeccion->numero_registro } por usuario ID: " . auth()->id() . " / " . auth()->user()->name);
-                // Log::info("Notificación enviada por email a: {$personal->correo_empresa}");
+                Log::info("Notificación encolada por email a: {$personal->correo_empresa} para inspección ID: {$inspeccion->id} / {{$inspeccion->numero_registro}} con delay {$delaySeconds}s", [
+                    'notification_log_id' => $emailLog->id,
+                    'queue_connection' => config('queue.default'),
+                ]);
 
                 // Enviar push si existe usuario asociado
                 $user = User::where('personal_id', $personalId)->first();
@@ -117,7 +113,9 @@ class NotificationService
                     );
 
                     // Registrar log de push (success if any token success)
-                    $pushSuccess = collect($pushResult)->contains(function ($r) { return isset($r['success']) && $r['success']; });
+                    $pushSuccess = collect($pushResult)->contains(function ($r) {
+                        return isset($r['success']) && $r['success'];
+                    });
                     NotificationLog::create([
                         'inspeccion_id' => $inspeccion->id ?? null,
                         'personal_id' => $personalId,
@@ -154,6 +152,8 @@ class NotificationService
     public function enviarNotificacionesInspeccionParaPersonal(Inspeccion $inspeccion, array $personalIds): array
     {
         $notificacionesEnviadas = [];
+        $recipientIndex = 0;
+        $delayStepSeconds = $this->getDelayStepSeconds();
 
         $resultadosPorPersonal = $this->agruparResultadosPorPersonal($inspeccion);
 
@@ -188,39 +188,38 @@ class NotificationService
                         'canal' => 'email',
                         'estado' => 'omitted',
                         'motivo' => 'Existen resultados con foto_final_estado pendiente',
-                        'detalles' => ['resultados' => array_map(function ($r) { return ['id' => $r->id, 'foto_final_estado' => $r->foto_final_estado ?? null]; }, $resultadosUnicos)],
+                        'detalles' => ['resultados' => array_map(function ($r) {
+                            return ['id' => $r->id, 'foto_final_estado' => $r->foto_final_estado ?? null];
+                        }, $resultadosUnicos)],
                         'resultados_count' => count($resultadosUnicos),
                     ]);
                     continue;
                 }
 
-                Mail::to($personal->correo_empresa)
-                    ->send(new NotificacionInspeccion(
-                        $personal,
-                        $inspeccion,
-                        $resultadosUnicos,
-                        $datos['roles'],
-                        $tipoNotificacion
-                    ));
-
-                NotificationLog::create([
-                    'inspeccion_id' => $inspeccion->id ?? null,
-                    'personal_id' => $personalId,
-                    'canal' => 'email',
-                    'estado' => 'sent',
-                    'motivo' => null,
-                    'detalles' => ['tipo' => $tipoNotificacion],
-                    'resultados_count' => count($resultadosUnicos),
-                ]);
+                $delaySeconds = $recipientIndex * $delayStepSeconds;
+                $emailLog = $this->encolarNotificacionEmail(
+                    $inspeccion,
+                    $personal,
+                    $resultadosUnicos,
+                    $datos['roles'],
+                    $tipoNotificacion,
+                    $delaySeconds
+                );
+                $recipientIndex++;
 
                 $notificacionesEnviadas[] = [
                     'personal_id' => $personalId,
                     'email' => $personal->correo_empresa,
                     'tipo' => $tipoNotificacion,
                     'resultados_count' => count($resultadosUnicos),
+                    'estado' => 'queued',
+                    'delay_seconds' => $delaySeconds,
                 ];
 
-                Log::info("Notificación enviada a: {$personal->correo_empresa}");
+                Log::info("Notificación encolada por email a: {$personal->correo_empresa}", [
+                    'notification_log_id' => $emailLog->id,
+                    'delay_seconds' => $delaySeconds,
+                ]);
 
                 // Enviar push si existe usuario asociado
                 $user = User::where('personal_id', $personalId)->first();
@@ -242,7 +241,9 @@ class NotificationService
                         ]
                     );
 
-                    $pushSuccess = collect($pushResult)->contains(function ($r) { return isset($r['success']) && $r['success']; });
+                    $pushSuccess = collect($pushResult)->contains(function ($r) {
+                        return isset($r['success']) && $r['success'];
+                    });
                     NotificationLog::create([
                         'inspeccion_id' => $inspeccion->id ?? null,
                         'personal_id' => $personalId,
@@ -332,7 +333,7 @@ class NotificationService
         }
 
         $agrupacion[$personalId]['resultados'][] = $resultado;
-        
+
         if (!in_array($rol, $agrupacion[$personalId]['roles'])) {
             $agrupacion[$personalId]['roles'][] = $rol;
         }
@@ -346,7 +347,7 @@ class NotificationService
         $todosCerrados = true;
 
         foreach ($resultados as $resultado) {
-            if (!in_array($resultado->estado, ['Cerrado', 'Ejecutado','Cumplimiento','Buena Práctica'])) {
+            if (!in_array($resultado->estado, ['Cerrado', 'Ejecutado', 'Cumplimiento', 'Buena Práctica'])) {
                 $todosCerrados = false;
             }
         }
@@ -354,5 +355,60 @@ class NotificationService
         // Si todos están cerrados o ejecutados -> felicitaciones
         // En caso contrario -> advertencia por pendientes u otros estados no cerrados
         return $todosCerrados ? 'felicitaciones' : 'pendientes';
+    }
+
+    private function encolarNotificacionEmail(
+        Inspeccion $inspeccion,
+        Personal $personal,
+        array $resultadosUnicos,
+        array $roles,
+        string $tipoNotificacion,
+        int $delaySeconds
+    ): NotificationLog {
+        if (!$inspeccion->id) {
+            throw new \RuntimeException('La inspección debe tener ID de servidor para encolar notificaciones');
+        }
+
+        $resultadoIds = collect($resultadosUnicos)
+            ->pluck('id')
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $emailLog = NotificationLog::create([
+            'inspeccion_id' => $inspeccion->id,
+            'personal_id' => $personal->id,
+            'canal' => 'email',
+            'estado' => 'queued',
+            'motivo' => null,
+            'detalles' => [
+                'tipo' => $tipoNotificacion,
+                'delay_seconds' => $delaySeconds,
+                'queue_connection' => config('queue.default'),
+                'queued_at' => now()->toIso8601String(),
+            ],
+            'resultados_count' => count($resultadosUnicos),
+        ]);
+
+        SendInspeccionNotificationEmailJob::dispatch(
+            $emailLog->id,
+            (int) $inspeccion->id,
+            (int) $personal->id,
+            $resultadoIds,
+            array_values($roles),
+            $tipoNotificacion
+        )->delay(now()->addSeconds($delaySeconds));
+
+        return $emailLog;
+    }
+
+    private function getDelayStepSeconds(): int
+    {
+        $raw = $_ENV['MAIL_NOTIFICATION_DELAY_SECONDS']
+            ?? $_SERVER['MAIL_NOTIFICATION_DELAY_SECONDS']
+            ?? 5;
+
+        return max(0, (int) $raw);
     }
 }
