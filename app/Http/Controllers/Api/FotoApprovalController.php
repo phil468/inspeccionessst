@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ResultadoInspeccion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -171,6 +172,8 @@ class FotoApprovalController extends Controller
      */
     public function aprobarFotoFinal(Request $request, $resultadoId)
     {
+        // Valida que la petición indique una acción permitida y que el comentario,
+        // si existe, no supere el tamaño esperado.
         $validator = Validator::make($request->all(), [
             'accion' => 'required|in:aprobar,rechazar',
             'comentario' => 'nullable|string|max:500',
@@ -183,10 +186,13 @@ class FotoApprovalController extends Controller
             ], 422);
         }
 
+        // Carga el resultado que se está validando y el usuario autenticado
+        // que intenta aprobar o rechazar la foto final.
         $resultado = ResultadoInspeccion::findOrFail($resultadoId);
         $user = $request->user();
 
-        // Verificar que el usuario sea inspector en la inspección
+        // Solo un inspector asignado a la inspección, o un administrador,
+        // puede validar la foto final del resultado.
         $inspeccion = $resultado->inspeccion()->with('inspectores')->first();
         $esInspector = $inspeccion->inspectores->contains('id', $user->personal_id);
 
@@ -197,7 +203,7 @@ class FotoApprovalController extends Controller
             ], 403);
         }
 
-        // Verificar que haya foto
+        // No tiene sentido aprobar o rechazar si todavía no existe una foto final subida.
         if (!$resultado->registro_fotografico_final) {
             return response()->json([
                 'success' => false,
@@ -205,9 +211,11 @@ class FotoApprovalController extends Controller
             ], 400);
         }
 
-        // Actualizar estado
+        // Traducimos la acción recibida a un estado persistible en base de datos.
         $estado = $request->accion === 'aprobar' ? 'aprobada' : 'rechazada';
         
+        // Estos campos registran el resultado de la validación, quién la hizo
+        // y cuándo ocurrió.
         $updateData = [
             'foto_final_estado' => $estado,
             'foto_final_comentario' => $request->comentario,
@@ -215,17 +223,22 @@ class FotoApprovalController extends Controller
             'foto_final_aprobada_at' => now(),
         ];
 
-        // Si se aprueba la foto final, cambiar el estado del resultado a "Ejecutado"
+        // Si la foto final queda aprobada, el hallazgo se considera ejecutado
+        // y se marca también la fecha de cierre.
         if ($request->accion === 'aprobar') {
             $updateData['estado'] = 'Ejecutado';
-            //actualizamos fecha de cierre
+            // Actualizamos fecha de cierre para dejar trazabilidad del cierre real.
             $updateData['fecha_cierre'] = now();
         }
 
+        // Persistimos todos los cambios en un solo update.
         $resultado->update($updateData);
 
-        // Después de actualizar, enviar notificaciones al/los personal(es) responsables de este resultado
+        // Después de validar la foto, intentamos notificar a las personas vinculadas
+        // al resultado para que vean el nuevo estado.
         try {
+            // Recargamos la inspección con las relaciones necesarias para que el servicio
+            // de notificaciones pueda construir correctamente el contexto del mensaje.
             $inspeccion = $resultado->inspeccion()->with([
                 'empresa',
                 'area',
@@ -234,34 +247,39 @@ class FotoApprovalController extends Controller
                 'resultados.responsablesLevantamiento',
             ])->first();
 
+            // Reunimos todos los destinatarios relacionados con este resultado:
+            // responsable principal, responsables de levantamiento y visores.
             $personalIds = [];
             if ($resultado->responsable_id) {
                 $personalIds[] = $resultado->responsable_id;
             }
             if ($resultado->responsablesLevantamiento) {
                 foreach ($resultado->responsablesLevantamiento as $r) {
-                    // objetos Personal vienen con 'id'
+                    // Los objetos Personal cargados en la relación usan 'id'.
                     $personalIds[] = $r->id ?? null;
                 }
             }
 
             if ($resultado->visores) {
                 foreach ($resultado->visores as $v) {
-                    // objetos Personal vienen con 'id'
+                    // Los visores también llegan como objetos Personal con 'id'.
                     $personalIds[] = $v->id ?? null;
                 }
             }
 
+            // Eliminamos nulos y duplicados antes de enviar notificaciones.
             $personalIds = array_values(array_filter(array_unique($personalIds)));
 
+            // Solo llamamos al servicio si realmente hay destinatarios y contexto de inspección.
             if (!empty($personalIds) && $inspeccion) {
                 $notiResult = $this->notificationService->enviarNotificacionesInspeccionParaPersonal($inspeccion, $personalIds);
             }
         } catch (\Exception $e) {
-            // No bloquear la respuesta si falla la notificación
-            \Log::error('Error al enviar notificaciones después de validar foto final: ' . $e->getMessage());
+            // La validación principal ya ocurrió; un fallo notificando no debe romper la respuesta.
+            Log::error('Error al enviar notificaciones después de validar foto final: ' . $e->getMessage());
         }
 
+        // Devolvemos el resultado actualizado y, si existió, el resultado del envío de notificaciones.
         return response()->json([
             'success' => true,
             'message' => $request->accion === 'aprobar' 
