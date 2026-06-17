@@ -1,4 +1,9 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  CUSTOM_ELEMENTS_SCHEMA,
+  HostListener,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -11,6 +16,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import {
   ToastController,
   LoadingController,
+  AlertController,
   ModalController,
   ActionSheetController,
   IonHeader,
@@ -160,6 +166,8 @@ export class InspeccionFormPage implements OnInit {
     number,
     { fecha_firma?: string; firma_digital?: string }
   > = {};
+  hasUnsavedChanges = false;
+  private isSaving = false;
 
   constructor(
     private fb: FormBuilder,
@@ -173,6 +181,7 @@ export class InspeccionFormPage implements OnInit {
     private inspeccionService: InspeccionService,
     private toastController: ToastController,
     private loadingController: LoadingController,
+    private alertController: AlertController,
     private actionSheetController: ActionSheetController,
     private modalController: ModalController,
   ) {
@@ -271,6 +280,12 @@ export class InspeccionFormPage implements OnInit {
         }
         otroControl?.updateValueAndValidity();
       });
+
+    this.inspeccionForm.valueChanges.subscribe(() => {
+      if (!this.isSaving) {
+        this.hasUnsavedChanges = true;
+      }
+    });
   }
 
   /**
@@ -464,6 +479,8 @@ export class InspeccionFormPage implements OnInit {
 
         // Forzar actualización de los controles
         this.inspeccionForm.updateValueAndValidity();
+        this.inspeccionForm.markAsPristine();
+        this.hasUnsavedChanges = false;
       }, 150);
 
       // Cargar áreas, inspectores y resultados desde IndexedDB
@@ -556,13 +573,13 @@ export class InspeccionFormPage implements OnInit {
     }
   }
 
-  async guardar() {
+  async guardar(navigateAfterSave: boolean = true): Promise<boolean> {
     if (this.inspeccionForm.invalid) {
       await this.showToast(
         'Por favor completa todos los campos requeridos',
         'warning',
       );
-      return;
+      return false;
     }
 
     // Validar que todos los resultados tengan descripción
@@ -579,7 +596,7 @@ export class InspeccionFormPage implements OnInit {
         `La descripción es obligatoria en el resultado #${indices.join(', #')}`,
         'warning',
       );
-      return;
+      return false;
     }
 
     const loading = await this.loadingController.create({
@@ -588,6 +605,7 @@ export class InspeccionFormPage implements OnInit {
     await loading.present();
 
     try {
+      this.isSaving = true;
       const formData = this.inspeccionForm.value;
       const user = this.authService.currentUserValue;
 
@@ -666,11 +684,20 @@ export class InspeccionFormPage implements OnInit {
         }
       }
 
-      this.router.navigate(['/inspecciones']);
+      this.hasUnsavedChanges = false;
+      this.inspeccionForm.markAsPristine();
+
+      if (navigateAfterSave) {
+        this.router.navigate(['/inspecciones']);
+      }
+
+      return true;
     } catch (error: any) {
       console.error('Error al guardar:', error);
       await this.showToast('Error al guardar: ' + error.message, 'danger');
+      return false;
     } finally {
+      this.isSaving = false;
       await loading.dismiss();
     }
   }
@@ -770,8 +797,71 @@ export class InspeccionFormPage implements OnInit {
     }
   }
 
-  cancelar() {
-    this.router.navigate(['/inspecciones']);
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent) {
+    if (this.hasPendingChanges()) {
+      event.preventDefault();
+      event.returnValue = true;
+    }
+  }
+
+  hasPendingChanges(): boolean {
+    return this.hasUnsavedChanges || this.inspeccionForm?.dirty;
+  }
+
+  async canDeactivate(): Promise<boolean> {
+    if (!this.hasPendingChanges()) {
+      return true;
+    }
+
+    return await this.confirmLeaveWithUnsavedChanges();
+  }
+
+  private async confirmLeaveWithUnsavedChanges(): Promise<boolean> {
+    return await new Promise<boolean>(async (resolve) => {
+      const alert = await this.alertController.create({
+        header: '¿Desea guardar el avance?',
+        message:
+          'Tiene cambios sin guardar. Si sale o actualiza la página, la información ingresada se perderá.',
+        buttons: [
+          {
+            text: 'Cancelar',
+            role: 'cancel',
+            handler: () => resolve(false),
+          },
+          {
+            text: 'Salir sin guardar',
+            role: 'destructive',
+            handler: () => {
+              this.hasUnsavedChanges = false;
+              this.inspeccionForm.markAsPristine();
+              resolve(true);
+            },
+          },
+          {
+            text: 'Guardar avance',
+            handler: async () => {
+              const saved = await this.guardar(false);
+              resolve(saved);
+            },
+          },
+        ],
+      });
+
+      await alert.present();
+    });
+  }
+
+  private markUnsavedChanges() {
+    if (!this.isSaving) {
+      this.hasUnsavedChanges = true;
+    }
+  }
+
+  async cancelar() {
+    if (await this.canDeactivate()) {
+      this.router.navigate(['/inspecciones']);
+    }
   }
 
   // ========== GESTIÓN DE ÁREAS MÚLTIPLES (MODAL) ==========
@@ -789,6 +879,7 @@ export class InspeccionFormPage implements OnInit {
     const { data } = await modal.onWillDismiss();
     if (data && data.areas) {
       this.areasSeleccionadas = data.areas;
+      this.markUnsavedChanges();
     }
   }
 
@@ -821,6 +912,7 @@ export class InspeccionFormPage implements OnInit {
     const { data } = await modal.onWillDismiss();
     if (data && data.inspectores) {
       this.inspectoresSeleccionados = data.inspectores;
+      this.markUnsavedChanges();
     }
   }
 
@@ -859,6 +951,7 @@ export class InspeccionFormPage implements OnInit {
     } else {
       this.firmasInspectores[personalId].fecha_firma = undefined;
     }
+    this.markUnsavedChanges();
   }
 
   // ========== GESTIÓN DE RESULTADOS/HALLAZGOS ==========
@@ -880,10 +973,12 @@ export class InspeccionFormPage implements OnInit {
     this.calcularFechaLimite(nuevoResultado);
 
     this.resultados.push(nuevoResultado);
+    this.markUnsavedChanges();
   }
 
   eliminarResultado(index: number) {
     this.resultados.splice(index, 1);
+    this.markUnsavedChanges();
   }
 
   async tomarFoto(
@@ -913,10 +1008,12 @@ export class InspeccionFormPage implements OnInit {
       // Asignar la imagen al resultado según el tipo
       if (tipo === 'inicial') {
         resultado.registro_fotografico_inicial = imageData;
+        this.markUnsavedChanges();
         await this.showToast('Foto inicial capturada', 'success');
       } else {
         resultado.registro_fotografico_final = imageData;
         resultado.foto_final_estado = 'pendiente';
+        this.markUnsavedChanges();
 
         // Si el resultado ya está guardado en el servidor (tiene ID), subir la foto inmediatamente
         if (resultado.id && this.isOnline) {
@@ -1053,6 +1150,7 @@ export class InspeccionFormPage implements OnInit {
    */
   onNivelRiesgoChange(resultado: ResultadoInspeccion): void {
     this.calcularFechaLimite(resultado);
+    this.markUnsavedChanges();
   }
 
   /**
@@ -1075,6 +1173,7 @@ export class InspeccionFormPage implements OnInit {
       // Pendiente: recalcular fecha límite según nivel de riesgo
       this.calcularFechaLimite(resultado);
     }
+    this.markUnsavedChanges();
   }
 
   getEstadoColor(estado: EstadoResultado): string {
@@ -1127,11 +1226,13 @@ export class InspeccionFormPage implements OnInit {
       this.resultados[resultadoIndex].responsable_id = nuevoResponsable.id;
       // Forzar detección de cambios reasignando el array
       this.resultados = [...this.resultados];
+      this.markUnsavedChanges();
     } else if (data && data.inspectores && data.inspectores.length === 0) {
       // Si deseleccionó todo, limpiar el responsable
       this.resultados[resultadoIndex].responsable = undefined;
       this.resultados[resultadoIndex].responsable_id = undefined;
       this.resultados = [...this.resultados];
+      this.markUnsavedChanges();
     }
   }
 
@@ -1157,6 +1258,7 @@ export class InspeccionFormPage implements OnInit {
       this.resultados[resultadoIndex].visores = data.inspectores;
       // Forzar detección de cambios
       this.resultados = [...this.resultados];
+      this.markUnsavedChanges();
     }
   }
 
@@ -1224,6 +1326,7 @@ export class InspeccionFormPage implements OnInit {
         data.inspectores;
       // Forzar detección de cambios
       this.resultados = [...this.resultados];
+      this.markUnsavedChanges();
     }
   }
 

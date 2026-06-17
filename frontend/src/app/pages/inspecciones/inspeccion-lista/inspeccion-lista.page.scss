@@ -116,3 +116,34 @@ ion-badge {
   margin: 8px 12px;
   border-radius: 6px;
 }
+
+.filters-toolbar {
+  --min-height: auto;
+}
+
+.filters-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 0 12px 10px;
+
+  ion-select {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+    color: var(--ion-color-dark);
+    background: var(--ion-color-light);
+  }
+}
+
+.skeleton-list ion-item {
+  --min-height: 92px;
+}
+
+@media (max-width: 520px) {
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+}

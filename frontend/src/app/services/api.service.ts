@@ -418,10 +418,18 @@ export class ApiService {
   /**
    * Obtener inspecciones del servidor
    */
-  downloadInspecciones(): Observable<ApiResponse<Inspeccion[]>> {
+  downloadInspecciones(
+    page: number = 1,
+    perPage: number = 250,
+  ): Observable<ApiResponse<Inspeccion[]>> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('per_page', perPage.toString());
+
     return this.http
       .get<ApiResponse<Inspeccion[]>>(`${this.baseUrl}/sync/inspecciones`, {
         headers: this.getHeaders(),
+        params,
       })
       .pipe(timeout(this.timeout), catchError(this.handleError));
   }

@@ -581,6 +581,8 @@ class SyncController extends Controller
         $validator = Validator::make($request->all(), [
             'ultima_sincronizacion' => 'nullable|date',
             'limit' => 'nullable|integer|min:1|max:500',
+            'per_page' => 'nullable|integer|min:1|max:500',
+            'page' => 'nullable|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -625,9 +627,10 @@ class SyncController extends Controller
                 $query->where('updated_at', '>', $request->ultima_sincronizacion);
             }
 
-            // Limitar resultados
-            $limit = $request->input('limit', 100);
-            $inspecciones = $query->limit($limit)->get();
+            $perPage = (int) $request->input('per_page', $request->input('limit', 250));
+            $page = (int) $request->input('page', 1);
+            $inspeccionesPaginator = $query->paginate($perPage, ['*'], 'page', $page);
+            $inspecciones = collect($inspeccionesPaginator->items());
 
             // ── Tombstones: inspecciones eliminadas para propagar deletes a otros dispositivos ──
             $deletedQuery = Inspeccion::onlyTrashed()
@@ -641,14 +644,23 @@ class SyncController extends Controller
                 $deletedQuery->where('deleted_at', '>', $request->ultima_sincronizacion);
             }
 
-            $deletedInspecciones = $deletedQuery->limit($limit)->get();
+            $deletedInspecciones = $deletedQuery
+                ->orderBy('deleted_at', 'desc')
+                ->limit($perPage)
+                ->get();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Inspecciones descargadas exitosamente',
                 'data' => $inspecciones,
                 'deleted' => $deletedInspecciones,
-                'total' => $inspecciones->count(),
+                'total' => $inspeccionesPaginator->total(),
+                'pagination' => [
+                    'total' => $inspeccionesPaginator->total(),
+                    'per_page' => $inspeccionesPaginator->perPage(),
+                    'current_page' => $inspeccionesPaginator->currentPage(),
+                    'last_page' => $inspeccionesPaginator->lastPage(),
+                ],
                 'timestamp' => now()->toIso8601String(),
             ]);
         } catch (\Exception $e) {
@@ -783,18 +795,52 @@ class SyncController extends Controller
 
         // 2. Sincronizar inspectores
         if (isset($data['inspectores']) && is_array($data['inspectores'])) {
-            // Limpiar inspectores existentes
-            InspeccionInspector::where('inspeccion_id', $inspeccion->id)->delete();
+            $inspectoresRecibidos = collect($data['inspectores'])
+                ->filter(fn ($inspectorData) => !empty($inspectorData['personal_id']))
+                ->unique('personal_id')
+                ->values();
 
-            // Agregar nuevos inspectores con local_id
-            foreach ($data['inspectores'] as $inspectorData) {
-                InspeccionInspector::create([
-                    'local_id' => \Illuminate\Support\Str::uuid(),
-                    'inspeccion_id' => $inspeccion->id,
-                    'personal_id' => $inspectorData['personal_id'],
-                    'fecha_firma' => $inspectorData['fecha_firma'] ?? null,
-                    'firma_digital' => $inspectorData['firma_digital'] ?? null,
-                ]);
+            $personalIdsRecibidos = $inspectoresRecibidos
+                ->pluck('personal_id')
+                ->map(fn ($personalId) => (int) $personalId)
+                ->all();
+
+            // Los inspectores que ya no vienen desde el cliente sí se eliminan físicamente.
+            InspeccionInspector::withTrashed()
+                ->where('inspeccion_id', $inspeccion->id)
+                ->when(count($personalIdsRecibidos) > 0, function ($query) use ($personalIdsRecibidos) {
+                    $query->whereNotIn('personal_id', $personalIdsRecibidos);
+                })
+                ->when(count($personalIdsRecibidos) === 0, function ($query) {
+                    $query->whereRaw('1 = 1');
+                })
+                ->forceDelete();
+
+            foreach ($inspectoresRecibidos as $inspectorData) {
+                $inspector = InspeccionInspector::withTrashed()
+                    ->where('inspeccion_id', $inspeccion->id)
+                    ->where('personal_id', $inspectorData['personal_id'])
+                    ->first();
+
+                if (!$inspector) {
+                    $inspector = new InspeccionInspector([
+                        'local_id' => \Illuminate\Support\Str::uuid(),
+                        'inspeccion_id' => $inspeccion->id,
+                        'personal_id' => $inspectorData['personal_id'],
+                    ]);
+                } elseif ($inspector->trashed()) {
+                    $inspector->restore();
+                }
+
+                if (array_key_exists('fecha_firma', $inspectorData)) {
+                    $inspector->fecha_firma = $inspectorData['fecha_firma'];
+                }
+
+                if (array_key_exists('firma_digital', $inspectorData)) {
+                    $inspector->firma_digital = $inspectorData['firma_digital'];
+                }
+
+                $inspector->save();
             }
         }
 

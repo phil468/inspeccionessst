@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
+import { unsavedChangesGuard } from './guards/unsaved-changes.guard';
 
 export const routes: Routes = [
   {
@@ -164,6 +165,7 @@ export const routes: Routes = [
           import(
             './pages/inspecciones/inspeccion-form/inspeccion-form.page'
           ).then((m) => m.InspeccionFormPage),
+        canDeactivate: [unsavedChangesGuard],
       },
       {
         path: 'inspecciones/form/:id',
@@ -171,6 +173,7 @@ export const routes: Routes = [
           import(
             './pages/inspecciones/inspeccion-form/inspeccion-form.page'
           ).then((m) => m.InspeccionFormPage),
+        canDeactivate: [unsavedChangesGuard],
       },
       {
         path: 'usuarios',

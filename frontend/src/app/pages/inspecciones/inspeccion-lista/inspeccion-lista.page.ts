@@ -22,6 +22,11 @@ import {
   IonLabel,
   IonList,
   IonItem,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonSkeletonText,
+  IonSelect,
+  IonSelectOption,
 } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { DatabaseService } from '../../../services/database.service';
@@ -79,12 +84,24 @@ import {
     IonLabel,
     IonList,
     IonItem,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
+    IonSkeletonText,
+    IonSelect,
+    IonSelectOption,
   ],
 })
 export class InspeccionListaPage implements OnInit {
   inspecciones: Inspeccion[] = [];
   inspeccionesFiltradas: Inspeccion[] = [];
+  inspeccionesVisibles: Inspeccion[] = [];
+  sedes: any[] = [];
   searchTerm = '';
+  sedeFilter: number | 'all' = 'all';
+  estadoFilter: 'all' | 'Pendiente' | 'Cumplimiento' | 'Ejecutado' = 'all';
+  isLoadingInspecciones = false;
+  private readonly pageSize = 25;
+  private visibleCount = this.pageSize;
   isOnline = true; // Inicializar como true, se actualizará inmediatamente con el valor real
   isProd = environment.production;
   syncStatus = {
@@ -250,32 +267,47 @@ export class InspeccionListaPage implements OnInit {
   }
 
   async loadInspecciones() {
+    this.isLoadingInspecciones = true;
     try {
       this.inspecciones = await this.databaseService.getInspecciones();
 
       // Enriquecer con nombres de catálogos
       const empresas = await this.databaseService.getEmpresas();
       const areas = await this.databaseService.getAreas();
+      this.sedes = await this.databaseService.getFundos();
 
-      this.inspecciones = this.inspecciones.map((inspeccion) => {
+      this.inspecciones = await Promise.all(this.inspecciones.map(async (inspeccion) => {
         const empresa = empresas.find(
           (e: any) => e.id === inspeccion.empresa_id,
         );
         const area = areas.find((a: any) => a.id === inspeccion.area_id);
+        const fundo = this.sedes.find((s: any) => s.id === inspeccion.fundo_id);
+        const resultados =
+          inspeccion.resultados && inspeccion.resultados.length > 0
+            ? inspeccion.resultados
+            : inspeccion.id
+              ? await this.databaseService.getResultadosByInspeccion(
+                  inspeccion.id,
+                )
+              : [];
 
         return {
           ...inspeccion,
           empresa,
           area,
+          fundo: inspeccion.fundo || fundo,
+          resultados,
         };
-      });
+      }));
 
       // El orden ya lo aplica DatabaseService.getInspecciones().
 
-      this.inspeccionesFiltradas = [...this.inspecciones];
+      this.filterInspecciones(true);
     } catch (error) {
       console.error('Error al cargar inspecciones:', error);
       await this.showToast('Error al cargar inspecciones', 'danger');
+    } finally {
+      this.isLoadingInspecciones = false;
     }
   }
 
@@ -300,21 +332,77 @@ export class InspeccionListaPage implements OnInit {
     );
   }
 
-  filterInspecciones() {
+  filterInspecciones(resetScroll: boolean = true) {
     const term = this.searchTerm.toLowerCase().trim();
-    if (!term) {
-      this.inspeccionesFiltradas = [...this.inspecciones];
-      return;
-    }
 
-    this.inspeccionesFiltradas = this.inspecciones.filter(
-      (inspeccion) =>
-        inspeccion.empresa?.name.toLowerCase().includes(term) ||
-        inspeccion.area?.name.toLowerCase().includes(term) ||
+    this.inspeccionesFiltradas = this.inspecciones.filter((inspeccion) => {
+      const matchesTerm =
+        !term ||
+        inspeccion.empresa?.name?.toLowerCase().includes(term) ||
+        inspeccion.area?.name?.toLowerCase().includes(term) ||
         inspeccion.zona_inspeccionada?.toLowerCase().includes(term) ||
         inspeccion.numero_registro?.toLowerCase().includes(term) ||
-        inspeccion.tipo_inspeccion.toLowerCase().includes(term),
+        inspeccion.tipo_inspeccion?.toLowerCase().includes(term);
+      const matchesSede =
+        this.sedeFilter === 'all' ||
+        Number(inspeccion.fundo_id) === Number(this.sedeFilter);
+      const matchesEstado =
+        this.estadoFilter === 'all' ||
+        this.getEstadoInspeccion(inspeccion) === this.estadoFilter;
+
+      return matchesTerm && matchesSede && matchesEstado;
+    });
+
+    if (resetScroll) {
+      this.visibleCount = this.pageSize;
+    }
+
+    this.updateVisibleInspecciones();
+  }
+
+  clearFilters() {
+    this.searchTerm = '';
+    this.sedeFilter = 'all';
+    this.estadoFilter = 'all';
+    this.filterInspecciones();
+  }
+
+  onIonInfinite(event: any) {
+    this.visibleCount += this.pageSize;
+    this.updateVisibleInspecciones();
+    event.target.complete();
+    event.target.disabled = !this.hasMoreInspecciones();
+  }
+
+  private updateVisibleInspecciones() {
+    this.inspeccionesVisibles = this.inspeccionesFiltradas.slice(
+      0,
+      this.visibleCount,
     );
+  }
+
+  hasMoreInspecciones(): boolean {
+    return this.inspeccionesVisibles.length < this.inspeccionesFiltradas.length;
+  }
+
+  getEstadoInspeccion(
+    inspeccion: Inspeccion,
+  ): 'Pendiente' | 'Cumplimiento' | 'Ejecutado' {
+    const estados = (inspeccion.resultados || []).map((r: any) => r.estado);
+
+    if (estados.includes('Pendiente')) {
+      return 'Pendiente';
+    }
+
+    if (estados.includes('Cumplimiento')) {
+      return 'Cumplimiento';
+    }
+
+    if (estados.includes('Ejecutado')) {
+      return 'Ejecutado';
+    }
+
+    return 'Pendiente';
   }
 
   async nuevaInspeccion() {

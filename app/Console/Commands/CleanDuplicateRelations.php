@@ -17,7 +17,8 @@ class CleanDuplicateRelations extends Command
      */
     protected $signature = 'inspecciones:clean-duplicates 
                             {--dry-run : Solo mostrar qué se haría sin ejecutar cambios}
-                            {--inspeccion= : Limpiar solo una inspección específica por ID}';
+                            {--inspeccion= : Limpiar solo una inspección específica por ID}
+                            {--purge-trashed : Eliminar fisicamente relaciones con deleted_at}';
 
     /**
      * The console command description.
@@ -33,6 +34,7 @@ class CleanDuplicateRelations extends Command
     {
         $dryRun = $this->option('dry-run');
         $inspeccionId = $this->option('inspeccion');
+        $purgeTrashed = $this->option('purge-trashed');
 
         $this->info('=== Limpieza de relaciones duplicadas ===');
         
@@ -48,6 +50,10 @@ class CleanDuplicateRelations extends Command
             
             // Limpiar inspectores duplicados
             $this->limpiarInspectoresDuplicados($inspeccionId, $dryRun);
+
+            if ($purgeTrashed) {
+                $this->purgarRelacionesEliminadas($inspeccionId, $dryRun);
+            }
 
             if (!$dryRun) {
                 DB::commit();
@@ -157,5 +163,34 @@ class CleanDuplicateRelations extends Command
         }
 
         $this->info("   📊 Total inspectores duplicados a eliminar: {$totalEliminados}");
+    }
+    private function purgarRelacionesEliminadas(?string $inspeccionId, bool $dryRun): void
+    {
+        $this->info("\nAnalizando relaciones eliminadas con soft delete...");
+
+        $areasQuery = InspeccionArea::onlyTrashed();
+        $inspectoresQuery = InspeccionInspector::onlyTrashed();
+
+        if ($inspeccionId) {
+            $areasQuery->where('inspeccion_id', $inspeccionId);
+            $inspectoresQuery->where('inspeccion_id', $inspeccionId);
+        }
+
+        $areas = (clone $areasQuery)->count();
+        $inspectores = (clone $inspectoresQuery)->count();
+
+        $this->line("   Areas con deleted_at: {$areas}");
+        $this->line("   Inspectores con deleted_at: {$inspectores}");
+
+        if ($dryRun) {
+            $this->info("   Total relaciones a purgar: " . ($areas + $inspectores));
+            return;
+        }
+
+        $areasQuery->forceDelete();
+        $inspectoresQuery->forceDelete();
+
+        $this->info("   Relaciones purgadas fisicamente: " . ($areas + $inspectores));
+        $this->warn('   Para recuperar espacio en disco en MySQL/MariaDB, ejecuta OPTIMIZE TABLE inspeccion_areas, inspeccion_inspectores;');
     }
 }

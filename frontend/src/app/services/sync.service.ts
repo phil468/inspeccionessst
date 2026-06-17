@@ -640,9 +640,30 @@ export class SyncService {
    */
   async downloadInspecciones(): Promise<void> {
     try {
-      const response = await this.apiService.downloadInspecciones().toPromise();
-      if (response && response.data) {
-        const inspecciones = response.data;
+      const perPage = 250;
+      let page = 1;
+      let lastPage = 1;
+      const inspecciones: any[] = [];
+      let deletedList: any[] = [];
+
+      do {
+        const response: any = await this.apiService
+          .downloadInspecciones(page, perPage)
+          .toPromise();
+
+        if (response?.data?.length) {
+          inspecciones.push(...response.data);
+        }
+
+        if (Array.isArray(response?.deleted) && response.deleted.length > 0) {
+          deletedList = [...deletedList, ...response.deleted];
+        }
+
+        lastPage = response?.pagination?.last_page ?? 1;
+        page += 1;
+      } while (page <= lastPage);
+
+      if (inspecciones.length > 0) {
         console.log(
           `📥 Descargando ${inspecciones.length} inspecciones del servidor...`,
         );
@@ -733,7 +754,6 @@ export class SyncService {
       }
 
       // ── Procesar tombstones (inspecciones eliminadas en el servidor) ──
-      const deletedList = (response as any)?.deleted;
       if (deletedList && Array.isArray(deletedList) && deletedList.length > 0) {
         await this.processDeletedTombstones(deletedList);
       }

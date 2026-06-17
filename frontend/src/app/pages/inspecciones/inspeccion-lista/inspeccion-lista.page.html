@@ -26,6 +26,38 @@
       animated
     ></ion-searchbar>
   </ion-toolbar>
+  <ion-toolbar color="primary" class="filters-toolbar">
+    <div class="filters-row">
+      <ion-select
+        [(ngModel)]="sedeFilter"
+        (ionChange)="filterInspecciones()"
+        interface="popover"
+        placeholder="Sede"
+        aria-label="Filtrar por sede"
+        >
+        <ion-select-option value="all">Todas las sedes</ion-select-option>
+        <ion-select-option *ngFor="let sede of sedes" [value]="sede.id">
+          {{ sede.nombre }}
+        </ion-select-option>
+      </ion-select>
+
+      <ion-select
+        [(ngModel)]="estadoFilter"
+        (ionChange)="filterInspecciones()"
+        interface="popover"
+        placeholder="Estado"
+        aria-label="Filtrar por estado">
+        <ion-select-option value="all">Todos los estados</ion-select-option>
+        <ion-select-option value="Pendiente">Pendiente</ion-select-option>
+        <ion-select-option value="Cumplimiento">Cumplimiento</ion-select-option>
+        <ion-select-option value="Ejecutado">Ejecutado</ion-select-option>
+      </ion-select>
+
+      <ion-button fill="clear" color="light" size="small" (click)="clearFilters()">
+        Limpiar
+      </ion-button>
+    </div>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content>
@@ -60,9 +92,20 @@
     </ion-button>
   </div>
 
+  <ion-list *ngIf="isLoadingInspecciones" class="skeleton-list">
+    <ion-item *ngFor="let item of [1,2,3,4,5,6]">
+      <ion-label>
+        <h2><ion-skeleton-text animated style="width: 45%"></ion-skeleton-text></h2>
+        <p><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></p>
+        <p><ion-skeleton-text animated style="width: 55%"></ion-skeleton-text></p>
+        <p><ion-skeleton-text animated style="width: 35%"></ion-skeleton-text></p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
   <!-- Lista de inspecciones -->
-  <ion-list *ngIf="inspeccionesFiltradas.length > 0">
-    <ion-item *ngFor="let inspeccion of inspeccionesFiltradas" [button]="!inspeccion.deleted" (click)="inspeccion.deleted ? null : editarInspeccion(inspeccion)" [class.deleted-item]="inspeccion.deleted">
+  <ion-list *ngIf="!isLoadingInspecciones && inspeccionesFiltradas.length > 0">
+    <ion-item *ngFor="let inspeccion of inspeccionesVisibles" [button]="!inspeccion.deleted" (click)="inspeccion.deleted ? null : editarInspeccion(inspeccion)" [class.deleted-item]="inspeccion.deleted">
       <!-- <ion-icon name="business-outline" size="small" slot="start" color="primary"></ion-icon> -->
       
       <ion-label>
@@ -74,7 +117,7 @@
           <ion-icon name="calendar-outline"></ion-icon>
           {{ formatDateTime(inspeccion.fecha_hora_inspeccion) }}
         </p>
-        <p class="tipo-text">{{ inspeccion.tipo_inspeccion }}</p>
+        <p class="tipo-text">{{ inspeccion.tipo_inspeccion }} · {{ getEstadoInspeccion(inspeccion) }}</p>
       </ion-label>
 
       <div slot="end" class="item-end">
@@ -110,12 +153,22 @@
   </ion-list>
 
   <!-- Estado vacío -->
-  <div class="empty-state" *ngIf="inspeccionesFiltradas.length === 0">
+  <ion-infinite-scroll
+    threshold="120px"
+    (ionInfinite)="onIonInfinite($event)"
+    [disabled]="!hasMoreInspecciones()">
+    <ion-infinite-scroll-content
+      loadingSpinner="crescent"
+      loadingText="Cargando más inspecciones...">
+    </ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+
+  <div class="empty-state" *ngIf="!isLoadingInspecciones && inspeccionesFiltradas.length === 0">
     <ion-icon name="document-text-outline" size="large"></ion-icon>
     <h3>No hay inspecciones</h3>
-    <p *ngIf="searchTerm">No se encontraron resultados para "{{ searchTerm }}"</p>
-    <p *ngIf="!searchTerm">Crea tu primera inspección para comenzar</p>
-    <ion-button *ngIf="!searchTerm" (click)="nuevaInspeccion()">
+    <p *ngIf="searchTerm || sedeFilter !== 'all' || estadoFilter !== 'all'">No se encontraron inspecciones con los filtros seleccionados</p>
+    <p *ngIf="!searchTerm && sedeFilter === 'all' && estadoFilter === 'all'">Crea tu primera inspección para comenzar</p>
+    <ion-button *ngIf="!searchTerm && sedeFilter === 'all' && estadoFilter === 'all'" (click)="nuevaInspeccion()">
       <ion-icon slot="start" name="add-outline"></ion-icon>
       Nueva Inspección
     </ion-button>
